@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const shop = cookies().get('shop_domain')?.value;
+    const { id } = await params;
+    const cookieStore = await cookies();
+    const shop = cookieStore.get('shop_domain')?.value;
     if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const merchant = await prisma.merchant.findUnique({ where: { shopDomain: shop } });
@@ -13,7 +15,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const { isActive } = await request.json();
 
     const coupon = await prisma.coupon.update({
-      where: { id: params.id, merchantId: merchant.id },
+      where: { id, merchantId: merchant.id },
       data: { isActive }
     });
 
