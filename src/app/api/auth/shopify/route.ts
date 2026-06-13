@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
-    const { shop } = await request.json();
+    const url = new URL(request.url);
+    const shop = url.searchParams.get('shop');
 
     if (!shop) {
-      return NextResponse.json({ error: 'Missing shop parameter' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing shop parameter. Make sure to include ?shop=your-store.myshopify.com in the URL.' }, { status: 400 });
     }
 
     const clientId = process.env.SHOPIFY_CLIENT_ID;
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     // Build the authorization URL
     const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}`;
 
-    return NextResponse.json({ authUrl });
+    return NextResponse.redirect(authUrl);
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
