@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const shop = cookies().get('shop_domain')?.value;
+    const cookieStore = await cookies();
+    const shop = cookieStore.get('shop_domain')?.value;
 
     if (!shop) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
