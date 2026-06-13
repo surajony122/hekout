@@ -43,7 +43,7 @@
         <div style="display:flex; gap:15px; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #eee;">
           ${productImage ? `<img src="${productImage}" style="width:60px; height:60px; border-radius:8px; object-fit:cover;" />` : ''}
           <div>
-            <div style="font-weight:600; color:#333;">${productTitle}</div>
+            <div style="font-weight:600; color:#333;">${productTitle || 'Product'}</div>
             <div style="color:#666;">Qty: ${quantity}</div>
             <div style="font-weight:bold; margin-top:5px; color:#111;">₹${total}</div>
           </div>
@@ -118,8 +118,8 @@
         };
 
         try {
-          // Pointing to localhost for dev, in production this is the SaaS URL
-          const apiBaseUrl = 'http://localhost:3000';
+          // Pointing to Render SaaS URL
+          const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
           const res = await fetch(`${apiBaseUrl}/api/create-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -138,17 +138,74 @@
             `;
           } else {
             alert('Failed to place order: ' + (data.error || 'Unknown error'));
-            submitBtn.innerText = `Complete Order • ₹${total}`;
+            submitBtn.innerText = \`Complete Order • ₹\${total}\`;
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
           }
         } catch(err) {
           alert('Network error. Please try again.');
-          submitBtn.innerText = `Complete Order • ₹${total}`;
+          submitBtn.innerText = \`Complete Order • ₹\${total}\`;
           submitBtn.disabled = false;
           submitBtn.style.opacity = '1';
         }
       };
+    },
+
+    // Auto-Initialization Function
+    autoInject: function() {
+      // 1. Wait for page to fully load
+      window.addEventListener('DOMContentLoaded', () => {
+        // Find the standard Shopify Add to Cart forms
+        const cartForms = document.querySelectorAll('form[action="/cart/add"]');
+        
+        cartForms.forEach(form => {
+          // Create our custom Fast Checkout Button
+          const fastCheckoutBtn = document.createElement('button');
+          fastCheckoutBtn.type = 'button';
+          fastCheckoutBtn.innerText = 'Buy Now (CheckoutFlow)';
+          fastCheckoutBtn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer;';
+          
+          fastCheckoutBtn.onclick = (e) => {
+            e.preventDefault();
+            
+            // Attempt to extract product data from the Shopify page dynamically
+            let variantId = 'unknown';
+            const variantInput = form.querySelector('input[name="id"], select[name="id"]');
+            if (variantInput) variantId = variantInput.value;
+
+            let quantity = 1;
+            const qtyInput = form.querySelector('input[name="quantity"]');
+            if (qtyInput) quantity = parseInt(qtyInput.value) || 1;
+
+            // Grab Shopify global data if available
+            const shopDomain = window.Shopify ? window.Shopify.shop : 'test.myshopify.com';
+            
+            // Try to scrape title and price from the page
+            const titleEl = document.querySelector('h1');
+            const productTitle = titleEl ? titleEl.innerText : 'Product';
+            
+            const priceEl = document.querySelector('.price, .product__price, [data-product-price]');
+            let priceStr = priceEl ? priceEl.innerText.replace(/[^0-9.]/g, '') : '0';
+            let price = parseFloat(priceStr);
+            if (isNaN(price)) price = 0;
+
+            window.CheckoutFlow.open({
+              shop: shopDomain,
+              variantId: variantId,
+              quantity: quantity,
+              productTitle: productTitle,
+              price: price
+            });
+          };
+
+          // Inject it below the form
+          form.appendChild(fastCheckoutBtn);
+        });
+      });
     }
   };
+
+  // Run auto inject automatically when script loads
+  window.CheckoutFlow.autoInject();
+
 })();
