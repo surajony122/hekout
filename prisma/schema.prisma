@@ -22,6 +22,7 @@ model Merchant {
   customers        CustomerProfile[]
   analyticsEvents  AnalyticsEvent[]
   coupons          Coupon[]
+  otpVerifications OtpVerification[]
 
   @@map("merchants")
 }
@@ -112,4 +113,18 @@ model Coupon {
   merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@map("coupons")
+}
+
+model OtpVerification {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  phone      String
+  code       String
+  expiresAt  DateTime @map("expires_at")
+  verified   Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("otp_verifications")
 }

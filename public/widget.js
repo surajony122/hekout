@@ -157,6 +157,23 @@
             Complete Order &bull; ₹${total.toLocaleString('en-IN')}
           </button>
         </form>
+
+        <div id="cf-otp-screen" style="display:none; text-align:center; padding: 20px 0;">
+           <h2 style="font-size:1.4rem; font-weight:700; margin-bottom:10px; color:#111827;">Verify your number</h2>
+           <p style="color:#4b5563; font-size:0.95rem; margin-bottom:20px;">We've sent an SMS with an activation code to <b id="cf-otp-phone-display"></b>.</p>
+           
+           <div style="background:#fef3c7; border:1px solid #f59e0b; padding:12px; border-radius:8px; margin-bottom:20px; text-align:left;">
+             <span style="font-size:0.8rem; font-weight:bold; color:#b45309; text-transform:uppercase;">SMS Simulator</span><br/>
+             <span style="font-size:0.95rem; color:#92400e;">Your verification code is: <b id="cf-simulated-code"></b></span>
+           </div>
+
+           <input type="text" id="cf-otp-input" placeholder="Enter 4-digit OTP" style="width:100%; padding:16px; border:2px solid #d1d5db; border-radius:8px; font-size:1.2rem; text-align:center; letter-spacing:8px; margin-bottom:20px; outline:none;" maxlength="4" />
+           
+           <button type="button" id="cf-verify-btn" style="width:100%; padding:16px; background:#10b981; color:#fff; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer;">
+             Verify & Place Order
+           </button>
+           <p id="cf-otp-error" style="color:#ef4444; font-size:0.9rem; margin-top:12px; display:none;"></p>
+        </div>
       `;
 
       overlay.appendChild(sheet);
@@ -170,6 +187,38 @@
         sheet.style.transform = 'translateY(100%)';
         setTimeout(() => overlay.remove(), 300);
       };
+
+      // Customer Autofill Engine
+      setTimeout(() => {
+        const phoneInput = document.getElementById('cf-phone');
+        if (phoneInput) {
+          phoneInput.addEventListener('input', async (e) => {
+            const val = e.target.value.replace(/\D/g, '');
+            if (val.length === 10) {
+              try {
+                const res = await fetch(`https://checkoutflow-app.onrender.com/api/customer/lookup?shop=${shop}&phone=${val}`);
+                const data = await res.json();
+                if (data.success && data.customer) {
+                  document.getElementById('cf-name').value = data.customer.name || '';
+                  if (data.customer.email) document.getElementById('cf-email').value = data.customer.email;
+                  document.getElementById('cf-address').value = data.customer.address || '';
+                  document.getElementById('cf-city').value = data.customer.city || '';
+                  document.getElementById('cf-state').value = data.customer.state || '';
+                  document.getElementById('cf-pincode').value = data.customer.pincode || '';
+                  
+                  // Toast
+                  const toast = document.createElement('div');
+                  toast.innerText = `Welcome back${data.customer.name ? ', ' + data.customer.name.split(' ')[0] : ''}!`;
+                  toast.style.cssText = 'position:absolute; top:20px; left:50%; transform:translateX(-50%); background:#10b981; color:#fff; padding:8px 16px; border-radius:20px; font-size:0.9rem; font-weight:500; z-index:999999; opacity:0; transition:opacity 0.3s; box-shadow:0 4px 6px rgba(0,0,0,0.1);';
+                  sheet.appendChild(toast);
+                  setTimeout(() => { toast.style.opacity = '1'; }, 10);
+                  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+                }
+              } catch(err) {}
+            }
+          });
+        }
+      }, 100);
 
       // State Variables
       let currentQuantity = parseInt(quantity) || 1;
@@ -332,6 +381,9 @@
         submitBtn.style.opacity = '0.7';
         submitBtn.disabled = true;
 
+        const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+        const customerPhone = document.getElementById('cf-phone').value;
+
         const payload = {
           shop,
           variantId,
@@ -339,51 +391,117 @@
           productTitle,
           price,
           customerName: document.getElementById('cf-name').value,
-          customerPhone: document.getElementById('cf-phone').value,
+          customerPhone: customerPhone,
           customerEmail: document.getElementById('cf-email').value,
           address: document.getElementById('cf-address').value,
           city: document.getElementById('cf-city').value,
           state: document.getElementById('cf-state').value,
           pincode: document.getElementById('cf-pincode').value,
-          paymentMethod: document.querySelector('input[name="payment"]:checked').value,
+          paymentMethod: paymentMethod,
           appliedDiscount: appliedDiscount // { code, type, value }
         };
 
-        try {
-          // Pointing to Render SaaS URL
-          const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
-          const res = await fetch(`${apiBaseUrl}/api/create-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          
-          const data = await res.json();
-          if (data.success) {
-            submitBtn.innerText = 'Redirecting...';
-            if (data.orderStatusUrl) {
-              window.location.href = data.orderStatusUrl;
+        const placeOrder = async () => {
+          try {
+            // Pointing to Render SaaS URL
+            const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
+            const res = await fetch(`${apiBaseUrl}/api/create-order`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+              submitBtn.innerText = 'Redirecting...';
+              document.getElementById('cf-verify-btn').innerText = 'Redirecting...';
+              if (data.orderStatusUrl) {
+                window.location.href = data.orderStatusUrl;
+              } else {
+                sheet.innerHTML = `
+                  <div style="text-align:center; padding: 40px 20px;">
+                    <div style="font-size:3rem; color:#10b981; margin-bottom:20px;">✓</div>
+                    <h2 style="margin:0 0 10px 0; color:#111;">Order Confirmed!</h2>
+                    <p style="color:#666;">Your order has been placed successfully.</p>
+                    <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:20px; padding:10px 20px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer;">Close</button>
+                  </div>
+                `;
+              }
             } else {
-              sheet.innerHTML = `
-                <div style="text-align:center; padding: 40px 20px;">
-                  <div style="font-size:3rem; color:#10b981; margin-bottom:20px;">✓</div>
-                  <h2 style="margin:0 0 10px 0; color:#111;">Order Confirmed!</h2>
-                  <p style="color:#666;">Your order has been placed successfully.</p>
-                  <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:20px; padding:10px 20px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer;">Close</button>
-                </div>
-              `;
+              alert('Failed to place order: ' + (data.error || 'Unknown error'));
+              submitBtn.innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
+              submitBtn.disabled = false;
+              submitBtn.style.opacity = '1';
+              document.getElementById('cf-verify-btn').innerText = 'Verify & Place Order';
+              document.getElementById('cf-verify-btn').disabled = false;
             }
-          } else {
-            alert('Failed to place order: ' + (data.error || 'Unknown error'));
+          } catch(err) {
+            alert('Network error. Please try again.');
+            updatePricingUI(); // reset button text
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            document.getElementById('cf-verify-btn').innerText = 'Verify & Place Order';
+            document.getElementById('cf-verify-btn').disabled = false;
+          }
+        };
+
+        if (paymentMethod === 'COD') {
+          try {
+             submitBtn.innerText = 'Sending OTP...';
+             const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
+             const res = await fetch(`${apiBaseUrl}/api/otp/send`, {
+               method: 'POST',
+               headers: {'Content-Type': 'application/json'},
+               body: JSON.stringify({ shop, phone: customerPhone })
+             });
+             const data = await res.json();
+             
+             if (data.success) {
+               document.getElementById('cf-form').style.display = 'none';
+               document.getElementById('cf-otp-screen').style.display = 'block';
+               document.getElementById('cf-otp-phone-display').innerText = customerPhone;
+               document.getElementById('cf-simulated-code').innerText = data.simulatedCode;
+               
+               document.getElementById('cf-verify-btn').onclick = async () => {
+                 const code = document.getElementById('cf-otp-input').value;
+                 if (code.length !== 4) return;
+                 
+                 const vBtn = document.getElementById('cf-verify-btn');
+                 vBtn.innerText = 'Verifying...';
+                 vBtn.disabled = true;
+                 
+                 const vRes = await fetch(`${apiBaseUrl}/api/otp/verify`, {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify({ shop, phone: customerPhone, code })
+                 });
+                 const vData = await vRes.json();
+                 
+                 if (vData.valid) {
+                   vBtn.innerText = 'Placing Order...';
+                   await placeOrder();
+                 } else {
+                   vBtn.innerText = 'Verify & Place Order';
+                   vBtn.disabled = false;
+                   const errEl = document.getElementById('cf-otp-error');
+                   errEl.innerText = vData.error || 'Invalid OTP';
+                   errEl.style.display = 'block';
+                 }
+               };
+             } else {
+               alert('Failed to send OTP: ' + (data.error || 'Unknown error'));
+               submitBtn.innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
+               submitBtn.disabled = false;
+               submitBtn.style.opacity = '1';
+             }
+          } catch(err) {
+            alert('Error sending OTP. Please try again.');
             submitBtn.innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
           }
-        } catch(err) {
-          alert('Network error. Please try again.');
-          updatePricingUI(); // reset button text
-          submitBtn.disabled = false;
-          submitBtn.style.opacity = '1';
+        } else {
+          await placeOrder();
         }
       };
     },
