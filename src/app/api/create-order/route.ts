@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, discountCode } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscount } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -41,13 +41,23 @@ export async function POST(request: Request) {
       });
     }
 
+    let totalDiscount = 0;
+    if (appliedDiscount) {
+      if (appliedDiscount.type === 'percentage') {
+        totalDiscount = total * (appliedDiscount.value / 100);
+      } else {
+        totalDiscount = appliedDiscount.value;
+      }
+    }
+    const finalTotal = Math.max(0, total - totalDiscount);
+
     // 3. Create Local Order (Pending)
     const order = await prisma.order.create({
       data: {
         merchantId: merchant.id,
         customerName, customerPhone, customerEmail,
         address, city, state, pincode,
-        productTitle, variantId, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0, total,
+        productTitle, variantId, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0, total: finalTotal,
         paymentMethod: paymentMethod || 'COD',
         orderStatus: 'Pending'
       }
@@ -76,8 +86,13 @@ export async function POST(request: Request) {
           country: 'India'
         },
         use_customer_default_address: false,
+        applied_discount: appliedDiscount ? {
+          description: appliedDiscount.code,
+          value_type: appliedDiscount.type,
+          value: appliedDiscount.value.toString()
+        } : undefined,
         tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
-        note: discountCode ? `Requested Discount Code: ${discountCode}` : undefined
+        note: appliedDiscount ? `Discount Applied: ${appliedDiscount.code}` : undefined
       }
     };
 

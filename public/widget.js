@@ -46,7 +46,10 @@
             <div style="flex:1;">
               <div style="font-weight:600; font-size:1rem; color:#111827; margin-bottom:4px; line-height:1.3;">${productTitle || 'Product'}</div>
               <div style="color:#6b7280; font-size:0.875rem;">Qty: ${quantity}</div>
-              <div style="font-weight:700; font-size:1.1rem; margin-top:6px; color:#111827;">₹${total.toLocaleString('en-IN')}</div>
+              <div style="font-weight:700; font-size:1.1rem; margin-top:6px; color:#111827;">
+                <span id="cf-old-price" style="display:none; text-decoration:line-through; color:#9ca3af; font-size:0.9rem; margin-right:8px;"></span>
+                <span id="cf-final-price">₹${total.toLocaleString('en-IN')}</span>
+              </div>
             </div>
           </div>
           <div style="margin-top:16px; display:flex; gap:8px;">
@@ -111,12 +114,71 @@
       };
 
       // Discount logic
-      document.getElementById('cf-apply-discount').onclick = () => {
+      let appliedDiscount = null;
+      let currentTotal = total;
+
+      document.getElementById('cf-apply-discount').onclick = async () => {
         const code = document.getElementById('cf-discount').value.trim();
-        if (code) {
-          document.getElementById('cf-discount-msg').innerText = `Discount code '${code}' recorded.`;
-          document.getElementById('cf-discount-msg').style.display = 'block';
+        const msgEl = document.getElementById('cf-discount-msg');
+        const btn = document.getElementById('cf-apply-discount');
+        
+        if (!code) return;
+
+        btn.innerText = '...';
+        btn.disabled = true;
+        msgEl.style.display = 'none';
+        msgEl.style.color = '#059669';
+
+        try {
+          const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
+          const res = await fetch(`${apiBaseUrl}/api/validate-discount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shop, code })
+          });
+          
+          const data = await res.json();
+          if (data.valid) {
+            appliedDiscount = { code, type: data.type, value: data.value };
+            
+            // Calculate new total
+            let discountAmount = 0;
+            if (data.type === 'percentage') {
+              discountAmount = total * (data.value / 100);
+            } else if (data.type === 'fixed_amount') {
+              discountAmount = data.value;
+            }
+            
+            currentTotal = Math.max(0, total - discountAmount);
+            
+            // Update UI
+            document.getElementById('cf-old-price').innerText = `₹${total.toLocaleString('en-IN')}`;
+            document.getElementById('cf-old-price').style.display = 'inline';
+            document.getElementById('cf-final-price').innerText = `₹${currentTotal.toLocaleString('en-IN')}`;
+            document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
+            
+            msgEl.innerText = `Discount applied successfully!`;
+            msgEl.style.color = '#059669';
+            msgEl.style.display = 'block';
+          } else {
+            appliedDiscount = null;
+            currentTotal = total;
+            document.getElementById('cf-old-price').style.display = 'none';
+            document.getElementById('cf-final-price').innerText = `₹${total.toLocaleString('en-IN')}`;
+            document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${total.toLocaleString('en-IN')}`;
+            
+            msgEl.innerText = data.error || 'Invalid discount code';
+            msgEl.style.color = '#dc2626';
+            msgEl.style.display = 'block';
+          }
+        } catch (err) {
+          msgEl.innerText = 'Failed to validate code. Try again.';
+          msgEl.style.color = '#dc2626';
+          msgEl.style.display = 'block';
         }
+        
+        btn.innerText = 'Apply';
+        btn.disabled = false;
       };
 
       document.getElementById('cf-close').onclick = closeWidget;
@@ -144,7 +206,7 @@
           state: document.getElementById('cf-state').value,
           pincode: document.getElementById('cf-pincode').value,
           paymentMethod: document.querySelector('input[name="payment"]:checked').value,
-          discountCode: document.getElementById('cf-discount').value.trim()
+          appliedDiscount: appliedDiscount // { code, type, value }
         };
 
         try {
@@ -173,13 +235,13 @@
             }
           } else {
             alert('Failed to place order: ' + (data.error || 'Unknown error'));
-            submitBtn.innerText = `Complete Order • ₹${total}`;
+            submitBtn.innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
           }
         } catch(err) {
           alert('Network error. Please try again.');
-          submitBtn.innerText = `Complete Order • ₹${total}`;
+          submitBtn.innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
           submitBtn.disabled = false;
           submitBtn.style.opacity = '1';
         }

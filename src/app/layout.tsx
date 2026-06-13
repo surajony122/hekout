@@ -25,6 +25,7 @@ export default function RootLayout({
           <nav className="flex-1 px-4 space-y-2">
             <Link href="/" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition">Overview</Link>
             <Link href="/orders" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition">Orders</Link>
+            <Link href="/discounts" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition">Discounts</Link>
             <Link href="/customers" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition">Customers</Link>
             <Link href="/settings" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition">Settings</Link>
           </nav>
