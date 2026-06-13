@@ -39,9 +39,9 @@ export async function POST(request: Request) {
     if (twilioSid && twilioAuth && twilioPhone) {
       try {
         const client = twilio(twilioSid, twilioAuth);
-        // Assuming the widget sends a 10 digit Indian number, we prepend +91.
+        // Assuming the widget sends a 10 digit US number, we prepend +1.
         // If the number already has a country code, you may want to parse it differently.
-        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+        const formattedPhone = phone.startsWith('+') ? phone : `+1${phone}`;
         
         await client.messages.create({
           body: `Your CheckoutFlow verification code is: ${otpCode}. Valid for 5 minutes.`,
