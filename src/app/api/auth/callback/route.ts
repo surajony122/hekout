@@ -10,8 +10,10 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const hmac = searchParams.get('hmac');
 
+  const hostUrl = process.env.HOST || (process.env.SHOPIFY_REDIRECT_URI ? new URL(process.env.SHOPIFY_REDIRECT_URI).origin : 'http://localhost:3000');
+
   if (!shop || !code || !hmac) {
-    return NextResponse.redirect(new URL('/dashboard?error=missing_params', request.url));
+    return NextResponse.redirect(`${hostUrl}/dashboard?error=missing_params`);
   }
 
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
@@ -19,7 +21,7 @@ export async function GET(request: Request) {
 
   if (!clientSecret || !clientId) {
     console.error("Missing SHOPIFY_CLIENT_SECRET or SHOPIFY_CLIENT_ID in env.");
-    return NextResponse.redirect(new URL('/dashboard?error=server_config', request.url));
+    return NextResponse.redirect(`${hostUrl}/dashboard?error=server_config`);
   }
 
   // 1. Verify HMAC
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
 
   if (generatedHash !== hmac) {
     console.error("HMAC validation failed.");
-    return NextResponse.redirect(new URL('/dashboard?error=hmac_failed', request.url));
+    return NextResponse.redirect(`${hostUrl}/dashboard?error=hmac_failed`);
   }
 
   // 2. Exchange code for access token
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
 
     if (!accessTokenResponse.ok || !tokenData.access_token) {
       console.error("Failed to fetch access token:", tokenData);
-      return NextResponse.redirect(new URL('/dashboard?error=token_exchange_failed', request.url));
+      return NextResponse.redirect(`${hostUrl}/dashboard?error=token_exchange_failed`);
     }
 
     const accessToken = tokenData.access_token;
@@ -77,9 +79,9 @@ export async function GET(request: Request) {
     });
 
     // 4. Redirect to the merchant dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(`${hostUrl}/dashboard`);
   } catch (error) {
     console.error('OAuth Callback Error:', error);
-    return NextResponse.redirect(new URL('/dashboard?error=oauth_failed', request.url));
+    return NextResponse.redirect(`${hostUrl}/dashboard?error=oauth_failed`);
   }
 }
