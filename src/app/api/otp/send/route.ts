@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import twilio from 'twilio';
 
 export async function POST(request: Request) {
   try {
@@ -30,13 +31,35 @@ export async function POST(request: Request) {
       }
     });
 
-    // In a production app, we would integrate Twilio or Msg91 here.
-    // For this MVP, we will return the OTP directly so the widget can simulate the SMS.
-    
+    // Initialize Twilio
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
+    const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+    if (twilioSid && twilioAuth && twilioPhone) {
+      try {
+        const client = twilio(twilioSid, twilioAuth);
+        // Assuming the widget sends a 10 digit Indian number, we prepend +91.
+        // If the number already has a country code, you may want to parse it differently.
+        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+        
+        await client.messages.create({
+          body: `Your CheckoutFlow verification code is: ${otpCode}. Valid for 5 minutes.`,
+          from: twilioPhone,
+          to: formattedPhone
+        });
+      } catch (smsError) {
+        console.error('Twilio SMS Failed:', smsError);
+        // We log the error but still return success so the user can use the simulator if Twilio fails
+      }
+    } else {
+      console.warn('Twilio credentials not found in env. Falling back to simulator only.');
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: 'OTP sent successfully',
-      simulatedCode: otpCode // Exposing for MVP demo purposes
+      simulatedCode: otpCode // Keeping simulator for testing and fallback
     });
 
   } catch (error) {
