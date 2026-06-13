@@ -19,6 +19,8 @@ async function getDashboardData() {
 import TestWidgetButton from './components/TestWidgetButton';
 import Script from 'next/script';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const stats = await getDashboardData();
 
