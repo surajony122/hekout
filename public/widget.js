@@ -138,13 +138,13 @@
             `;
           } else {
             alert('Failed to place order: ' + (data.error || 'Unknown error'));
-            submitBtn.innerText = \`Complete Order • ₹\${total}\`;
+            submitBtn.innerText = `Complete Order • ₹${total}`;
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
           }
         } catch(err) {
           alert('Network error. Please try again.');
-          submitBtn.innerText = \`Complete Order • ₹\${total}\`;
+          submitBtn.innerText = `Complete Order • ₹${total}`;
           submitBtn.disabled = false;
           submitBtn.style.opacity = '1';
         }
