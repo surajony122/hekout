@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, discountCode } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -75,7 +75,9 @@ export async function POST(request: Request) {
           zip: pincode,
           country: 'India'
         },
-        use_customer_default_address: false
+        use_customer_default_address: false,
+        tags: [paymentMethod || 'COD', 'CheckoutFlow'],
+        note: discountCode ? `Requested Discount Code: ${discountCode}` : undefined
       }
     };
 
@@ -99,7 +101,11 @@ export async function POST(request: Request) {
     const shopifyDraftOrderId = draftData.draft_order.id.toString();
 
     // 5. Complete Shopify Draft Order to convert it to a Real Order
-    const completeRes = await fetch(`https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json`, {
+    // If it's a COD order, we MUST pass ?payment_pending=true so it doesn't get marked as Paid
+    const isCOD = (paymentMethod || 'COD').toUpperCase() === 'COD';
+    const completeUrl = `https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json${isCOD ? '?payment_pending=true' : ''}`;
+    
+    const completeRes = await fetch(completeUrl, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

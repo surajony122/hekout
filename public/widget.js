@@ -35,45 +35,65 @@
       const total = parseFloat(price) * parseInt(quantity);
 
       sheet.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-          <h2 style="margin:0; font-size:1.5rem; color:#111;">Checkout</h2>
-          <button id="cf-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+          <h2 style="margin:0; font-size:1.4rem; font-weight:700; color:#111827;">Express Checkout</h2>
+          <button id="cf-close" style="background:#f3f4f6; border:none; border-radius:50%; width:32px; height:32px; font-size:1.2rem; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#4b5563; transition:background 0.2s;">&times;</button>
         </div>
         
-        <div style="display:flex; gap:15px; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #eee;">
-          ${productImage ? `<img src="${productImage}" style="width:60px; height:60px; border-radius:8px; object-fit:cover;" />` : ''}
-          <div>
-            <div style="font-weight:600; color:#333;">${productTitle || 'Product'}</div>
-            <div style="color:#666;">Qty: ${quantity}</div>
-            <div style="font-weight:bold; margin-top:5px; color:#111;">₹${total}</div>
+        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:24px;">
+          <div style="display:flex; gap:16px; align-items:center;">
+            ${productImage ? `<img src="${productImage}" style="width:70px; height:70px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:70px; height:70px; border-radius:10px; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:24px;">🛍️</div>`}
+            <div style="flex:1;">
+              <div style="font-weight:600; font-size:1rem; color:#111827; margin-bottom:4px; line-height:1.3;">${productTitle || 'Product'}</div>
+              <div style="color:#6b7280; font-size:0.875rem;">Qty: ${quantity}</div>
+              <div style="font-weight:700; font-size:1.1rem; margin-top:6px; color:#111827;">₹${total.toLocaleString('en-IN')}</div>
+            </div>
           </div>
+          <div style="margin-top:16px; display:flex; gap:8px;">
+            <input type="text" id="cf-discount" placeholder="Discount code" style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;" />
+            <button type="button" id="cf-apply-discount" style="background:#374151; color:white; border:none; border-radius:8px; padding:0 16px; font-size:0.9rem; font-weight:500; cursor:pointer;">Apply</button>
+          </div>
+          <div id="cf-discount-msg" style="color:#059669; font-size:0.8rem; margin-top:8px; display:none;">Discount code recorded.</div>
         </div>
 
         <form id="cf-form">
-          <h3 style="font-size:1.1rem; color:#333; margin-bottom:10px;">Customer Details</h3>
-          <input type="text" id="cf-name" placeholder="Full Name" required style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-          <input type="tel" id="cf-phone" placeholder="Phone Number" required style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-          <input type="email" id="cf-email" placeholder="Email Address" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-
-          <h3 style="font-size:1.1rem; color:#333; margin-bottom:10px;">Shipping Address</h3>
-          <input type="text" id="cf-address" placeholder="Street Address" required style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-          <div style="display:flex; gap:10px; margin-bottom:10px;">
-            <input type="text" id="cf-city" placeholder="City" required style="width:50%; padding:12px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-            <input type="text" id="cf-state" placeholder="State" required style="width:50%; padding:12px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-          </div>
-          <input type="text" id="cf-pincode" placeholder="Pincode" required style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" />
-
           <div style="margin-bottom:20px;">
-            <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
-              <input type="radio" name="payment" value="COD" checked /> Cash on Delivery (COD)
-            </label>
-            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-              <input type="radio" name="payment" value="Prepaid" /> Pay Online (Prepaid)
-            </label>
+            <h3 style="font-size:1rem; font-weight:600; color:#374151; margin:0 0 12px 0;">Customer Details</h3>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <input type="text" id="cf-name" placeholder="Full Name" required style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+              <input type="tel" id="cf-phone" placeholder="Phone Number" required style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+              <input type="email" id="cf-email" placeholder="Email Address (Optional)" style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+            </div>
           </div>
 
-          <button type="submit" id="cf-submit" style="width:100%; padding:15px; background:#000; color:#fff; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; transition: opacity 0.2s;">
-            Complete Order &bull; ₹${total}
+          <div style="margin-bottom:24px;">
+            <h3 style="font-size:1rem; font-weight:600; color:#374151; margin:0 0 12px 0;">Shipping Address</h3>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <input type="text" id="cf-address" placeholder="Street Address" required style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+              <div style="display:flex; gap:12px;">
+                <input type="text" id="cf-city" placeholder="City" required style="width:50%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+                <input type="text" id="cf-state" placeholder="State" required style="width:50%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+              </div>
+              <input type="text" id="cf-pincode" placeholder="Pincode" required style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+            </div>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <h3 style="font-size:1rem; font-weight:600; color:#374151; margin:0 0 12px 0;">Payment Method</h3>
+            <div style="border:1px solid #d1d5db; border-radius:8px; overflow:hidden;">
+              <label style="display:flex; align-items:center; gap:12px; padding:16px; cursor:pointer; border-bottom:1px solid #d1d5db; background:#f9fafb;">
+                <input type="radio" name="payment" value="COD" checked style="width:18px; height:18px; accent-color:#10b981;" />
+                <span style="font-weight:500; color:#111827;">Cash on Delivery (COD)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:12px; padding:16px; cursor:pointer;">
+                <input type="radio" name="payment" value="Prepaid" style="width:18px; height:18px; accent-color:#10b981;" />
+                <span style="font-weight:500; color:#111827;">Pay Online (Prepaid)</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="cf-submit" style="width:100%; padding:16px; background:#10b981; color:#fff; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; transition: opacity 0.2s; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">
+            Complete Order &bull; ₹${total.toLocaleString('en-IN')}
           </button>
         </form>
       `;
@@ -88,6 +108,15 @@
       const closeWidget = () => {
         sheet.style.transform = 'translateY(100%)';
         setTimeout(() => overlay.remove(), 300);
+      };
+
+      // Discount logic
+      document.getElementById('cf-apply-discount').onclick = () => {
+        const code = document.getElementById('cf-discount').value.trim();
+        if (code) {
+          document.getElementById('cf-discount-msg').innerText = `Discount code '${code}' recorded.`;
+          document.getElementById('cf-discount-msg').style.display = 'block';
+        }
       };
 
       document.getElementById('cf-close').onclick = closeWidget;
@@ -114,7 +143,8 @@
           city: document.getElementById('cf-city').value,
           state: document.getElementById('cf-state').value,
           pincode: document.getElementById('cf-pincode').value,
-          paymentMethod: document.querySelector('input[name="payment"]:checked').value
+          paymentMethod: document.querySelector('input[name="payment"]:checked').value,
+          discountCode: document.getElementById('cf-discount').value.trim()
         };
 
         try {
