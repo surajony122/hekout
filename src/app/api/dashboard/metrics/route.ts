@@ -24,7 +24,16 @@ export async function GET(request: Request) {
     // 1. Basic Metrics
     const orders = await prisma.order.findMany({
       where: { merchantId: merchant.id, orderStatus: 'Synced' },
-      select: { total: true, paymentMethod: true, createdAt: true }
+      select: { 
+        id: true,
+        total: true, 
+        paymentMethod: true, 
+        createdAt: true,
+        orderStatus: true,
+        customerName: true,
+        lineItems: true
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
     const totalOrders = orders.length;
@@ -33,6 +42,51 @@ export async function GET(request: Request) {
 
     const codOrders = orders.filter(o => o.paymentMethod === 'COD').length;
     const prepaidOrders = orders.filter(o => o.paymentMethod === 'Prepaid').length;
+
+    // Recent Orders (Last 5)
+    const recentOrders = orders.slice(0, 5).map(o => {
+      let productNames = 'Unknown';
+      try {
+        const items = JSON.parse(o.lineItems);
+        if (items.length > 0) {
+          productNames = items[0].title;
+          if (items.length > 1) productNames += ` + ${items.length - 1} other products`;
+        }
+      } catch(e) {}
+      
+      return {
+        id: `#${o.id.substring(o.id.length - 5)}`,
+        products: productNames,
+        customer: o.customerName || 'Guest',
+        date: new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        amount: o.total,
+        status: o.orderStatus === 'Synced' ? 'Completed' : 'Pending'
+      };
+    });
+
+    // Top Products
+    const productEarnings: Record<string, number> = {};
+    orders.forEach(o => {
+      try {
+        const items = JSON.parse(o.lineItems);
+        items.forEach((item: any) => {
+          const title = item.title || 'Unknown';
+          const price = parseFloat(item.price || 0);
+          const qty = parseInt(item.quantity || 1);
+          productEarnings[title] = (productEarnings[title] || 0) + (price * qty);
+        });
+      } catch(e) {}
+    });
+
+    const topProducts = Object.entries(productEarnings)
+      .map(([name, earnings]) => ({ name, earnings }))
+      .sort((a, b) => b.earnings - a.earnings)
+      .slice(0, 3)
+      .map(p => ({
+        name: p.name,
+        earnings: p.earnings,
+        percent: totalRevenue > 0 ? Math.round((p.earnings / totalRevenue) * 100) : 0
+      }));
 
     // 2. Funnel Analytics
     const events = await prisma.analyticsEvent.findMany({
@@ -81,7 +135,9 @@ export async function GET(request: Request) {
           { step: 'OTP Verified', users: otpVerified },
           { step: 'Order Placed', users: orderCompleted }
         ],
-        revenueTrend: revenueByDay
+        revenueTrend: revenueByDay,
+        recentOrders,
+        topProducts
       }
     });
 

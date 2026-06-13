@@ -48,7 +48,7 @@
       let currentQuantity = parseInt(quantity) || 1;
       let basePrice = parseFloat(price) || 0;
       let appliedDiscount = null;
-      let verifiedPhone = '';
+      let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
       let customerData = null;
 
       sheet.innerHTML = `
@@ -302,46 +302,8 @@
           
           if (data.success || data.valid) {
             window.CheckoutFlow.trackEvent(shop, 'OTP_VERIFIED');
-            // Transition to Checkout Screen
-            document.getElementById('cf-login-screen').style.display = 'none';
-            document.getElementById('cf-main-title').innerText = 'Express Checkout';
-            document.getElementById('cf-checkout-screen').style.display = 'block';
-            
-            // Check for customer data
-            const lookupRes = await fetch(`${apiBaseUrl}/api/customer/lookup?shop=${shop}&phone=${verifiedPhone}`);
-            const lookupData = await lookupRes.json();
-            if (lookupData.success && lookupData.customer) {
-              customerData = lookupData.customer;
-              document.getElementById('cf-name').value = customerData.name || '';
-              document.getElementById('cf-email').value = customerData.email || '';
-              document.getElementById('cf-address').value = customerData.address || '';
-              document.getElementById('cf-city').value = customerData.city || '';
-              document.getElementById('cf-state').value = customerData.state || '';
-              document.getElementById('cf-pincode').value = customerData.pincode || '';
-              
-              // Toast
-              const toast = document.createElement('div');
-              toast.innerText = `Welcome back${customerData.name ? ', ' + customerData.name.split(' ')[0] : ''}!`;
-              toast.style.cssText = 'position:absolute; top:20px; left:50%; transform:translateX(-50%); background:#10b981; color:#fff; padding:8px 16px; border-radius:20px; font-size:0.9rem; font-weight:500; z-index:999999; opacity:0; transition:opacity 0.3s; box-shadow:0 4px 6px rgba(0,0,0,0.1);';
-              sheet.appendChild(toast);
-              setTimeout(() => { toast.style.opacity = '1'; }, 10);
-              setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
-            }
-
-            // Check for auto-discounts
-            fetch(`${apiBaseUrl}/api/discounts/auto?shop=${shop}`)
-              .then(r => r.json())
-              .then(d => {
-                if (d.success && d.discount) {
-                  document.getElementById('cf-discount').value = d.discount.code;
-                  applyDiscountToState({ valid: true, ...d.discount }, d.discount.code);
-                  const msgEl = document.getElementById('cf-discount-msg');
-                  msgEl.innerText = `Auto-applied discount: ${d.discount.code}`;
-                  msgEl.style.color = '#059669';
-                  msgEl.style.display = 'block';
-                }
-              }).catch(()=>{});
-
+            localStorage.setItem('checkoutflow_verified_phone', verifiedPhone);
+            goToCheckoutScreen();
           } else {
             otpError.innerText = data.error || 'Invalid OTP';
             otpError.style.display = 'block';
@@ -355,6 +317,80 @@
           verifyOtpBtn.style.opacity = '1';
         }
       };
+
+      const goToCheckoutScreen = async () => {
+        // Transition to Checkout Screen
+        document.getElementById('cf-login-screen').style.display = 'none';
+        document.getElementById('cf-main-title').innerText = 'Express Checkout';
+        document.getElementById('cf-checkout-screen').style.display = 'block';
+        
+        // Add logout banner
+        let phoneBanner = document.getElementById('cf-phone-banner');
+        if (!phoneBanner) {
+          phoneBanner = document.createElement('div');
+          phoneBanner.id = 'cf-phone-banner';
+          phoneBanner.style.cssText = "background:#f3f4f6; padding:12px 16px; margin-bottom:16px; border-radius:8px; font-size:0.95rem; color:#4b5563; display:flex; justify-content:space-between; align-items:center;";
+          phoneBanner.innerHTML = `<span>Verified: <b>${verifiedPhone}</b></span> <button type="button" id="cf-logout-btn" style="background:none; border:none; color:#ef4444; font-weight:600; cursor:pointer;">Change</button>`;
+          
+          const checkoutScreen = document.getElementById('cf-checkout-screen');
+          checkoutScreen.insertBefore(phoneBanner, checkoutScreen.firstChild);
+          
+          document.getElementById('cf-logout-btn').onclick = () => {
+            localStorage.removeItem('checkoutflow_verified_phone');
+            verifiedPhone = '';
+            phoneBanner.remove();
+            document.getElementById('cf-checkout-screen').style.display = 'none';
+            document.getElementById('cf-main-title').innerText = 'Login to Continue';
+            document.getElementById('cf-login-screen').style.display = 'block';
+            document.getElementById('cf-phone-step').style.display = 'block';
+            document.getElementById('cf-otp-step').style.display = 'none';
+            document.getElementById('cf-login-phone').value = '';
+            document.getElementById('cf-send-otp-btn').style.opacity = '0.5';
+            document.getElementById('cf-send-otp-btn').style.pointerEvents = 'none';
+          };
+        }
+
+        // Check for customer data
+        try {
+          const lookupRes = await fetch(`${apiBaseUrl}/api/customer/lookup?shop=${shop}&phone=${verifiedPhone}`);
+          const lookupData = await lookupRes.json();
+          if (lookupData.success && lookupData.customer) {
+            customerData = lookupData.customer;
+            document.getElementById('cf-name').value = customerData.name || '';
+            document.getElementById('cf-email').value = customerData.email || '';
+            document.getElementById('cf-address').value = customerData.address || '';
+            document.getElementById('cf-city').value = customerData.city || '';
+            document.getElementById('cf-state').value = customerData.state || '';
+            document.getElementById('cf-pincode').value = customerData.pincode || '';
+            
+            // Toast
+            const toast = document.createElement('div');
+            toast.innerText = `Welcome back${customerData.name ? ', ' + customerData.name.split(' ')[0] : ''}!`;
+            toast.style.cssText = 'position:absolute; top:20px; left:50%; transform:translateX(-50%); background:#10b981; color:#fff; padding:8px 16px; border-radius:20px; font-size:0.9rem; font-weight:500; z-index:999999; opacity:0; transition:opacity 0.3s; box-shadow:0 4px 6px rgba(0,0,0,0.1);';
+            sheet.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '1'; }, 10);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+          }
+        } catch(e) {}
+
+        // Check for auto-discounts
+        try {
+          const dRes = await fetch(`${apiBaseUrl}/api/discounts/auto?shop=${shop}`);
+          const d = await dRes.json();
+          if (d.success && d.discount) {
+            document.getElementById('cf-discount').value = d.discount.code;
+            applyDiscountToState({ valid: true, ...d.discount }, d.discount.code);
+            const msgEl = document.getElementById('cf-discount-msg');
+            msgEl.innerText = `Auto-applied discount: ${d.discount.code}`;
+            msgEl.style.color = '#059669';
+            msgEl.style.display = 'block';
+          }
+        } catch(e) {}
+      };
+
+      if (verifiedPhone) {
+        goToCheckoutScreen();
+      }
 
       // ======== SCREEN 2 LOGIC ========
       const updatePricingUI = () => {
