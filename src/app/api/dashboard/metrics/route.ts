@@ -31,7 +31,9 @@ export async function GET(request: Request) {
         createdAt: true,
         orderStatus: true,
         customerName: true,
-        lineItems: true
+        productTitle: true,
+        price: true,
+        quantity: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -45,14 +47,7 @@ export async function GET(request: Request) {
 
     // Recent Orders (Last 5)
     const recentOrders = orders.slice(0, 5).map(o => {
-      let productNames = 'Unknown';
-      try {
-        const items = JSON.parse(o.lineItems);
-        if (items.length > 0) {
-          productNames = items[0].title;
-          if (items.length > 1) productNames += ` + ${items.length - 1} other products`;
-        }
-      } catch(e) {}
+      const productNames = o.productTitle || 'Unknown';
       
       return {
         id: `#${o.id.substring(o.id.length - 5)}`,
@@ -67,15 +62,10 @@ export async function GET(request: Request) {
     // Top Products
     const productEarnings: Record<string, number> = {};
     orders.forEach(o => {
-      try {
-        const items = JSON.parse(o.lineItems);
-        items.forEach((item: any) => {
-          const title = item.title || 'Unknown';
-          const price = parseFloat(item.price || 0);
-          const qty = parseInt(item.quantity || 1);
-          productEarnings[title] = (productEarnings[title] || 0) + (price * qty);
-        });
-      } catch(e) {}
+      const title = o.productTitle || 'Unknown';
+      const price = o.price || 0;
+      const qty = o.quantity || 1;
+      productEarnings[title] = (productEarnings[title] || 0) + (price * qty);
     });
 
     const topProducts = Object.entries(productEarnings)

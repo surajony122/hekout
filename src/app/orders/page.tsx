@@ -77,14 +77,7 @@ export default async function OrdersPage() {
               <tr><td colSpan={8} className="py-12 text-center text-slate-500">No orders found. Use the test widget on the overview page to create one.</td></tr>
             ) : (
               orders.map((order) => {
-                let productNames = order.productTitle;
-                try {
-                  const items = JSON.parse(order.lineItems);
-                  if (items.length > 0) {
-                    productNames = items[0].title;
-                    if (items.length > 1) productNames += ` + ${items.length - 1} others`;
-                  }
-                } catch(e) {}
+                let productNames = order.productTitle || 'Unknown';
 
                 const isCompleted = order.orderStatus === 'Synced';
                 const shopifyUrl = order.shopifyOrderId ? `https://${shopDomain}/admin/orders/${order.shopifyOrderId}` : '#';
