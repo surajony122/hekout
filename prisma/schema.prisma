@@ -104,6 +104,7 @@ model Coupon {
   discountValue     Float
   freebieName       String?
   minimumOrderValue Float    @default(0)
+  isAutoApply       Boolean  @default(false)
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")

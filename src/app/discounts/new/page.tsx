@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,8 +11,28 @@ export default function NewDiscountPage() {
   const [value, setValue] = useState('');
   const [freebieName, setFreebieName] = useState('');
   const [minOrder, setMinOrder] = useState('');
+  const [isAutoApply, setIsAutoApply] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  useEffect(() => {
+    if (type === 'freebie_product') {
+      setLoadingProducts(true);
+      fetch('/api/shopify/products')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setProducts(data.products);
+            if (data.products.length > 0 && !freebieName) {
+              setFreebieName(data.products[0].title);
+            }
+          }
+        })
+        .finally(() => setLoadingProducts(false));
+    }
+  }, [type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +48,8 @@ export default function NewDiscountPage() {
           discountType: type,
           discountValue: value,
           freebieName: type === 'freebie_product' ? freebieName : null,
-          minimumOrderValue: minOrder
+          minimumOrderValue: minOrder,
+          isAutoApply
         })
       });
 
@@ -113,15 +134,22 @@ export default function NewDiscountPage() {
 
           {type === 'freebie_product' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Freebie Product Name</label>
-              <input 
-                type="text" 
-                required
-                value={freebieName}
-                onChange={(e) => setFreebieName(e.target.value)}
-                placeholder="e.g. Free Sunglasses"
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-2">Select Freebie Product</label>
+              {loadingProducts ? (
+                <div className="text-sm text-slate-500 py-2">Loading products from Shopify...</div>
+              ) : (
+                <select 
+                  required
+                  value={freebieName}
+                  onChange={(e) => setFreebieName(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  <option value="" disabled>Select a product</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.title}>{p.title}</option>
+                  ))}
+                </select>
+              )}
               <p className="text-xs text-slate-500 mt-2">This product will be added to their order for ₹0.</p>
             </div>
           )}
@@ -138,6 +166,19 @@ export default function NewDiscountPage() {
                 className="w-full py-2 pl-8 pr-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="flex items-center space-x-3 mt-4 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={isAutoApply}
+                onChange={(e) => setIsAutoApply(e.target.checked)}
+                className="w-5 h-5 text-emerald-500 border-slate-300 rounded focus:ring-emerald-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Auto-Apply to all checkouts</span>
+            </label>
+            <p className="text-xs text-slate-500 mt-1 ml-8">If checked, customers won't need to enter the code manually.</p>
           </div>
 
           <div className="pt-4 border-t border-slate-100">

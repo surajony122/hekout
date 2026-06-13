@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { code, discountType, discountValue, freebieName, minimumOrderValue } = data;
+    const { code, discountType, discountValue, freebieName, minimumOrderValue, isAutoApply } = data;
 
     if (!code || !discountType) {
       return NextResponse.json({ error: 'Code and Discount Type are required' }, { status: 400 });
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
         discountValue: discountValue ? parseFloat(discountValue) : 0,
         freebieName: freebieName || null,
         minimumOrderValue: minimumOrderValue ? parseFloat(minimumOrderValue) : 0,
+        isAutoApply: !!isAutoApply,
         isActive: true
       }
     });

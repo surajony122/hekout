@@ -53,8 +53,12 @@
             </div>
           </div>
           
+          <div id="cf-savings-banner" style="display:none; background:#dcfce7; color:#166534; padding:8px 16px; font-size:0.95rem; font-weight:500; text-align:center; border-top:1px solid #bbf7d0; border-bottom:1px solid #bbf7d0;">
+            Yay! You've saved <span id="cf-savings-amount" style="font-weight:700;">₹0</span> so far 🥳
+          </div>
+
           <!-- Accordion Body -->
-          <div id="cf-accordion-body" style="padding:16px; border-top:1px solid #e5e7eb; display:none;">
+          <div id="cf-accordion-body" style="padding:16px; display:none;">
             <div style="display:flex; gap:16px; align-items:flex-start;">
               ${productImage ? `<img src="${productImage}" style="width:80px; height:80px; border-radius:8px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:80px; height:80px; border-radius:8px; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:24px;">🛍️</div>`}
               <div style="flex:1;">
@@ -116,7 +120,7 @@
                 <span id="cf-summary-subtotal" style="font-weight:600;">₹${total.toLocaleString('en-IN')}</span>
               </div>
               <div id="cf-summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:8px; color:#059669;">
-                <span>Discount (<span id="cf-summary-discount-code"></span>)</span>
+                <span>Coupon discount (<span id="cf-summary-discount-code"></span>)</span>
                 <span id="cf-summary-discount-value" style="font-weight:600;">-₹0</span>
               </div>
               <div id="cf-summary-freebie-row" style="display:none; justify-content:space-between; margin-bottom:8px; color:#059669;">
@@ -196,7 +200,15 @@
         document.getElementById('cf-summary-subtotal').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
         if (appliedDiscount && appliedDiscount.type !== 'freebie_product') {
           document.getElementById('cf-summary-discount-value').innerText = `-₹${discountAmount.toLocaleString('en-IN')}`;
+          document.getElementById('cf-savings-banner').style.display = 'block';
+          document.getElementById('cf-savings-amount').innerText = `₹${discountAmount.toLocaleString('en-IN')}`;
+        } else if (appliedDiscount && appliedDiscount.type === 'freebie_product') {
+          document.getElementById('cf-savings-banner').style.display = 'block';
+          document.getElementById('cf-savings-amount').innerText = 'a Free Gift';
+        } else {
+          document.getElementById('cf-savings-banner').style.display = 'none';
         }
+        
         document.getElementById('cf-summary-total').innerText = `₹${finalTotal.toLocaleString('en-IN')}`;
         document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${finalTotal.toLocaleString('en-IN')}`;
       };
@@ -232,6 +244,21 @@
       };
       let currentTotal = total;
 
+      const applyDiscountToState = (data, code) => {
+        if (data.type === 'freebie_product') {
+          appliedDiscount = { code, type: data.type, value: 0, freebieName: data.freebieName };
+          document.getElementById('cf-summary-discount-row').style.display = 'none';
+          document.getElementById('cf-summary-freebie-name').innerText = data.freebieName;
+          document.getElementById('cf-summary-freebie-row').style.display = 'flex';
+        } else {
+          appliedDiscount = { code, type: data.type, value: data.value };
+          document.getElementById('cf-summary-freebie-row').style.display = 'none';
+          document.getElementById('cf-summary-discount-code').innerText = code;
+          document.getElementById('cf-summary-discount-row').style.display = 'flex';
+        }
+        updatePricingUI();
+      };
+
       document.getElementById('cf-apply-discount').onclick = async () => {
         const code = document.getElementById('cf-discount').value.trim();
         const msgEl = document.getElementById('cf-discount-msg');
@@ -254,19 +281,7 @@
           
           const data = await res.json();
           if (data.valid) {
-            if (data.type === 'freebie_product') {
-              appliedDiscount = { code, type: data.type, value: 0, freebieName: data.freebieName };
-              document.getElementById('cf-summary-discount-row').style.display = 'none';
-              document.getElementById('cf-summary-freebie-name').innerText = data.freebieName;
-              document.getElementById('cf-summary-freebie-row').style.display = 'flex';
-            } else {
-              appliedDiscount = { code, type: data.type, value: data.value };
-              document.getElementById('cf-summary-freebie-row').style.display = 'none';
-              document.getElementById('cf-summary-discount-code').innerText = code;
-              document.getElementById('cf-summary-discount-row').style.display = 'flex';
-            }
-            
-            updatePricingUI();
+            applyDiscountToState(data, code);
             
             msgEl.innerText = `Discount applied successfully!`;
             msgEl.style.color = '#059669';
@@ -290,6 +305,21 @@
         btn.innerText = 'Apply';
         btn.disabled = false;
       };
+
+      // Check for Auto-Apply Discounts on load
+      fetch(`https://checkoutflow-app.onrender.com/api/discounts/auto?shop=${shop}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.discount) {
+            document.getElementById('cf-discount').value = data.discount.code;
+            applyDiscountToState({ valid: true, ...data.discount }, data.discount.code);
+            const msgEl = document.getElementById('cf-discount-msg');
+            msgEl.innerText = `Auto-applied discount: ${data.discount.code}`;
+            msgEl.style.color = '#059669';
+            msgEl.style.display = 'block';
+          }
+        })
+        .catch(console.error);
 
       document.getElementById('cf-close').onclick = closeWidget;
       overlay.onclick = (e) => { if(e.target === overlay) closeWidget(); };
