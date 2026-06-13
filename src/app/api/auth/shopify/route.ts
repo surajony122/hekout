@@ -8,9 +8,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing shop parameter' }, { status: 400 });
     }
 
-    const clientId = process.env.SHOPIFY_CLIENT_ID || 'mock_client_id';
-    const redirectUri = process.env.SHOPIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
+    const clientId = process.env.SHOPIFY_CLIENT_ID;
+    const host = process.env.HOST || 'http://localhost:3000';
+    const redirectUri = `${host}/api/auth/callback`;
     const scopes = 'write_orders,read_orders,write_products,read_products,write_customers,read_customers';
+
+    if (!clientId) {
+      return NextResponse.json({ error: 'Server configuration error (Missing Client ID)' }, { status: 500 });
+    }
 
     // Build the authorization URL
     const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}`;

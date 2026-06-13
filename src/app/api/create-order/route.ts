@@ -6,18 +6,18 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod } = data;
 
-    // 1. Validate Merchant
+    // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
       where: { shopDomain: shop }
     });
 
-    if (!merchant || !merchant.isActive) {
-      return NextResponse.json({ error: 'Merchant not found or inactive' }, { status: 403 });
+    if (!merchant || !merchant.isActive || !merchant.accessToken) {
+      return NextResponse.json({ error: 'Merchant not found or missing access token' }, { status: 403 });
     }
 
     const total = (parseFloat(price) || 0) * (parseInt(quantity) || 1);
 
-    // 2. Create/Update Customer Profile
+    // 2. Create/Update Customer Profile Locally
     const customer = await prisma.customerProfile.findFirst({
       where: { merchantId: merchant.id, phone: customerPhone }
     });
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Create Local Order
+    // 3. Create Local Order (Pending)
     const order = await prisma.order.create({
       data: {
         merchantId: merchant.id,
@@ -53,17 +53,76 @@ export async function POST(request: Request) {
       }
     });
 
-    // 4. Create Shopify Draft Order (Mocked for MVP)
-    // In production: fetch(`https://${shop}/admin/api/2024-01/draft_orders.json`, { headers: { 'X-Shopify-Access-Token': merchant.accessToken }})
-    const draftOrderId = 'mock_do_' + Math.floor(Math.random() * 100000);
-    const shopifyOrderId = 'mock_o_' + Math.floor(Math.random() * 100000);
+    // 4. Create Shopify Draft Order via Admin API
+    const draftPayload = {
+      draft_order: {
+        line_items: [{
+          title: productTitle || 'Custom Product',
+          price: price,
+          quantity: parseInt(quantity) || 1,
+          variant_id: variantId ? parseInt(variantId) : undefined
+        }],
+        customer: {
+          first_name: customerName,
+          email: customerEmail,
+          phone: customerPhone
+        },
+        shipping_address: {
+          first_name: customerName,
+          address1: address,
+          city: city,
+          province: state,
+          zip: pincode,
+          country: 'India'
+        },
+        use_customer_default_address: false
+      }
+    };
 
-    // 5. Update Order Status
+    const draftRes = await fetch(`https://${shop}/admin/api/2024-01/draft_orders.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': merchant.accessToken
+      },
+      body: JSON.stringify(draftPayload)
+    });
+
+    const draftData = await draftRes.json();
+
+    if (!draftRes.ok) {
+      console.error("Shopify Draft Order Error:", draftData);
+      await prisma.order.update({ where: { id: order.id }, data: { orderStatus: 'Failed' }});
+      return NextResponse.json({ error: 'Failed to create Shopify Draft Order' }, { status: 500 });
+    }
+
+    const shopifyDraftOrderId = draftData.draft_order.id.toString();
+
+    // 5. Complete Shopify Draft Order to convert it to a Real Order
+    const completeRes = await fetch(`https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': merchant.accessToken
+      }
+    });
+
+    const completeData = await completeRes.json();
+
+    if (!completeRes.ok) {
+      console.error("Shopify Complete Draft Error:", completeData);
+      await prisma.order.update({ where: { id: order.id }, data: { shopifyDraftOrderId, orderStatus: 'Draft_Created' }});
+      return NextResponse.json({ error: 'Failed to complete Shopify Draft Order' }, { status: 500 });
+    }
+
+    const shopifyOrderId = completeData.draft_order.order_id?.toString() || 'Unknown';
+
+    // 6. Update Local Order Status to Synced
     await prisma.order.update({
       where: { id: order.id },
       data: {
-        shopifyDraftOrderId: draftOrderId,
-        shopifyOrderId: shopifyOrderId,
+        shopifyDraftOrderId,
+        shopifyOrderId,
         orderStatus: 'Synced'
       }
     });
