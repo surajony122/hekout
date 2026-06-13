@@ -40,17 +40,47 @@
           <button id="cf-close" style="background:#f3f4f6; border:none; border-radius:50%; width:32px; height:32px; font-size:1.2rem; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#4b5563; transition:background 0.2s;">&times;</button>
         </div>
         
-        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:24px;">
-          <div style="display:flex; gap:16px; align-items:center;">
-            ${productImage ? `<img src="${productImage}" style="width:70px; height:70px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:70px; height:70px; border-radius:10px; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:24px;">🛍️</div>`}
-            <div style="flex:1;">
-              <div style="font-weight:600; font-size:1rem; color:#111827; margin-bottom:4px; line-height:1.3;">${productTitle || 'Product'}</div>
-              <div style="color:#6b7280; font-size:0.875rem;">Qty: ${quantity}</div>
-              <div style="font-weight:700; font-size:1.1rem; margin-top:6px; color:#111827;">₹${total.toLocaleString('en-IN')}</div>
+        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; margin-bottom:24px; overflow:hidden;">
+          <!-- Accordion Header -->
+          <div id="cf-accordion-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px; cursor:pointer; background:#f9fafb;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="20" height="20" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              <span style="font-weight:600; color:#374151; font-size:1rem;">Order summary</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; color:#4b5563; font-size:0.9rem;">
+              <span id="cf-summary-qty-header">${quantity} item</span>
+              <svg id="cf-accordion-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
             </div>
           </div>
-          <div style="margin-top:16px; display:flex; gap:8px;">
-            <input type="text" id="cf-discount" placeholder="Discount code" style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;" />
+          
+          <!-- Accordion Body -->
+          <div id="cf-accordion-body" style="padding:16px; border-top:1px solid #e5e7eb; display:none;">
+            <div style="display:flex; gap:16px; align-items:flex-start;">
+              ${productImage ? `<img src="${productImage}" style="width:80px; height:80px; border-radius:8px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:80px; height:80px; border-radius:8px; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:24px;">🛍️</div>`}
+              <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                  <div style="font-weight:500; font-size:0.95rem; color:#111827; line-height:1.4; padding-right:12px;">${productTitle || 'Product'}</div>
+                  <div style="font-weight:700; font-size:1rem; color:#111827;" id="cf-item-total">₹${total.toLocaleString('en-IN')}</div>
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:16px; margin-top:12px;">
+                  <button type="button" id="cf-delete-item" style="background:none; border:1px solid #d1d5db; border-radius:6px; padding:6px; cursor:pointer; color:#ef4444; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                  <div style="display:flex; align-items:center; border:1px solid #d1d5db; border-radius:6px; overflow:hidden;">
+                    <button type="button" id="cf-qty-minus" style="background:#f9fafb; border:none; border-right:1px solid #d1d5db; padding:6px 14px; cursor:pointer; font-size:1.1rem; color:#374151; display:flex; align-items:center; justify-content:center;">-</button>
+                    <div id="cf-qty-display" style="padding:6px 16px; font-size:0.95rem; font-weight:600; color:#111827;">${quantity}</div>
+                    <button type="button" id="cf-qty-plus" style="background:#f9fafb; border:none; border-left:1px solid #d1d5db; padding:6px 14px; cursor:pointer; font-size:1.1rem; color:#374151; display:flex; align-items:center; justify-content:center;">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:24px;">
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="cf-discount" placeholder="Enter coupon code" style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;" />
             <button type="button" id="cf-apply-discount" style="background:#374151; color:white; border:none; border-radius:8px; padding:0 16px; font-size:0.9rem; font-weight:500; cursor:pointer;">Apply</button>
           </div>
           <div id="cf-discount-msg" style="color:#059669; font-size:0.8rem; margin-top:8px; display:none;">Discount code recorded.</div>
@@ -83,7 +113,7 @@
             <div style="background:#f9fafb; border:1px solid #d1d5db; border-radius:8px; padding:16px; font-size:0.95rem; color:#374151;">
               <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                 <span>Subtotal</span>
-                <span style="font-weight:600;">₹${total.toLocaleString('en-IN')}</span>
+                <span id="cf-summary-subtotal" style="font-weight:600;">₹${total.toLocaleString('en-IN')}</span>
               </div>
               <div id="cf-summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:8px; color:#059669;">
                 <span>Discount (<span id="cf-summary-discount-code"></span>)</span>
@@ -137,8 +167,69 @@
         setTimeout(() => overlay.remove(), 300);
       };
 
-      // Discount logic
+      // State Variables
+      let currentQuantity = parseInt(quantity) || 1;
+      let basePrice = parseFloat(price) || 0;
       let appliedDiscount = null;
+
+      // Pricing Update Engine
+      const updatePricingUI = () => {
+        const subtotal = basePrice * currentQuantity;
+        let discountAmount = 0;
+
+        if (appliedDiscount) {
+          if (appliedDiscount.type === 'percentage') {
+            discountAmount = subtotal * (appliedDiscount.value / 100);
+          } else if (appliedDiscount.type === 'fixed_amount') {
+            discountAmount = appliedDiscount.value;
+          }
+        }
+
+        const finalTotal = Math.max(0, subtotal - discountAmount);
+
+        // Update Item Accordion
+        document.getElementById('cf-item-total').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        document.getElementById('cf-qty-display').innerText = currentQuantity;
+        document.getElementById('cf-summary-qty-header').innerText = `${currentQuantity} item${currentQuantity !== 1 ? 's' : ''}`;
+
+        // Update Order Summary Box
+        document.getElementById('cf-summary-subtotal').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        if (appliedDiscount && appliedDiscount.type !== 'freebie_product') {
+          document.getElementById('cf-summary-discount-value').innerText = `-₹${discountAmount.toLocaleString('en-IN')}`;
+        }
+        document.getElementById('cf-summary-total').innerText = `₹${finalTotal.toLocaleString('en-IN')}`;
+        document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${finalTotal.toLocaleString('en-IN')}`;
+      };
+
+      // Accordion Toggle
+      const accHeader = document.getElementById('cf-accordion-header');
+      const accBody = document.getElementById('cf-accordion-body');
+      const accIcon = document.getElementById('cf-accordion-icon');
+      let isAccOpen = false;
+      accHeader.onclick = () => {
+        isAccOpen = !isAccOpen;
+        accBody.style.display = isAccOpen ? 'block' : 'none';
+        accIcon.style.transform = isAccOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+      };
+
+      // Quantity Controls
+      document.getElementById('cf-qty-plus').onclick = () => {
+        currentQuantity++;
+        updatePricingUI();
+      };
+
+      document.getElementById('cf-qty-minus').onclick = () => {
+        if (currentQuantity > 1) {
+          currentQuantity--;
+          updatePricingUI();
+        }
+      };
+
+      document.getElementById('cf-delete-item').onclick = () => {
+        if (confirm('Remove item from cart?')) {
+          closeWidget();
+        }
+      };
       let currentTotal = total;
 
       document.getElementById('cf-apply-discount').onclick = async () => {
@@ -163,14 +254,6 @@
           
           const data = await res.json();
           if (data.valid) {
-            // Calculate new total
-            let discountAmount = 0;
-            if (data.type === 'percentage') {
-              discountAmount = total * (data.value / 100);
-            } else if (data.type === 'fixed_amount') {
-              discountAmount = data.value;
-            }
-            
             if (data.type === 'freebie_product') {
               appliedDiscount = { code, type: data.type, value: 0, freebieName: data.freebieName };
               document.getElementById('cf-summary-discount-row').style.display = 'none';
@@ -180,26 +263,19 @@
               appliedDiscount = { code, type: data.type, value: data.value };
               document.getElementById('cf-summary-freebie-row').style.display = 'none';
               document.getElementById('cf-summary-discount-code').innerText = code;
-              document.getElementById('cf-summary-discount-value').innerText = `-₹${discountAmount.toLocaleString('en-IN')}`;
               document.getElementById('cf-summary-discount-row').style.display = 'flex';
             }
             
-            currentTotal = Math.max(0, total - discountAmount);
-            
-            // Update UI
-            document.getElementById('cf-summary-total').innerText = `₹${currentTotal.toLocaleString('en-IN')}`;
-            document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
+            updatePricingUI();
             
             msgEl.innerText = `Discount applied successfully!`;
             msgEl.style.color = '#059669';
             msgEl.style.display = 'block';
           } else {
             appliedDiscount = null;
-            currentTotal = total;
             document.getElementById('cf-summary-discount-row').style.display = 'none';
             document.getElementById('cf-summary-freebie-row').style.display = 'none';
-            document.getElementById('cf-summary-total').innerText = `₹${total.toLocaleString('en-IN')}`;
-            document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${total.toLocaleString('en-IN')}`;
+            updatePricingUI();
             
             msgEl.innerText = data.error || 'Invalid discount code';
             msgEl.style.color = '#dc2626';
@@ -229,7 +305,7 @@
         const payload = {
           shop,
           variantId,
-          quantity,
+          quantity: currentQuantity,
           productTitle,
           price,
           customerName: document.getElementById('cf-name').value,
@@ -275,7 +351,7 @@
           }
         } catch(err) {
           alert('Network error. Please try again.');
-          submitBtn.innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
+          updatePricingUI(); // reset button text
           submitBtn.disabled = false;
           submitBtn.style.opacity = '1';
         }
@@ -316,8 +392,12 @@
             const productTitle = titleEl ? titleEl.innerText : 'Product';
             
             let price = 0;
+            let productImage = null;
             if (window.meta && window.meta.product && window.meta.product.variants && window.meta.product.variants.length > 0) {
               price = window.meta.product.variants[0].price / 100;
+              if (window.meta.product.variants[0].featured_image) {
+                productImage = window.meta.product.variants[0].featured_image.src;
+              }
             } else {
               const priceEl = document.querySelector('.price-item--regular, .price, .product__price, [data-product-price]');
               if (priceEl) {
@@ -326,12 +406,18 @@
                 if (match) price = parseFloat(match[0]);
               }
             }
+            
+            if (!productImage) {
+              const imgEl = document.querySelector('img.product-single__photo, img.product__image, img[data-product-featured-image]');
+              if (imgEl) productImage = imgEl.src;
+            }
 
             window.CheckoutFlow.open({
               shop: shopDomain,
               variantId: variantId,
               quantity: quantity,
               productTitle: productTitle,
+              productImage: productImage,
               price: price
             });
           };
