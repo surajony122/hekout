@@ -76,7 +76,7 @@ export async function POST(request: Request) {
           country: 'India'
         },
         use_customer_default_address: false,
-        tags: [paymentMethod || 'COD', 'CheckoutFlow'],
+        tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
         note: discountCode ? `Requested Discount Code: ${discountCode}` : undefined
       }
     };
