@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 
 export default async function CustomersPage() {
-  let customers = [];
+  let customers: any[] = [];
   try {
     customers = await prisma.customerProfile.findMany({
       orderBy: { createdAt: 'desc' },
