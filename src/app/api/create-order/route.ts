@@ -117,7 +117,25 @@ export async function POST(request: Request) {
 
     const shopifyOrderId = completeData.draft_order.order_id?.toString() || 'Unknown';
 
-    // 6. Update Local Order Status to Synced
+    // 6. Fetch the actual order to get the Order Status URL (Thank you page)
+    let orderStatusUrl = `https://${shop}`;
+    if (shopifyOrderId !== 'Unknown') {
+      const orderRes = await fetch(`https://${shop}/admin/api/2024-01/orders/${shopifyOrderId}.json`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': merchant.accessToken
+        }
+      });
+      if (orderRes.ok) {
+        const orderData = await orderRes.json();
+        if (orderData.order && orderData.order.order_status_url) {
+          orderStatusUrl = orderData.order.order_status_url;
+        }
+      }
+    }
+
+    // 7. Update Local Order Status to Synced
     await prisma.order.update({
       where: { id: order.id },
       data: {
@@ -127,7 +145,7 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, orderId: order.id, shopifyOrderId });
+    return NextResponse.json({ success: true, orderId: order.id, shopifyOrderId, orderStatusUrl });
   } catch (error) {
     console.error('Create Order Error:', error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });

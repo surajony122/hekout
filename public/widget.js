@@ -128,14 +128,19 @@
           
           const data = await res.json();
           if (data.success) {
-            sheet.innerHTML = `
-              <div style="text-align:center; padding: 40px 20px;">
-                <div style="font-size:3rem; color:#10b981; margin-bottom:20px;">✓</div>
-                <h2 style="margin:0 0 10px 0; color:#111;">Order Confirmed!</h2>
-                <p style="color:#666;">Your order has been placed successfully.</p>
-                <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:20px; padding:10px 20px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer;">Close</button>
-              </div>
-            `;
+            submitBtn.innerText = 'Redirecting...';
+            if (data.orderStatusUrl) {
+              window.location.href = data.orderStatusUrl;
+            } else {
+              sheet.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px;">
+                  <div style="font-size:3rem; color:#10b981; margin-bottom:20px;">✓</div>
+                  <h2 style="margin:0 0 10px 0; color:#111;">Order Confirmed!</h2>
+                  <p style="color:#666;">Your order has been placed successfully.</p>
+                  <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:20px; padding:10px 20px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer;">Close</button>
+                </div>
+              `;
+            }
           } else {
             alert('Failed to place order: ' + (data.error || 'Unknown error'));
             submitBtn.innerText = `Complete Order • ₹${total}`;
@@ -184,10 +189,17 @@
             const titleEl = document.querySelector('h1');
             const productTitle = titleEl ? titleEl.innerText : 'Product';
             
-            const priceEl = document.querySelector('.price, .product__price, [data-product-price]');
-            let priceStr = priceEl ? priceEl.innerText.replace(/[^0-9.]/g, '') : '0';
-            let price = parseFloat(priceStr);
-            if (isNaN(price)) price = 0;
+            let price = 0;
+            if (window.meta && window.meta.product && window.meta.product.variants && window.meta.product.variants.length > 0) {
+              price = window.meta.product.variants[0].price / 100;
+            } else {
+              const priceEl = document.querySelector('.price-item--regular, .price, .product__price, [data-product-price]');
+              if (priceEl) {
+                let text = priceEl.innerText.replace(/,/g, '');
+                let match = text.match(/[\d]+(\.[\d]+)?/);
+                if (match) price = parseFloat(match[0]);
+              }
+            }
 
             window.CheckoutFlow.open({
               shop: shopDomain,
