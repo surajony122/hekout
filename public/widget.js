@@ -46,10 +46,7 @@
             <div style="flex:1;">
               <div style="font-weight:600; font-size:1rem; color:#111827; margin-bottom:4px; line-height:1.3;">${productTitle || 'Product'}</div>
               <div style="color:#6b7280; font-size:0.875rem;">Qty: ${quantity}</div>
-              <div style="font-weight:700; font-size:1.1rem; margin-top:6px; color:#111827;">
-                <span id="cf-old-price" style="display:none; text-decoration:line-through; color:#9ca3af; font-size:0.9rem; margin-right:8px;"></span>
-                <span id="cf-final-price">₹${total.toLocaleString('en-IN')}</span>
-              </div>
+              <div style="font-weight:700; font-size:1.1rem; margin-top:6px; color:#111827;">₹${total.toLocaleString('en-IN')}</div>
             </div>
           </div>
           <div style="margin-top:16px; display:flex; gap:8px;">
@@ -78,6 +75,33 @@
                 <input type="text" id="cf-state" placeholder="State" required style="width:50%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
               </div>
               <input type="text" id="cf-pincode" placeholder="Pincode" required style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font-size:0.95rem; outline:none;" />
+            </div>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <h3 style="font-size:1rem; font-weight:600; color:#374151; margin:0 0 12px 0;">Order Summary</h3>
+            <div style="background:#f9fafb; border:1px solid #d1d5db; border-radius:8px; padding:16px; font-size:0.95rem; color:#374151;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span>Subtotal</span>
+                <span style="font-weight:600;">₹${total.toLocaleString('en-IN')}</span>
+              </div>
+              <div id="cf-summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:8px; color:#059669;">
+                <span>Discount (<span id="cf-summary-discount-code"></span>)</span>
+                <span id="cf-summary-discount-value" style="font-weight:600;">-₹0</span>
+              </div>
+              <div id="cf-summary-freebie-row" style="display:none; justify-content:space-between; margin-bottom:8px; color:#059669;">
+                <span>Free Gift</span>
+                <span id="cf-summary-freebie-name" style="font-weight:600;"></span>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                <span>Shipping</span>
+                <span style="font-weight:600; color:#059669;">Free</span>
+              </div>
+              <div style="border-top:1px solid #d1d5db; margin:12px 0;"></div>
+              <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; color:#111827;">
+                <span>Total</span>
+                <span id="cf-summary-total">₹${total.toLocaleString('en-IN')}</span>
+              </div>
             </div>
           </div>
 
@@ -139,8 +163,6 @@
           
           const data = await res.json();
           if (data.valid) {
-            appliedDiscount = { code, type: data.type, value: data.value };
-            
             // Calculate new total
             let discountAmount = 0;
             if (data.type === 'percentage') {
@@ -149,12 +171,23 @@
               discountAmount = data.value;
             }
             
+            if (data.type === 'freebie_product') {
+              appliedDiscount = { code, type: data.type, value: 0, freebieName: data.freebieName };
+              document.getElementById('cf-summary-discount-row').style.display = 'none';
+              document.getElementById('cf-summary-freebie-name').innerText = data.freebieName;
+              document.getElementById('cf-summary-freebie-row').style.display = 'flex';
+            } else {
+              appliedDiscount = { code, type: data.type, value: data.value };
+              document.getElementById('cf-summary-freebie-row').style.display = 'none';
+              document.getElementById('cf-summary-discount-code').innerText = code;
+              document.getElementById('cf-summary-discount-value').innerText = `-₹${discountAmount.toLocaleString('en-IN')}`;
+              document.getElementById('cf-summary-discount-row').style.display = 'flex';
+            }
+            
             currentTotal = Math.max(0, total - discountAmount);
             
             // Update UI
-            document.getElementById('cf-old-price').innerText = `₹${total.toLocaleString('en-IN')}`;
-            document.getElementById('cf-old-price').style.display = 'inline';
-            document.getElementById('cf-final-price').innerText = `₹${currentTotal.toLocaleString('en-IN')}`;
+            document.getElementById('cf-summary-total').innerText = `₹${currentTotal.toLocaleString('en-IN')}`;
             document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${currentTotal.toLocaleString('en-IN')}`;
             
             msgEl.innerText = `Discount applied successfully!`;
@@ -163,8 +196,9 @@
           } else {
             appliedDiscount = null;
             currentTotal = total;
-            document.getElementById('cf-old-price').style.display = 'none';
-            document.getElementById('cf-final-price').innerText = `₹${total.toLocaleString('en-IN')}`;
+            document.getElementById('cf-summary-discount-row').style.display = 'none';
+            document.getElementById('cf-summary-freebie-row').style.display = 'none';
+            document.getElementById('cf-summary-total').innerText = `₹${total.toLocaleString('en-IN')}`;
             document.getElementById('cf-submit').innerHTML = `Complete Order &bull; ₹${total.toLocaleString('en-IN')}`;
             
             msgEl.innerText = data.error || 'Invalid discount code';

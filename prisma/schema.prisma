@@ -100,8 +100,9 @@ model Coupon {
   id                String   @id @default(uuid())
   merchantId        String   @map("merchant_id")
   code              String
-  discountType      String   // 'percentage', 'fixed_amount', 'free_shipping'
+  discountType      String   // 'percentage', 'fixed_amount', 'free_shipping', 'freebie_product'
   discountValue     Float
+  freebieName       String?
   minimumOrderValue Float    @default(0)
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now()) @map("created_at")

@@ -30,8 +30,9 @@ export async function POST(request: Request) {
     if (localCoupon) {
       return NextResponse.json({
         valid: true,
-        type: localCoupon.discountType, // 'percentage' or 'fixed_amount'
+        type: localCoupon.discountType, // 'percentage', 'fixed_amount', or 'freebie_product'
         value: localCoupon.discountValue,
+        freebieName: localCoupon.freebieName,
         source: 'checkoutflow'
       });
     }

@@ -64,14 +64,30 @@ export async function POST(request: Request) {
     });
 
     // 4. Create Shopify Draft Order via Admin API
+    const lineItems: any[] = [{
+      title: productTitle || 'Custom Product',
+      price: price,
+      quantity: parseInt(quantity) || 1,
+      variant_id: variantId ? parseInt(variantId) : undefined
+    }];
+
+    if (appliedDiscount && appliedDiscount.type === 'freebie_product' && appliedDiscount.freebieName) {
+      lineItems.push({
+        title: appliedDiscount.freebieName,
+        price: '0.00',
+        quantity: 1,
+        applied_discount: {
+          description: appliedDiscount.code,
+          value: '100.0',
+          value_type: 'percentage',
+          amount: '0.00'
+        }
+      });
+    }
+
     const draftPayload = {
       draft_order: {
-        line_items: [{
-          title: productTitle || 'Custom Product',
-          price: price,
-          quantity: parseInt(quantity) || 1,
-          variant_id: variantId ? parseInt(variantId) : undefined
-        }],
+        line_items: lineItems,
         customer: {
           first_name: customerName,
           email: customerEmail,
@@ -86,7 +102,7 @@ export async function POST(request: Request) {
           country: 'India'
         },
         use_customer_default_address: false,
-        applied_discount: appliedDiscount ? {
+        applied_discount: (appliedDiscount && appliedDiscount.type !== 'freebie_product') ? {
           description: appliedDiscount.code,
           value_type: appliedDiscount.type,
           value: appliedDiscount.value.toString()
