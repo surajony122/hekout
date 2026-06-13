@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const clientId = process.env.SHOPIFY_CLIENT_ID;
     const host = process.env.HOST || 'http://localhost:3000';
     const redirectUri = process.env.SHOPIFY_REDIRECT_URI || `${host}/api/auth/callback`;
-    const scopes = 'write_orders,read_orders,write_products,read_products,write_customers,read_customers';
+    const scopes = 'write_orders,read_orders,write_products,read_products,write_customers,read_customers,read_discounts,write_discounts,read_price_rules,write_price_rules';
 
     if (!clientId) {
       return NextResponse.json({ error: 'Server configuration error (Missing Client ID)' }, { status: 500 });
