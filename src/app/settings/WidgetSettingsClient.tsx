@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function WidgetSettingsClient({ merchantId, initialSettings }: { merchantId: string, initialSettings: any }) {
   const [settings, setSettings] = useState({
@@ -49,7 +48,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Primary Brand Color (Hex)</Label>
+            <label className="text-sm font-medium leading-none">Primary Brand Color (Hex)</label>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-md border" style={{ backgroundColor: settings.primaryColor }}></div>
               <Input 
@@ -72,7 +71,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Banner Text</Label>
+              <label className="text-sm font-medium leading-none">Banner Text</label>
               <Input 
                 value={settings.preLoginBannerText} 
                 onChange={e => setSettings({...settings, preLoginBannerText: e.target.value})} 
@@ -80,14 +79,14 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
             </div>
             <div className="flex gap-4">
               <div className="space-y-2 flex-1">
-                <Label>Background Color</Label>
+                <label className="text-sm font-medium leading-none">Background Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={settings.preLoginBannerBg} onChange={e => setSettings({...settings, preLoginBannerBg: e.target.value})} />
                   <Input value={settings.preLoginBannerBg} onChange={e => setSettings({...settings, preLoginBannerBg: e.target.value})} className="w-24" />
                 </div>
               </div>
               <div className="space-y-2 flex-1">
-                <Label>Text Color</Label>
+                <label className="text-sm font-medium leading-none">Text Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={settings.preLoginBannerColor} onChange={e => setSettings({...settings, preLoginBannerColor: e.target.value})} />
                   <Input value={settings.preLoginBannerColor} onChange={e => setSettings({...settings, preLoginBannerColor: e.target.value})} className="w-24" />
@@ -104,7 +103,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Banner Text</Label>
+              <label className="text-sm font-medium leading-none">Banner Text</label>
               <Input 
                 value={settings.postLoginBannerText} 
                 onChange={e => setSettings({...settings, postLoginBannerText: e.target.value})} 
@@ -112,14 +111,14 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
             </div>
             <div className="flex gap-4">
               <div className="space-y-2 flex-1">
-                <Label>Background Color</Label>
+                <label className="text-sm font-medium leading-none">Background Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={settings.postLoginBannerBg} onChange={e => setSettings({...settings, postLoginBannerBg: e.target.value})} />
                   <Input value={settings.postLoginBannerBg} onChange={e => setSettings({...settings, postLoginBannerBg: e.target.value})} className="w-24" />
                 </div>
               </div>
               <div className="space-y-2 flex-1">
-                <Label>Text Color</Label>
+                <label className="text-sm font-medium leading-none">Text Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={settings.postLoginBannerColor} onChange={e => setSettings({...settings, postLoginBannerColor: e.target.value})} />
                   <Input value={settings.postLoginBannerColor} onChange={e => setSettings({...settings, postLoginBannerColor: e.target.value})} className="w-24" />
