@@ -17,13 +17,13 @@ export default function DashboardClient() {
       .then(data => setData(data));
   }, []);
 
-  if (!data || !data.metrics) return (
+  if (!data) return (
     <div className="flex items-center justify-center h-96">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
     </div>
   );
 
-  const metrics = data.metrics;
+  const metrics = data.metrics || {};
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">

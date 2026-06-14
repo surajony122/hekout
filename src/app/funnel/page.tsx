@@ -12,7 +12,7 @@ export default function FunnelPage() {
   useEffect(() => {
     fetch('/api/dashboard/metrics')
       .then(res => res.json())
-      .then(res => setData(res.metrics));
+      .then(res => setData(res.metrics || {}));
   }, []);
 
   if (!data) return (
