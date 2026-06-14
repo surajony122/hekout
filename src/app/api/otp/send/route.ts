@@ -31,12 +31,43 @@ export async function POST(request: Request) {
       }
     });
 
-    // Initialize Twilio
+    // MSG91 Credentials
+    const msg91AuthKey = process.env.MSG91_AUTH_KEY;
+    const msg91TemplateId = process.env.MSG91_TEMPLATE_ID;
+
+    // Twilio Credentials
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-    if (twilioSid && twilioAuth && twilioPhone) {
+    if (msg91AuthKey && msg91TemplateId) {
+      try {
+        // MSG91 expects mobile with country code but no '+' sign (e.g., 919876543210 or 19727345481)
+        const cleanPhone = phone.replace(/\D/g, '');
+        // Default to India (91) if 10 digits, else use as is
+        const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+        const msg91Res = await fetch('https://control.msg91.com/api/v5/otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'authkey': msg91AuthKey
+          },
+          body: JSON.stringify({
+            template_id: msg91TemplateId,
+            mobile: formattedPhone,
+            otp: otpCode
+          })
+        });
+
+        const msg91Data = await msg91Res.json();
+        if (msg91Data.type === 'error') {
+          console.error('MSG91 Error:', msg91Data);
+        }
+      } catch (err) {
+        console.error('MSG91 Request Failed:', err);
+      }
+    } else if (twilioSid && twilioAuth && twilioPhone) {
       try {
         const client = twilio(twilioSid, twilioAuth);
         // Assuming the widget sends a 10 digit US number, we prepend +1.
@@ -53,7 +84,7 @@ export async function POST(request: Request) {
         // We log the error but still return success so the user can use the simulator if Twilio fails
       }
     } else {
-      console.warn('Twilio credentials not found in env. Falling back to simulator only.');
+      console.warn('No SMS provider credentials found in env. Falling back to simulator only.');
     }
 
     return NextResponse.json({ 
