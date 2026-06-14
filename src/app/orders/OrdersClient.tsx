@@ -62,12 +62,12 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
               orders.map((order) => {
                 let productNames = order.productTitle || 'Unknown';
                 const isCompleted = order.orderStatus === 'Synced';
-                const shopifyUrl = order.shopifyOrderId ? \`https://\${shopDomain}/admin/orders/\${order.shopifyOrderId}\` : '#';
+                const shopifyUrl = order.shopifyOrderId ? `https://${shopDomain}/admin/orders/${order.shopifyOrderId}` : '#';
 
                 return (
                   <tr key={order.id} onClick={() => setSelectedOrder(order)} className="border-b border-slate-50 last:border-0 hover:bg-indigo-50/40 cursor-pointer transition-colors group">
                     <td className="py-4 px-4 font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
-                      {order.shopifyOrderId ? \`#\${order.shopifyOrderId}\` : 'Pending Sync'}
+                      {order.shopifyOrderId ? `#${order.shopifyOrderId}` : 'Pending Sync'}
                     </td>
                     <td className="py-4 px-4 text-sm text-slate-600 flex items-center gap-3">
                       <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-lg group-hover:bg-white transition-colors">🛍️</div>
@@ -123,7 +123,7 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                       Order Details
                     </h2>
                     <p className="text-sm text-slate-500 mt-1">
-                      {selectedOrder.shopifyOrderId ? \`#\${selectedOrder.shopifyOrderId}\` : 'Pending Sync'} • {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                      {selectedOrder.shopifyOrderId ? `#${selectedOrder.shopifyOrderId}` : 'Pending Sync'} • {new Date(selectedOrder.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <button
@@ -198,7 +198,7 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                       
                       {(selectedOrder.couponDiscount > 0) && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-emerald-600 flex items-center gap-1"><Tag size={14} /> Coupon {selectedOrder.couponCode ? \`(\${selectedOrder.couponCode})\` : ''}</span>
+                          <span className="text-emerald-600 flex items-center gap-1"><Tag size={14} /> Coupon {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ''}</span>
                           <span className="font-medium text-emerald-600">-₹{selectedOrder.couponDiscount.toLocaleString()}</span>
                         </div>
                       )}
