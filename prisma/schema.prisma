@@ -24,6 +24,7 @@ model Merchant {
   coupons          Coupon[]
   otpVerifications OtpVerification[]
   paymentSettings  PaymentSettings?
+  widgetSettings   WidgetSettings?
 
   @@map("merchants")
 }
@@ -163,3 +164,26 @@ model PaymentSettings {
 
   @@map("payment_settings")
 }
+
+model WidgetSettings {
+  id                  String   @id @default(uuid())
+  merchantId          String   @unique @map("merchant_id")
+  
+  primaryColor        String   @default("#111827") @map("primary_color")
+  
+  preLoginBannerText  String?  @map("pre_login_banner_text")
+  preLoginBannerBg    String?  @default("#000000") @map("pre_login_banner_bg")
+  preLoginBannerColor String?  @default("#ffffff") @map("pre_login_banner_color")
+  
+  postLoginBannerText String?  @map("post_login_banner_text")
+  postLoginBannerBg   String?  @default("#000000") @map("post_login_banner_bg")
+  postLoginBannerColor String? @default("#ffffff") @map("post_login_banner_color")
+  
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  merchant            Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("widget_settings")
+}
+

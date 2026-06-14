@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import PaymentSettingsClient from './PaymentSettingsClient';
+import WidgetSettingsClient from './WidgetSettingsClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function SettingsPage() {
   let merchant = null;
   let paymentSettings = null;
+  let widgetSettings = null;
 
   try {
     merchant = await prisma.merchant.findFirst({
@@ -17,6 +19,9 @@ export default async function SettingsPage() {
 
     if (merchant) {
       paymentSettings = await prisma.paymentSettings.findUnique({
+        where: { merchantId: merchant.id }
+      });
+      widgetSettings = await prisma.widgetSettings.findUnique({
         where: { merchantId: merchant.id }
       });
     }
@@ -34,6 +39,7 @@ export default async function SettingsPage() {
       <Tabs defaultValue="payments" className="w-full">
         <TabsList className="bg-slate-100/50 p-1 mb-6 flex space-x-2 w-max">
           <TabsTrigger value="general" className="text-xs">General</TabsTrigger>
+          <TabsTrigger value="widget" className="text-xs">Widget Design</TabsTrigger>
           <TabsTrigger value="otp" className="text-xs">OTP</TabsTrigger>
           <TabsTrigger value="payments" className="text-xs">Payments</TabsTrigger>
           <TabsTrigger value="shipping" className="text-xs">Shipping</TabsTrigger>
@@ -51,6 +57,13 @@ export default async function SettingsPage() {
               <p className="text-sm text-slate-500">General settings coming soon.</p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="widget" className="space-y-4">
+          <WidgetSettingsClient 
+            merchantId={merchant?.id || ''} 
+            initialSettings={widgetSettings || {}} 
+          />
         </TabsContent>
 
         <TabsContent value="otp" className="space-y-4">

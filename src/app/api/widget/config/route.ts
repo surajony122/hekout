@@ -11,12 +11,13 @@ export async function GET(request: Request) {
 
     const merchant = await prisma.merchant.findUnique({
       where: { shopDomain: shop },
-      include: { paymentSettings: true }
+      include: { paymentSettings: true, widgetSettings: true }
     });
 
     if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
 
     const ps = merchant.paymentSettings;
+    const ws = merchant.widgetSettings;
 
     return NextResponse.json({
       success: true,
@@ -27,7 +28,14 @@ export async function GET(request: Request) {
         isPartialCodEnabled: ps?.isPartialCodEnabled || false,
         partialCodAmount: ps?.partialCodAmount || 0,
         hasRazorpay: !!ps?.razorpayKeyId,
-        storeName: merchant.storeName || shop.split('.')[0]
+        storeName: merchant.storeName || shop.split('.')[0],
+        primaryColor: ws?.primaryColor || '#111827',
+        preLoginBannerText: ws?.preLoginBannerText || '🎉 FREE SHIPPING ON ALL ORDERS TODAY!',
+        preLoginBannerBg: ws?.preLoginBannerBg || '#000000',
+        preLoginBannerColor: ws?.preLoginBannerColor || '#ffffff',
+        postLoginBannerText: ws?.postLoginBannerText || '⚡ EXTRA 2% OFF ON UPI/CARDS',
+        postLoginBannerBg: ws?.postLoginBannerBg || '#ecfdf5',
+        postLoginBannerColor: ws?.postLoginBannerColor || '#059669',
       }
     });
 
