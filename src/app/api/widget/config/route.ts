@@ -15,17 +15,17 @@ export async function GET(request: Request) {
 
     if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
 
-    const ps = merchant.paymentSettings || {};
+    const ps = merchant.paymentSettings;
 
     return NextResponse.json({
       success: true,
       config: {
-        isPrepaidDiscountEnabled: ps.isPrepaidDiscountEnabled || false,
-        prepaidDiscountType: ps.prepaidDiscountType || 'percentage',
-        prepaidDiscountValue: ps.prepaidDiscountValue || 0,
-        isPartialCodEnabled: ps.isPartialCodEnabled || false,
-        partialCodAmount: ps.partialCodAmount || 0,
-        hasRazorpay: !!ps.razorpayKeyId
+        isPrepaidDiscountEnabled: ps?.isPrepaidDiscountEnabled || false,
+        prepaidDiscountType: ps?.prepaidDiscountType || 'percentage',
+        prepaidDiscountValue: ps?.prepaidDiscountValue || 0,
+        isPartialCodEnabled: ps?.isPartialCodEnabled || false,
+        partialCodAmount: ps?.partialCodAmount || 0,
+        hasRazorpay: !!ps?.razorpayKeyId
       }
     });
 
