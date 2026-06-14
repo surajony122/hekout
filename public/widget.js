@@ -478,8 +478,6 @@
           }
         });
 
-      window.internalUpdatePricing = updatePricingUI;
-      window.internalUpdatePricing = updatePricingUI;
       const updatePricingUI = () => {
         const subtotal = basePrice * currentQuantity;
         let discountAmount = 0;
@@ -556,6 +554,8 @@
         document.getElementById('cf-summary-total').innerText = `₹${finalTotal.toLocaleString('en-IN')}`;
         document.getElementById('cf-submit-order').innerHTML = `Complete Order &bull; ₹${finalTotal.toLocaleString('en-IN')}`;
       };
+
+      window.internalUpdatePricing = updatePricingUI;
 
       // Accordion Toggle
       const accHeader = document.getElementById('cf-accordion-header');
