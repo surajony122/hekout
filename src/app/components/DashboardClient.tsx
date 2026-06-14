@@ -98,12 +98,14 @@ export default function DashboardClient() {
 
           <div className="bg-white p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col justify-between">
             <div className="flex justify-between items-start">
-              <span className="text-sm font-medium text-slate-500">Refund Request</span>
-              <div className="p-1.5 bg-slate-50 rounded-full text-slate-400"><ShoppingCart size={16} /></div>
+              <span className="text-sm font-medium text-slate-500">Total Savings Given</span>
+              <div className="p-1.5 bg-indigo-50 rounded-full text-indigo-500"><ShoppingCart size={16} /></div>
             </div>
             <div className="mt-4">
-              <h3 className="text-2xl font-bold text-slate-900">0</h3>
-              <p className="text-xs font-medium text-rose-500 mt-1 flex items-center gap-1"><ArrowUpRight size={12} className="rotate-90"/> {refundGrowth} vs Last Week</p>
+              <h3 className="text-2xl font-bold text-slate-900">₹{(data.totalDiscountsGiven || 0).toLocaleString()}</h3>
+              <p className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1">
+                <span className="text-emerald-500 font-semibold">₹{(data.totalPrepaidDiscount || 0).toLocaleString()}</span> prepaid • <span className="text-amber-500 font-semibold">₹{(data.totalCouponDiscount || 0).toLocaleString()}</span> coupons
+              </p>
             </div>
           </div>
         </div>
@@ -235,7 +237,9 @@ export default function DashboardClient() {
                     </span>
                   </td>
                   <td className="py-4 text-center">
-                    <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Eye size={18} /></button>
+                    <a href="/orders" className="text-slate-400 hover:text-indigo-600 transition-colors inline-flex p-1.5 hover:bg-indigo-50 rounded-md">
+                      <Eye size={18} />
+                    </a>
                   </td>
                 </tr>
               ))}

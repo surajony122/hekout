@@ -730,7 +730,7 @@
               key: rzpOrderData.keyId,
               amount: rzpOrderData.amount,
               currency: "INR",
-              name: "CheckoutFlow Demo",
+              name: (typeof widgetConfig !== 'undefined' && widgetConfig.storeName) ? widgetConfig.storeName : shop.split('.')[0],
               description: "Order Payment",
               order_id: rzpOrderData.orderId,
               handler: async function (response) {

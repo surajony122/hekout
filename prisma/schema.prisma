@@ -50,6 +50,11 @@ model Order {
   total               Float    @default(0)
   
   paymentMethod       String?  @map("payment_method") // COD, Prepaid
+  paymentId           String?  @map("payment_id") // Razorpay transaction ID
+  
+  prepaidDiscount     Float    @default(0) @map("prepaid_discount")
+  couponDiscount      Float    @default(0) @map("coupon_discount")
+  couponCode          String?  @map("coupon_code")
   verificationStatus  String?  @map("verification_status") // Pending, Verified
   orderStatus         String?  @map("order_status") // Pending, Synced, Failed
   

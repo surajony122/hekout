@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscount, prepaidDiscount } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscount, prepaidDiscount, paymentId } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -42,17 +42,23 @@ export async function POST(request: Request) {
     }
 
     let totalDiscount = 0;
+    let couponDiscountAmount = 0;
+    let couponCodeStr = null;
     if (appliedDiscount) {
       if (appliedDiscount.type === 'percentage') {
-        totalDiscount = total * (appliedDiscount.value / 100);
+        couponDiscountAmount = total * (appliedDiscount.value / 100);
       } else {
-        totalDiscount = appliedDiscount.value;
+        couponDiscountAmount = appliedDiscount.value;
       }
+      couponCodeStr = appliedDiscount.code;
+      totalDiscount += couponDiscountAmount;
     }
     
     // Add prepaid discount if applicable
+    let prepaidDiscountAmount = 0;
     if (prepaidDiscount) {
-      totalDiscount += parseFloat(prepaidDiscount);
+      prepaidDiscountAmount = parseFloat(prepaidDiscount) || 0;
+      totalDiscount += prepaidDiscountAmount;
     }
     
     const finalTotal = Math.max(0, total - totalDiscount);
@@ -65,6 +71,10 @@ export async function POST(request: Request) {
         address, city, state, pincode,
         productTitle, variantId, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0, total: finalTotal,
         paymentMethod: paymentMethod || 'COD',
+        paymentId: paymentId || null,
+        prepaidDiscount: prepaidDiscountAmount,
+        couponDiscount: couponDiscountAmount,
+        couponCode: couponCodeStr,
         orderStatus: 'Pending'
       }
     });

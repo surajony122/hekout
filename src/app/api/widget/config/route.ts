@@ -26,7 +26,8 @@ export async function GET(request: Request) {
         prepaidDiscountValue: ps?.prepaidDiscountValue || 0,
         isPartialCodEnabled: ps?.isPartialCodEnabled || false,
         partialCodAmount: ps?.partialCodAmount || 0,
-        hasRazorpay: !!ps?.razorpayKeyId
+        hasRazorpay: !!ps?.razorpayKeyId,
+        storeName: merchant.storeName || shop.split('.')[0]
       }
     });
 
