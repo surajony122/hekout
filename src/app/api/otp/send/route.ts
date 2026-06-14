@@ -87,12 +87,16 @@ export async function POST(request: Request) {
       }
     } else {
       console.warn('No SMS provider credentials found in env. Falling back to simulator only.');
+      return NextResponse.json({ 
+        success: true, 
+        message: 'OTP sent successfully (Simulated)',
+        simulatedCode: otpCode 
+      });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'OTP sent successfully',
-      simulatedCode: otpCode // Keeping simulator for testing and fallback
+      message: 'OTP sent successfully'
     });
 
   } catch (error) {

@@ -74,7 +74,7 @@
           <div id="cf-otp-step" style="display:none;">
             <p style="color:#4b5563; font-size:0.95rem; margin-bottom:20px;">We've sent an activation code to <b id="cf-otp-display-phone"></b>.</p>
             
-            <div style="background:#fef3c7; border:1px solid #f59e0b; padding:12px; border-radius:8px; margin-bottom:20px; text-align:left;">
+            <div id="cf-simulator-box" style="display:none; background:#fef3c7; border:1px solid #f59e0b; padding:12px; border-radius:8px; margin-bottom:20px; text-align:left;">
               <span style="font-size:0.8rem; font-weight:bold; color:#b45309; text-transform:uppercase;">SMS Simulator</span><br/>
               <span style="font-size:0.95rem; color:#92400e;">Your verification code is: <b id="cf-simulated-code"></b></span>
             </div>
@@ -271,7 +271,13 @@
             document.getElementById('cf-phone-step').style.display = 'none';
             document.getElementById('cf-otp-step').style.display = 'block';
             document.getElementById('cf-otp-display-phone').innerText = phone;
-            document.getElementById('cf-simulated-code').innerText = data.simulatedCode;
+            if (data.simulatedCode) {
+              document.getElementById('cf-simulated-code').innerText = data.simulatedCode;
+              document.getElementById('cf-simulator-box').style.display = 'block';
+            } else {
+              const simBox = document.getElementById('cf-simulator-box');
+              if (simBox) simBox.style.display = 'none';
+            }
           } else {
             loginError.innerText = data.error || 'Failed to send OTP';
             loginError.style.display = 'block';
