@@ -81,9 +81,9 @@ export async function POST(request: Request) {
           from: twilioPhone,
           to: formattedPhone
         });
-      } catch (smsError) {
+      } catch (smsError: any) {
         console.error('Twilio SMS Failed:', smsError);
-        // We log the error but still return success so the user can use the simulator if Twilio fails
+        return NextResponse.json({ error: `Twilio Error: ${smsError.message}` }, { status: 400 });
       }
     } else {
       console.warn('No SMS provider credentials found in env. Falling back to simulator only.');
