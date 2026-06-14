@@ -1,16 +1,17 @@
-(function() {
-  window.CheckoutFlow = {
-    trackEvent: async function(shop, eventName) {
-      try {
-        await fetch('https://checkoutflow-app.onrender.com/api/analytics/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop, sessionId: 'anon', eventName })
-        });
-      } catch (err) {}
-    },
+const fs = require('fs');
 
-    open: function(options) {
+let content = fs.readFileSync('public/widget.js', 'utf8');
+
+// The open function starts here
+const openStartIdx = content.indexOf(`open: function(options) {`);
+const autoInjectIdx = content.indexOf(`autoInject: function() {`);
+
+if (openStartIdx === -1 || autoInjectIdx === -1) {
+  console.error("Could not find open or autoInject");
+  process.exit(1);
+}
+
+const newOpenFunction = `open: function(options) {
       const { shop, variantId, quantity, productTitle, productImage, price } = options;
       
       this.trackEvent(shop, 'WIDGET_OPENED');
@@ -49,7 +50,7 @@
       let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
       let customerData = null;
 
-      sheet.innerHTML = `
+      sheet.innerHTML = \`
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
           #cf-sheet * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
@@ -71,11 +72,11 @@
             <div style="border: 1px solid #e5e7eb; padding:6px 12px; border-radius:8px; font-weight:700; font-size:0.7rem; letter-spacing:1px; color:#111; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
               <div style="position:absolute; top:-6px; left:-6px; width:12px; height:12px; border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; transform: rotate(-45deg); background:#fff;"></div>
               <div style="position:absolute; bottom:-6px; right:-6px; width:12px; height:12px; border-left:1px solid #e5e7eb; border-top:1px solid #e5e7eb; transform: rotate(-45deg); background:#fff;"></div>
-              ${shop.split('.')[0].toUpperCase()}
+              \${shop.split('.')[0].toUpperCase()}
             </div>
             <div style="text-align:right;">
-              <div style="font-weight:700; font-size:1rem; color:#111;" id="cf-header-total">₹${total}</div>
-              <div style="font-size:0.7rem; color:#9ca3af; text-decoration:line-through;">₹${basePrice + 100}</div>
+              <div style="font-weight:700; font-size:1rem; color:#111;" id="cf-header-total">₹\${total}</div>
+              <div style="font-size:0.7rem; color:#9ca3af; text-decoration:line-through;">₹\${basePrice + 100}</div>
             </div>
           </div>
 
@@ -95,7 +96,7 @@
                   <span style="font-weight:500; color:#374151; font-size:1rem;">Order summary</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; color:#6b7280; font-size:0.9rem;">
-                  <span id="cf-summary-qty-header">${quantity} item</span>
+                  <span id="cf-summary-qty-header">\${quantity} item</span>
                   <svg id="cf-accordion-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </div>
               </div>
@@ -103,13 +104,13 @@
               <!-- Expanded Details -->
               <div id="cf-accordion-body" style="padding:0 16px 16px 16px; display:none; border-top:1px solid #f3f4f6;">
                 <div style="display:flex; gap:16px; align-items:flex-start; margin-top:16px;">
-                  ${productImage ? `<img src="${productImage}" style="width:72px; height:72px; border-radius:8px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:72px; height:72px; border-radius:8px; background:#e5e7eb;"></div>`}
+                  \${productImage ? \`<img src="\${productImage}" style="width:72px; height:72px; border-radius:8px; object-fit:cover; border:1px solid #e5e7eb;" />\` : \`<div style="width:72px; height:72px; border-radius:8px; background:#e5e7eb;"></div>\`}
                   <div style="flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                      <div style="font-size:0.9rem; color:#111827; font-weight:500; padding-right:12px; line-height:1.4;">${productTitle || 'Product'}</div>
+                      <div style="font-size:0.9rem; color:#111827; font-weight:500; padding-right:12px; line-height:1.4;">\${productTitle || 'Product'}</div>
                       <div style="text-align:right;">
-                        <div style="font-weight:700; font-size:0.95rem; color:#111827;" id="cf-item-total">₹${total}</div>
-                        <div style="font-size:0.7rem; color:#9ca3af; text-decoration:line-through;">₹${basePrice + 100}</div>
+                        <div style="font-weight:700; font-size:0.95rem; color:#111827;" id="cf-item-total">₹\${total}</div>
+                        <div style="font-size:0.7rem; color:#9ca3af; text-decoration:line-through;">₹\${basePrice + 100}</div>
                       </div>
                     </div>
                     
@@ -119,7 +120,7 @@
                       </button>
                       <div style="display:flex; align-items:center; border:1px solid #e5e7eb; border-radius:20px; overflow:hidden;">
                         <button type="button" id="cf-qty-minus" style="background:#fff; border:none; padding:4px 12px; cursor:pointer; font-size:1.1rem; color:#9ca3af;">-</button>
-                        <div id="cf-qty-display" style="padding:4px 8px; font-size:0.85rem; font-weight:600; color:#111827;">${quantity}</div>
+                        <div id="cf-qty-display" style="padding:4px 8px; font-size:0.85rem; font-weight:600; color:#111827;">\${quantity}</div>
                         <button type="button" id="cf-qty-plus" style="background:#fff; border:none; padding:4px 12px; cursor:pointer; font-size:1.1rem; color:#9ca3af;">+</button>
                       </div>
                     </div>
@@ -129,7 +130,7 @@
                 <div style="margin-top:20px; font-size:0.9rem; color:#4b5563;">
                   <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
                     <span>Subtotal</span>
-                    <span id="cf-summary-subtotal">₹${total}</span>
+                    <span id="cf-summary-subtotal">₹\${total}</span>
                   </div>
                   <div id="cf-summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:12px; color:#059669; font-weight:500;">
                     <span>Discount on MRP</span>
@@ -142,7 +143,7 @@
                   <div style="border-top:1px solid #e5e7eb; margin:16px 0;"></div>
                   <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1rem; color:#111827;">
                     <span>Total</span>
-                    <span id="cf-summary-total">₹${total}</span>
+                    <span id="cf-summary-total">₹\${total}</span>
                   </div>
                 </div>
               </div>
@@ -250,11 +251,11 @@
           <!-- Sticky Bottom Bar for Pay Now button -->
           <div id="cf-bottom-bar" style="display:none; padding:16px 20px; background:#fff; border-top:1px solid #e5e7eb;">
             <button type="button" id="cf-submit-order" class="cf-btn-primary cf-btn-pay">
-              Pay ₹${total}
+              Pay ₹\${total}
             </button>
           </div>
         </div>
-      `;
+      \`;
 
       overlay.appendChild(sheet);
       document.body.appendChild(overlay);
@@ -295,7 +296,7 @@
       let otpStepActive = false;
 
       phoneInput.addEventListener('input', (e) => {
-        const val = e.target.value.replace(/\D/g, '');
+        const val = e.target.value.replace(/\\D/g, '');
         e.target.value = val;
       });
 
@@ -313,7 +314,7 @@
 
           try {
             window.CheckoutFlow.trackEvent(shop, 'PHONE_ENTERED');
-            const res = await fetch(`${apiBaseUrl}/api/otp/send`, {
+            const res = await fetch(\`\${apiBaseUrl}/api/otp/send\`, {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ shop, phone })
@@ -346,7 +347,7 @@
           otpError.style.display = 'none';
 
           try {
-            const res = await fetch(`${apiBaseUrl}/api/otp/verify`, {
+            const res = await fetch(\`\${apiBaseUrl}/api/otp/verify\`, {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ shop, phone: verifiedPhone, code })
@@ -385,7 +386,7 @@
 
         // Fetch Customer
         try {
-          const lookupRes = await fetch(`${apiBaseUrl}/api/customer/lookup?shop=${shop}&phone=${verifiedPhone}`);
+          const lookupRes = await fetch(\`\${apiBaseUrl}/api/customer/lookup?shop=\${shop}&phone=\${verifiedPhone}\`);
           const lookupData = await lookupRes.json();
           
           if (lookupData.success && lookupData.customer) {
@@ -398,7 +399,7 @@
             document.getElementById('cf-pincode').value = customerData.pincode || '';
             
             document.getElementById('cf-display-name').innerText = customerData.name || 'User';
-            document.getElementById('cf-display-address').innerText = `${customerData.address}, ${customerData.city}`;
+            document.getElementById('cf-display-address').innerText = \`\${customerData.address}, \${customerData.city}\`;
             document.getElementById('cf-display-phone').innerText = verifiedPhone;
             
             document.getElementById('cf-deliver-to-card').style.display = 'block';
@@ -419,7 +420,7 @@
         if(name && addr && city) {
            document.getElementById('cf-address-form-modal').style.display = 'none';
            document.getElementById('cf-display-name').innerText = name;
-           document.getElementById('cf-display-address').innerText = `${addr}, ${city}`;
+           document.getElementById('cf-display-address').innerText = \`\${addr}, \${city}\`;
            document.getElementById('cf-display-phone').innerText = verifiedPhone;
            document.getElementById('cf-deliver-to-card').style.display = 'block';
            showPaymentStep();
@@ -452,42 +453,42 @@
         
         const getDiscountTag = () => {
           if (!widgetConfig.isPrepaidDiscountEnabled) return '';
-          const txt = widgetConfig.prepaidDiscountType === 'percentage' ? `${widgetConfig.prepaidDiscountValue}%` : `₹${widgetConfig.prepaidDiscountValue}`;
-          return `<span style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:#ecfdf5; color:#059669; font-size:0.75rem; font-weight:600; padding:4px 8px; border-radius:12px;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 1-4.5 4.5 1 6L12 16l-5.5 3 1-6L3 9l6-1 3-6z"/></svg> Get ${txt} off</span>`;
+          const txt = widgetConfig.prepaidDiscountType === 'percentage' ? \`\${widgetConfig.prepaidDiscountValue}%\` : \`₹\${widgetConfig.prepaidDiscountValue}\`;
+          return \`<span style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:#ecfdf5; color:#059669; font-size:0.75rem; font-weight:600; padding:4px 8px; border-radius:12px;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 1-4.5 4.5 1 6L12 16l-5.5 3 1-6L3 9l6-1 3-6z"/></svg> Get \${txt} off</span>\`;
         };
 
         const renderOption = (val, title, subtitle, iconHtml, isFirst, isPrepaid) => {
-          return `
-            <label style="display:flex; align-items:flex-start; justify-content:space-between; padding:16px; cursor:pointer; border-bottom:${isFirst ? '1px solid #e5e7eb' : '1px solid #e5e7eb'}; background:#fff; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+          return \`
+            <label style="display:flex; align-items:flex-start; justify-content:space-between; padding:16px; cursor:pointer; border-bottom:\${isFirst ? '1px solid #e5e7eb' : '1px solid #e5e7eb'}; background:#fff; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
               <div style="display:flex; align-items:flex-start; gap:16px;">
                 <div style="width:40px; height:40px; border-radius:12px; border:1px solid #e5e7eb; display:flex; align-items:center; justify-content:center; background:#fff;">
-                  ${iconHtml}
+                  \${iconHtml}
                 </div>
                 <div>
                   <div style="display:flex; align-items:center;">
-                    <span style="font-weight:600; color:#1f2937; font-size:0.95rem;">${title}</span>
+                    <span style="font-weight:600; color:#1f2937; font-size:0.95rem;">\${title}</span>
                   </div>
                   <div style="color:#6b7280; font-size:0.8rem; margin-top:2px;">
-                    ${subtitle}
+                    \${subtitle}
                   </div>
-                  ${isPrepaid ? getDiscountTag() : ''}
+                  \${isPrepaid ? getDiscountTag() : ''}
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
-                <span id="cf-price-${val}" style="font-weight:600; color:#374151; font-size:0.95rem;"></span>
+                <span id="cf-price-\${val}" style="font-weight:600; color:#374151; font-size:0.95rem;"></span>
                 <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-                <input type="radio" name="payment" value="${val}" ${val==='UPI' ? 'checked' : ''} onchange="window.cfUpdatePricing()" style="display:none;" />
+                <input type="radio" name="payment" value="\${val}" \${val==='UPI' ? 'checked' : ''} onchange="window.cfUpdatePricing()" style="display:none;" />
               </div>
             </label>
-          `;
+          \`;
         };
 
         const icons = {
-          upi: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
-          card: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
-          wallet: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-8H6a2 2 0 0 0-2 2z"/></svg>`,
-          net: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
-          cod: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`
+          upi: \`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>\`,
+          card: \`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>\`,
+          wallet: \`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-8H6a2 2 0 0 0-2 2z"/></svg>\`,
+          net: \`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>\`,
+          cod: \`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>\`
         };
 
         if (widgetConfig.hasRazorpay) {
@@ -498,7 +499,7 @@
         }
         
         if (widgetConfig.isPartialCodEnabled) {
-          html += renderOption('PartialCOD', 'Partial COD', `Pay ₹${widgetConfig.partialCodAmount} now, rest on delivery`, icons.cod, false, false);
+          html += renderOption('PartialCOD', 'Partial COD', \`Pay ₹\${widgetConfig.partialCodAmount} now, rest on delivery\`, icons.cod, false, false);
         }
         
         html += renderOption('COD', 'Cash on Delivery', 'Pay when you receive', icons.cod, false, false);
@@ -514,7 +515,7 @@
       window.cfUpdatePricing = () => { if(typeof window.internalUpdatePricing === 'function') window.internalUpdatePricing(); };
 
       const fetchConfigAndRenderPayments = () => {
-        fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}`)
+        fetch(\`\${apiBaseUrl}/api/widget/config?shop=\${shop}\`)
           .then(r => r.json())
           .then(data => {
             if (data.success) {
@@ -553,35 +554,35 @@
         const radios = document.querySelectorAll('input[name="payment"]');
         radios.forEach(radio => {
           const val = radio.value;
-          const priceEl = document.getElementById(`cf-price-${val}`);
+          const priceEl = document.getElementById(\`cf-price-\${val}\`);
           if (!priceEl) return;
           
           if (['UPI', 'Card', 'Wallet', 'Netbanking'].includes(val) && widgetConfig.isPrepaidDiscountEnabled) {
             let pd = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
-            priceEl.innerText = `₹${Math.max(0, subtotal - discountAmount - pd).toLocaleString('en-IN')}`;
+            priceEl.innerText = \`₹\${Math.max(0, subtotal - discountAmount - pd).toLocaleString('en-IN')}\`;
           } else if (val === 'PartialCOD') {
-            priceEl.innerText = `₹${widgetConfig.partialCodAmount}`;
+            priceEl.innerText = \`₹\${widgetConfig.partialCodAmount}\`;
           } else {
-            priceEl.innerText = `₹${Math.max(0, subtotal - discountAmount).toLocaleString('en-IN')}`;
+            priceEl.innerText = \`₹\${Math.max(0, subtotal - discountAmount).toLocaleString('en-IN')}\`;
           }
         });
 
-        document.getElementById('cf-item-total').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        document.getElementById('cf-item-total').innerText = \`₹\${subtotal.toLocaleString('en-IN')}\`;
         document.getElementById('cf-qty-display').innerText = currentQuantity;
-        document.getElementById('cf-summary-qty-header').innerText = `${currentQuantity} item`;
-        document.getElementById('cf-summary-subtotal').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        document.getElementById('cf-summary-qty-header').innerText = \`\${currentQuantity} item\`;
+        document.getElementById('cf-summary-subtotal').innerText = \`₹\${subtotal.toLocaleString('en-IN')}\`;
         
         let totalSavings = discountAmount + prepaidDiscount;
         if (totalSavings > 0) {
           document.getElementById('cf-summary-discount-row').style.display = 'flex';
-          document.getElementById('cf-summary-discount-value').innerText = `-₹${totalSavings.toLocaleString('en-IN')}`;
+          document.getElementById('cf-summary-discount-value').innerText = \`-₹\${totalSavings.toLocaleString('en-IN')}\`;
         } else {
           document.getElementById('cf-summary-discount-row').style.display = 'none';
         }
         
-        document.getElementById('cf-summary-total').innerText = `₹${finalTotal.toLocaleString('en-IN')}`;
-        document.getElementById('cf-header-total').innerText = `₹${finalTotal.toLocaleString('en-IN')}`;
-        document.getElementById('cf-submit-order').innerText = `Pay ₹${finalTotal.toLocaleString('en-IN')}`;
+        document.getElementById('cf-summary-total').innerText = \`₹\${finalTotal.toLocaleString('en-IN')}\`;
+        document.getElementById('cf-header-total').innerText = \`₹\${finalTotal.toLocaleString('en-IN')}\`;
+        document.getElementById('cf-submit-order').innerText = \`Pay ₹\${finalTotal.toLocaleString('en-IN')}\`;
       };
 
       // Apply initial styling check
@@ -608,7 +609,7 @@
         const code = document.getElementById('cf-discount').value;
         if(!code) return;
         try {
-          const res = await fetch(`${apiBaseUrl}/api/discounts/validate`, {
+          const res = await fetch(\`\${apiBaseUrl}/api/discounts/validate\`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ shop, code })
@@ -679,7 +680,7 @@
 
         const createFinalOrder = async () => {
           try {
-            const res = await fetch(`${apiBaseUrl}/api/create-order`, {
+            const res = await fetch(\`\${apiBaseUrl}/api/create-order\`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
@@ -691,14 +692,14 @@
               if (data.orderStatusUrl) {
                 window.location.href = data.orderStatusUrl;
               } else {
-                sheet.innerHTML = `
+                sheet.innerHTML = \`
                   <div style="text-align:center; padding: 40px 20px;">
                     <div style="font-size:3rem; color:#10b981; margin-bottom:20px;">✓</div>
                     <h2 style="margin:0 0 10px 0; color:#111;">Order Confirmed!</h2>
                     <p style="color:#666;">Your order has been placed successfully.</p>
                     <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:20px; padding:10px 20px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer;">Close</button>
                   </div>
-                `;
+                \`;
               }
             } else {
               alert('Failed to place order: ' + (data.error || 'Unknown error'));
@@ -718,7 +719,7 @@
           try {
             const rzpAmount = Math.max(0, subtotal - discountAmount - prepaidDiscount);
 
-            const rzpOrderRes = await fetch(`${apiBaseUrl}/api/checkout/create-razorpay-order`, {
+            const rzpOrderRes = await fetch(\`\${apiBaseUrl}/api/checkout/create-razorpay-order\`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ shop, amount: isPartialCod ? widgetConfig.partialCodAmount : rzpAmount })
@@ -742,7 +743,7 @@
               order_id: rzpOrderData.orderId,
               handler: async function (response) {
                 submitBtn.innerText = 'Verifying...';
-                const verifyRes = await fetch(`${apiBaseUrl}/api/checkout/verify-payment`, {
+                const verifyRes = await fetch(\`\${apiBaseUrl}/api/checkout/verify-payment\`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -797,64 +798,8 @@
         }
       };
     },
+`;
 
-    autoInject: function() {
-      window.addEventListener('DOMContentLoaded', () => {
-        const cartForms = document.querySelectorAll('form[action="/cart/add"]');
-        cartForms.forEach(form => {
-          const fastCheckoutBtn = document.createElement('button');
-          fastCheckoutBtn.type = 'button';
-          fastCheckoutBtn.innerText = 'Buy Now (CheckoutFlow)';
-          fastCheckoutBtn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer;';
-          
-          fastCheckoutBtn.onclick = (e) => {
-            e.preventDefault();
-            let variantId = 'unknown';
-            const variantInput = form.querySelector('input[name="id"], select[name="id"]');
-            if (variantInput) variantId = variantInput.value;
-
-            let quantity = 1;
-            const qtyInput = form.querySelector('input[name="quantity"]');
-            if (qtyInput) quantity = parseInt(qtyInput.value) || 1;
-
-            const shopDomain = window.Shopify ? window.Shopify.shop : 'test.myshopify.com';
-            const titleEl = document.querySelector('h1');
-            const productTitle = titleEl ? titleEl.innerText : 'Product';
-            
-            let price = 0;
-            let productImage = null;
-            if (window.meta && window.meta.product && window.meta.product.variants && window.meta.product.variants.length > 0) {
-              price = window.meta.product.variants[0].price / 100;
-              if (window.meta.product.variants[0].featured_image) {
-                productImage = window.meta.product.variants[0].featured_image.src;
-              }
-            } else {
-              const priceEl = document.querySelector('.price-item--regular, .price, .product__price, [data-product-price]');
-              if (priceEl) {
-                let text = priceEl.innerText.replace(/,/g, '');
-                let match = text.match(/[\d]+(\.[\d]+)?/);
-                if (match) price = parseFloat(match[0]);
-              }
-            }
-            if (!productImage) {
-              const imgEl = document.querySelector('img.product-single__photo, img.product__image, img[data-product-featured-image]');
-              if (imgEl) productImage = imgEl.src;
-            }
-
-            window.CheckoutFlow.open({
-              shop: shopDomain,
-              variantId: variantId,
-              quantity: quantity,
-              productTitle: productTitle,
-              productImage: productImage,
-              price: price
-            });
-          };
-          form.appendChild(fastCheckoutBtn);
-        });
-      });
-    }
-  };
-
-  window.CheckoutFlow.autoInject();
-})();
+const finalContent = content.substring(0, openStartIdx) + newOpenFunction + '\n    ' + content.substring(autoInjectIdx);
+fs.writeFileSync('public/widget.js', finalContent, 'utf8');
+console.log('Rewrite complete!');
