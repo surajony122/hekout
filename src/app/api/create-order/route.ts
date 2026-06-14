@@ -108,6 +108,10 @@ export async function POST(request: Request) {
           country: 'India'
         },
         use_customer_default_address: false,
+        shipping_line: {
+          title: "Standard Shipping",
+          price: "0.00"
+        },
         applied_discount: (appliedDiscount && appliedDiscount.type !== 'freebie_product') ? {
           description: appliedDiscount.code,
           value_type: appliedDiscount.type,
@@ -166,7 +170,7 @@ export async function POST(request: Request) {
     const shopifyOrderId = completeData.draft_order.order_id?.toString() || 'Unknown';
 
     // 6. Fetch the actual order to get the Order Status URL (Thank you page)
-    let orderStatusUrl = `https://${shop}`;
+    let orderStatusUrl = null;
     if (shopifyOrderId !== 'Unknown') {
       const orderRes = await fetch(`https://${shop}/admin/api/2024-01/orders/${shopifyOrderId}.json`, {
         method: 'GET',

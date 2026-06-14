@@ -4,17 +4,17 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const shop = cookieStore.get('shop_domain')?.value;
-    if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await request.json();
+    const { merchantId } = body;
+
+    if (!merchantId) return NextResponse.json({ error: 'Merchant ID required' }, { status: 400 });
 
     const merchant = await prisma.merchant.findUnique({
-      where: { shopDomain: shop }
+      where: { id: merchantId }
     });
 
     if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
 
-    const body = await request.json();
     const {
       razorpayKeyId,
       razorpayKeySecret,
