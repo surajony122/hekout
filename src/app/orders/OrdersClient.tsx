@@ -82,12 +82,12 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                     </td>
                     <td className="py-4 px-4 text-sm font-medium text-slate-900">₹{order.total.toLocaleString()}</td>
                     <td className="py-4 px-4">
-                      <span className={\`px-2.5 py-1 rounded-md text-xs font-medium \${order.paymentMethod === 'COD' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}\`}>
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${order.paymentMethod === 'COD' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
                         {order.paymentMethod}
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={\`px-2.5 py-1 rounded-md text-xs font-medium \${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}\`}>
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                         {isCompleted ? 'Completed' : 'Pending'}
                       </span>
                     </td>
