@@ -30,8 +30,8 @@ export async function POST(request: Request) {
     const settings = await prisma.paymentSettings.upsert({
       where: { merchantId: merchant.id },
       update: {
-        razorpayKeyId,
-        razorpayKeySecret,
+        razorpayKeyId: razorpayKeyId?.trim() || '',
+        razorpayKeySecret: razorpayKeySecret?.trim() || '',
         cashfreeAppId,
         cashfreeSecretKey,
         isPrepaidDiscountEnabled,
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
       },
       create: {
         merchantId: merchant.id,
-        razorpayKeyId,
-        razorpayKeySecret,
+        razorpayKeyId: razorpayKeyId?.trim() || '',
+        razorpayKeySecret: razorpayKeySecret?.trim() || '',
         cashfreeAppId,
         cashfreeSecretKey,
         isPrepaidDiscountEnabled,

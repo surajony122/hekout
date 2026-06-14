@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Razorpay config missing' }, { status: 400 });
     }
 
-    const secret = merchant.paymentSettings.razorpayKeySecret;
+    const secret = merchant.paymentSettings.razorpayKeySecret.trim();
 
     const generated_signature = crypto
       .createHmac('sha256', secret)

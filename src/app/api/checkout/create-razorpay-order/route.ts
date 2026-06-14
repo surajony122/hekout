@@ -20,8 +20,8 @@ export async function POST(request: Request) {
     }
 
     const razorpay = new Razorpay({
-      key_id: merchant.paymentSettings.razorpayKeyId,
-      key_secret: merchant.paymentSettings.razorpayKeySecret
+      key_id: merchant.paymentSettings.razorpayKeyId.trim(),
+      key_secret: merchant.paymentSettings.razorpayKeySecret.trim()
     });
 
     // Razorpay amount is in paise
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Create Razorpay Order Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create order' }, { status: 500 });
+    const errorMsg = error?.error?.description || error.message || 'Failed to create order';
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
