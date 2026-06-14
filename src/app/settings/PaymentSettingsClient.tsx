@@ -55,7 +55,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
     <div className="space-y-6">
       
       {/* Gateways Section */}
-      <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
             <CreditCard size={20} />
@@ -100,7 +100,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
       </div>
 
       {/* Incentives Section */}
-      <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
             <Percent size={20} />
@@ -169,7 +169,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
         <button 
           onClick={handleSave} 
           disabled={saving || !merchantId}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-white transition-all ${success ? 'bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-700'} shadow-lg shadow-indigo-200`}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-medium text-white transition-all ${success ? 'bg-emerald-500' : 'bg-slate-900 hover:bg-slate-800'} shadow-sm`}
         >
           {success ? <CheckCircle2 size={18} /> : <Save size={18} />}
           <span>{saving ? 'Saving...' : success ? 'Saved!' : 'Save Settings'}</span>
