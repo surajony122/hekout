@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowUpRight, ArrowDownRight, MoreHorizontal, Download, ArrowUp, Users, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, MoreHorizontal, Download, ArrowUp, Users, RefreshCw, Activity, CreditCard } from 'lucide-react';
 
 const salesData = [
   { date: 'Aug 25', sales: 4000 },
