@@ -50,6 +50,10 @@ const newOpenFunction = `open: function(options) {
       let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
       let customerData = null;
 
+      const phosphorScript = document.createElement('script');
+      phosphorScript.src = 'https://unpkg.com/@phosphor-icons/web';
+      document.head.appendChild(phosphorScript);
+
       sheet.innerHTML = \`
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -67,7 +71,7 @@ const newOpenFunction = `open: function(options) {
           <!-- Header -->
           <div style="background:#fff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-top-left-radius:24px; border-top-right-radius:24px;">
             <button id="cf-close" style="background:none; border:none; cursor:pointer; padding:0; display:flex;">
-              <svg width="24" height="24" fill="none" stroke="#374151" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+              <i class="ph ph-arrow-left" style="font-size: 24px; color: #374151;"></i>
             </button>
             <div style="border: 1px solid #e5e7eb; padding:6px 12px; border-radius:8px; font-weight:700; font-size:0.7rem; letter-spacing:1px; color:#111; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
               <div style="position:absolute; top:-6px; left:-6px; width:12px; height:12px; border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; transform: rotate(-45deg); background:#fff;"></div>
@@ -92,12 +96,12 @@ const newOpenFunction = `open: function(options) {
             <div class="cf-card">
               <div id="cf-accordion-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px; cursor:pointer;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <svg width="20" height="20" fill="none" stroke="#4b5563" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  <i class="ph ph-shopping-cart" style="font-size: 20px; color: #4b5563;"></i>
                   <span style="font-weight:500; color:#374151; font-size:1rem;">Order summary</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; color:#6b7280; font-size:0.9rem;">
                   <span id="cf-summary-qty-header">\${quantity} item</span>
-                  <svg id="cf-accordion-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                  <i id="cf-accordion-icon" class="ph ph-caret-down" style="font-size: 16px; transition: transform 0.2s;"></i>
                 </div>
               </div>
 
@@ -115,8 +119,8 @@ const newOpenFunction = `open: function(options) {
                     </div>
                     
                     <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
-                      <button type="button" id="cf-delete-item" style="background:none; border:1px solid #e5e7eb; border-radius:6px; padding:6px; cursor:pointer; color:#9ca3af;">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      <button type="button" id="cf-delete-item" style="background:none; border:1px solid #e5e7eb; border-radius:6px; padding:6px; cursor:pointer; color:#9ca3af; display:flex;">
+                        <i class="ph ph-trash" style="font-size: 16px;"></i>
                       </button>
                       <div style="display:flex; align-items:center; border:1px solid #e5e7eb; border-radius:20px; overflow:hidden;">
                         <button type="button" id="cf-qty-minus" style="background:#fff; border:none; padding:4px 12px; cursor:pointer; font-size:1.1rem; color:#9ca3af;">-</button>
@@ -153,7 +157,7 @@ const newOpenFunction = `open: function(options) {
             <div id="cf-deliver-to-card" class="cf-card" style="display:none; padding:16px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <svg width="18" height="18" fill="none" stroke="#4b5563" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <i class="ph ph-map-pin" style="font-size: 18px; color: #4b5563;"></i>
                   <span style="font-weight:500; color:#374151; font-size:1rem;">Deliver to <span style="background:#f3f4f6; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-left:4px;">Home</span></span>
                 </div>
                 <button type="button" id="cf-edit-address-btn" style="background:none; border:none; color:#4b5563; font-size:0.85rem; font-weight:500; cursor:pointer;">Edit ></button>
@@ -161,7 +165,7 @@ const newOpenFunction = `open: function(options) {
               <div style="background:#f9fafb; padding:12px; border-radius:8px; font-size:0.85rem; color:#6b7280; line-height:1.5;">
                 <span id="cf-display-name" style="font-weight:600; color:#111827;"></span>, <span id="cf-display-address"></span><br/>
                 <div style="margin-top:8px; display:flex; gap:16px;">
-                  <span style="display:flex; align-items:center; gap:4px;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg> <span id="cf-display-phone"></span></span>
+                  <span style="display:flex; align-items:center; gap:4px;"><i class="ph ph-phone" style="font-size: 14px;"></i> <span id="cf-display-phone"></span></span>
                 </div>
               </div>
             </div>
@@ -170,17 +174,17 @@ const newOpenFunction = `open: function(options) {
             <div id="cf-shipping-card" class="cf-card" style="display:none; padding:16px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <svg width="20" height="20" fill="none" stroke="#4b5563" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  <i class="ph ph-truck" style="font-size: 20px; color: #4b5563;"></i>
                   <span style="font-weight:500; color:#374151; font-size:1rem;">Shipping</span>
                 </div>
-                <div style="font-weight:600; color:#111;">₹0 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;"><path d="M19 9l-7 7-7-7"/></svg></div>
+                <div style="font-weight:600; color:#111;">₹0 <i class="ph ph-caret-down" style="font-size: 12px; margin-left:4px;"></i></div>
               </div>
             </div>
 
             <!-- Offers & Rewards -->
             <div style="font-size:0.85rem; color:#6b7280; margin-bottom:8px;">Offers & Rewards</div>
             <div class="cf-card" style="padding:6px; display:flex; align-items:center; padding-left:12px;">
-              <svg width="18" height="18" fill="none" stroke="#9ca3af" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+              <i class="ph ph-tag" style="font-size: 18px; color: #9ca3af;"></i>
               <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px; flex:1; background:transparent;" />
               <button type="button" id="cf-apply-discount" style="background:transparent; color:#111; border:none; padding:0 12px; font-weight:600; cursor:pointer;">Apply</button>
             </div>
@@ -206,10 +210,10 @@ const newOpenFunction = `open: function(options) {
               
               <!-- Badges -->
               <div style="display:flex; justify-content:space-between; margin-top:32px; padding:0 10px;">
-                <div class="cf-badge"><svg width="24" height="24" fill="none" stroke="#9ca3af" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Top Rated<br/>Products</div>
-                <div class="cf-badge"><svg width="24" height="24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Secured<br/>Checkout</div>
-                <div class="cf-badge"><svg width="24" height="24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Fast<br/>Shipping</div>
-                <div class="cf-badge"><svg width="24" height="24" fill="none" stroke="#9ca3af" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>100k+ Happy<br/>customers</div>
+                <div class="cf-badge"><i class="ph ph-star" style="font-size: 24px;"></i>Top Rated<br/>Products</div>
+                <div class="cf-badge"><i class="ph ph-lock-key" style="font-size: 24px;"></i>Secured<br/>Checkout</div>
+                <div class="cf-badge"><i class="ph ph-truck" style="font-size: 24px;"></i>Fast<br/>Shipping</div>
+                <div class="cf-badge"><i class="ph ph-smiley" style="font-size: 24px;"></i>100k+ Happy<br/>customers</div>
               </div>
             </div>
 
@@ -240,7 +244,7 @@ const newOpenFunction = `open: function(options) {
               <div style="margin-top:24px; text-align:center;">
                 <p style="color:#9ca3af; font-size:0.75rem; margin-bottom:8px;">By continuing, you agree to our Terms & Privacy Policy</p>
                 <div style="display:flex; justify-content:center; align-items:center; gap:4px; color:#6b7280; font-size:0.75rem; font-weight:600;">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                  <i class="ph ph-lock-key" style="font-size: 12px;"></i>
                   Secured by CheckoutFlow
                 </div>
               </div>
@@ -454,7 +458,7 @@ const newOpenFunction = `open: function(options) {
         const getDiscountTag = () => {
           if (!widgetConfig.isPrepaidDiscountEnabled) return '';
           const txt = widgetConfig.prepaidDiscountType === 'percentage' ? \`\${widgetConfig.prepaidDiscountValue}%\` : \`₹\${widgetConfig.prepaidDiscountValue}\`;
-          return \`<span style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:#ecfdf5; color:#059669; font-size:0.75rem; font-weight:600; padding:4px 8px; border-radius:12px;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 1-4.5 4.5 1 6L12 16l-5.5 3 1-6L3 9l6-1 3-6z"/></svg> Get \${txt} off</span>\`;
+          return \`<span style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:#ecfdf5; color:#059669; font-size:0.75rem; font-weight:600; padding:4px 8px; border-radius:12px;"><i class="ph ph-tag" style="font-size: 12px;"></i> Get \${txt} off</span>\`;
         };
 
         const renderOption = (val, title, subtitle, iconHtml, isFirst, isPrepaid) => {
