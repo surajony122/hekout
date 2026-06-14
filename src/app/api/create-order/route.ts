@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscount } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscount, prepaidDiscount } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -49,6 +49,12 @@ export async function POST(request: Request) {
         totalDiscount = appliedDiscount.value;
       }
     }
+    
+    // Add prepaid discount if applicable
+    if (prepaidDiscount) {
+      totalDiscount += parseFloat(prepaidDiscount);
+    }
+    
     const finalTotal = Math.max(0, total - totalDiscount);
 
     // 3. Create Local Order (Pending)
@@ -106,9 +112,13 @@ export async function POST(request: Request) {
           description: appliedDiscount.code,
           value_type: appliedDiscount.type,
           value: appliedDiscount.value.toString()
-        } : undefined,
+        } : (prepaidDiscount ? {
+          description: 'Prepaid Discount',
+          value_type: 'fixed_amount',
+          value: prepaidDiscount.toString()
+        } : undefined),
         tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
-        note: appliedDiscount ? `Discount Applied: ${appliedDiscount.code}` : undefined
+        note: `Discounts applied. ${appliedDiscount ? 'Coupon: ' + appliedDiscount.code : ''}`
       }
     };
 
@@ -132,9 +142,10 @@ export async function POST(request: Request) {
     const shopifyDraftOrderId = draftData.draft_order.id.toString();
 
     // 5. Complete Shopify Draft Order to convert it to a Real Order
-    // If it's a COD order, we MUST pass ?payment_pending=true so it doesn't get marked as Paid
-    const isCOD = (paymentMethod || 'COD').toUpperCase() === 'COD';
-    const completeUrl = `https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json${isCOD ? '?payment_pending=true' : ''}`;
+    // If it's a COD or Partial COD order, we pass ?payment_pending=true so it doesn't get marked as fully Paid
+    const methodUpper = (paymentMethod || 'COD').toUpperCase();
+    const isPending = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
+    const completeUrl = `https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json${isPending ? '?payment_pending=true' : ''}`;
     
     const completeRes = await fetch(completeUrl, {
       method: 'PUT',

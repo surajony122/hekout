@@ -23,6 +23,7 @@ model Merchant {
   analyticsEvents  AnalyticsEvent[]
   coupons          Coupon[]
   otpVerifications OtpVerification[]
+  paymentSettings  PaymentSettings?
 
   @@map("merchants")
 }
@@ -127,4 +128,33 @@ model OtpVerification {
   merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@map("otp_verifications")
+}
+
+model PaymentSettings {
+  id                  String   @id @default(uuid())
+  merchantId          String   @unique @map("merchant_id")
+  
+  // Gateways
+  razorpayKeyId       String?  @map("razorpay_key_id")
+  razorpayKeySecret   String?  @map("razorpay_key_secret")
+  cashfreeAppId       String?  @map("cashfree_app_id")
+  cashfreeSecretKey   String?  @map("cashfree_secret_key")
+  payuMerchantKey     String?  @map("payu_merchant_key")
+  payuMerchantSalt    String?  @map("payu_merchant_salt")
+
+  // Prepaid Discounts
+  isPrepaidDiscountEnabled Boolean @default(false) @map("is_prepaid_discount_enabled")
+  prepaidDiscountType      String  @default("percentage") // percentage, flat
+  prepaidDiscountValue     Float   @default(0) @map("prepaid_discount_value")
+
+  // Partial COD
+  isPartialCodEnabled      Boolean @default(false) @map("is_partial_cod_enabled")
+  partialCodAmount         Float   @default(0) @map("partial_cod_amount")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  merchant            Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("payment_settings")
 }
