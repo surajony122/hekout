@@ -7,19 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowUpRight, ArrowDownRight, MoreHorizontal, Download, ArrowUp, Users, RefreshCw, Activity, CreditCard } from 'lucide-react';
 
-const salesData = [
-  { date: 'Aug 25', sales: 4000 },
-  { date: 'Sep 25', sales: 3000 },
-  { date: 'Oct 25', sales: 5000 },
-  { date: 'Nov 25', sales: 4500 },
-  { date: 'Dec 25', sales: 6000 },
-  { date: 'Jan 26', sales: 5500 },
-  { date: 'Feb 26', sales: 7000 },
-  { date: 'Mar 26', sales: 6500 },
-  { date: 'Apr 26', sales: 8000 },
-  { date: 'May 26', sales: 7500 },
-  { date: 'Jun 26', sales: 9000 },
-];
 
 export default function DashboardClient() {
   const [data, setData] = useState<any>(null);
@@ -30,11 +17,13 @@ export default function DashboardClient() {
       .then(data => setData(data));
   }, []);
 
-  if (!data) return (
+  if (!data || !data.metrics) return (
     <div className="flex items-center justify-center h-96">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
     </div>
   );
+
+  const metrics = data.metrics;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -84,7 +73,7 @@ export default function DashboardClient() {
                 <span className="text-slate-400 font-serif">$</span>
               </div>
               <div className="mt-2">
-                <h3 className="text-2xl font-bold text-slate-900">₹{(data.totalRevenue || 0).toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold text-slate-900">₹{(metrics.totalRevenue || 0).toLocaleString()}</h3>
                 <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
                   +15.8% vs last week
                 </p>
@@ -99,7 +88,7 @@ export default function DashboardClient() {
                 <span className="text-slate-400 font-serif">#</span>
               </div>
               <div className="mt-2">
-                <h3 className="text-2xl font-bold text-slate-900">{data.totalOrders || 0}</h3>
+                <h3 className="text-2xl font-bold text-slate-900">{metrics.totalOrders || 0}</h3>
                 <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
                   +8.3% vs last week
                 </p>
@@ -114,7 +103,7 @@ export default function DashboardClient() {
                 <Activity size={14} className="text-slate-400" />
               </div>
               <div className="mt-2">
-                <h3 className="text-2xl font-bold text-slate-900">{data.conversionRate || '2.4'}%</h3>
+                <h3 className="text-2xl font-bold text-slate-900">{metrics.conversionRate || '0'}%</h3>
                 <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
                   +12.5% vs last month
                 </p>
@@ -129,7 +118,7 @@ export default function DashboardClient() {
                 <span className="text-slate-400 font-serif">$</span>
               </div>
               <div className="mt-2">
-                <h3 className="text-2xl font-bold text-slate-900">₹{Math.round(data.aov || 0).toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold text-slate-900">₹{Math.round(metrics.aov || 0).toLocaleString()}</h3>
                 <p className="text-xs font-medium text-rose-500 mt-2 flex items-center">
                   -1.2% vs last week
                 </p>
@@ -160,7 +149,7 @@ export default function DashboardClient() {
               </div>
               <div className="mt-2">
                 <h3 className="text-2xl font-bold text-slate-900">
-                  {data.paymentSplit?.[1]?.value ? Math.round((data.paymentSplit[1].value / data.totalOrders) * 100) : 0}%
+                  {metrics.paymentSplit?.[1]?.value ? Math.round((metrics.paymentSplit[1].value / metrics.totalOrders) * 100) : 0}%
                 </h3>
                 <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
                   +2.4 pts vs last month
@@ -180,7 +169,7 @@ export default function DashboardClient() {
           <CardContent className="p-5 pt-4">
             <div className="h-[260px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                <AreaChart data={metrics.revenueTrend || []} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#1e293b" stopOpacity={0.1}/>
@@ -191,7 +180,7 @@ export default function DashboardClient() {
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} minTickGap={30} />
-                  <Area type="monotone" dataKey="sales" stroke="#0f172a" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#0f172a" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
