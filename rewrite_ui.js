@@ -661,7 +661,7 @@ const newOpenFunction = `open: async function(options) {
           state: document.getElementById('cf-state').value,
           pincode: document.getElementById('cf-pincode').value,
           paymentMethod: paymentMethod,
-          appliedDiscount: appliedDiscount ? appliedDiscount.code : null,
+          appliedDiscount: appliedDiscount ? { code: appliedDiscount.code, type: appliedDiscount.type, value: appliedDiscount.value } : null,
           prepaidDiscount: prepaidDiscount
         };
 

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const localCoupon = await prisma.coupon.findFirst({
       where: {
         merchantId: merchant.id,
-        code: code,
+        code: { equals: code, mode: 'insensitive' },
         isActive: true
       }
     });

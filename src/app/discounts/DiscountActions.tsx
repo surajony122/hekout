@@ -28,7 +28,7 @@ export default function DiscountActions({ id, initialStatus }: { id: string, ini
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       <span className={`px-2.5 py-1 rounded-md text-xs font-medium w-max ${isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
         {isActive ? 'Active' : 'Disabled'}
       </span>
@@ -40,6 +40,13 @@ export default function DiscountActions({ id, initialStatus }: { id: string, ini
       >
         {isActive ? <PowerOff size={16} /> : <Power size={16} />}
       </button>
+      <a 
+        href={`/discounts/${id}`}
+        className="p-1.5 rounded-md transition-colors text-indigo-500 hover:bg-indigo-50"
+        title="Edit & Analytics"
+      >
+        <Edit size={16} />
+      </a>
     </div>
   );
 }
