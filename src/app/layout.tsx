@@ -5,7 +5,7 @@ import { GeistSans } from 'geist/font/sans';
 import { 
   LayoutDashboard, ShoppingCart, Users, Settings, 
   Activity, ArrowDownToLine, RefreshCw, CreditCard,
-  PackagePlus, BarChart3, Search, Bell, ChevronDown 
+  PackagePlus, BarChart3, Search, Bell, ChevronDown, Tag 
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -64,6 +64,10 @@ export default function RootLayout({
               <PackagePlus size={18} />
               Upsells
             </Link>
+            <Link href="/discounts" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
+              <Tag size={18} />
+              Discounts
+            </Link>
             <Link href="/analytics" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
               <BarChart3 size={18} />
               Analytics
@@ -107,7 +111,7 @@ export default function RootLayout({
           </header>
           
           {/* Page Content */}
-          <div className="flex-1 overflow-auto p-8">
+          <div className="flex-1 overflow-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>
         </main>

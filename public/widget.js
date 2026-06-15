@@ -40,7 +40,7 @@
       overlay.style.left = '0';
       overlay.style.width = '100vw';
       overlay.style.height = '100vh';
-      overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
       overlay.style.zIndex = '999999';
       overlay.style.display = 'flex';
       overlay.style.alignItems = 'flex-end';
@@ -54,9 +54,9 @@
       sheet.style.backgroundColor = '#f9fafb';
       sheet.style.borderTopLeftRadius = '24px';
       sheet.style.borderTopRightRadius = '24px';
-      sheet.style.boxShadow = '0 -4px 20px rgba(0,0,0,0.1)';
+      sheet.style.boxShadow = '0 -10px 40px rgba(0,0,0,0.2)';
       sheet.style.transform = 'translateY(100%)';
-      sheet.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      sheet.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
       sheet.style.overflow = 'hidden';
       sheet.style.display = 'flex';
       sheet.style.flexDirection = 'column';
@@ -68,100 +68,109 @@
       let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
       let customerData = null;
 
+      // Extract Product Image Fallback
+      let finalProductImage = productImage;
+      if (!finalProductImage) {
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        if (ogImage && ogImage.content) finalProductImage = ogImage.content;
+      }
+
       const phosphorScript = document.createElement('script');
       phosphorScript.src = 'https://unpkg.com/@phosphor-icons/web';
       document.head.appendChild(phosphorScript);
+
+      const confettiScript = document.createElement('script');
+      confettiScript.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+      document.head.appendChild(confettiScript);
 
       sheet.innerHTML = `
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
           #cf-sheet * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
-          .cf-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 12px; margin-bottom: 12px; }
-          .cf-input { width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.95rem; outline: none; transition: border 0.2s; }
-          .cf-input:focus { border-color: ${primaryColor}; }
-          .cf-btn-primary { width: 100%; padding: 16px; background: ${primaryColor}; color: #fff; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-          .cf-btn-primary:hover { opacity: 0.9; }
-          .cf-badge { color: #9ca3af; font-size: 0.65rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+          .cf-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+          .cf-input { width: 100%; padding: 16px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 1rem; outline: none; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
+          .cf-input:focus { border-color: ${primaryColor}; box-shadow: 0 0 0 1px ${primaryColor}; }
+          .cf-btn-primary { width: 100%; padding: 18px; background: ${primaryColor}; color: #fff; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          .cf-btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+          .cf-badge { color: #6b7280; font-size: 0.7rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; font-weight:500; }
           .cf-payment-option-label:hover { background: #f9fafb !important; }
         </style>
         
         <div id="cf-sheet" style="display:flex; flex-direction:column; height:100%;">
           <!-- Header -->
-          <div style="background:#fff; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-top-left-radius:24px; border-top-right-radius:24px; border-bottom:1px solid #f3f4f6;">
+          <div style="background:#fff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-top-left-radius:24px; border-top-right-radius:24px; border-bottom:1px solid #f3f4f6;">
             <button id="cf-close" style="background:none; border:none; cursor:pointer; padding:0; display:flex;">
-              <i class="ph ph-arrow-left" style="font-size: 24px; color: #374151;"></i>
+              <i class="ph ph-arrow-left" style="font-size: 26px; color: #374151;"></i>
             </button>
-            <div style="border: 1px solid #e5e7eb; padding:4px 10px; border-radius:8px; font-weight:700; font-size:0.7rem; letter-spacing:1px; color:#111; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-              <div style="position:absolute; top:-6px; left:-6px; width:12px; height:12px; border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; transform: rotate(-45deg); background:#fff;"></div>
-              <div style="position:absolute; bottom:-6px; right:-6px; width:12px; height:12px; border-left:1px solid #e5e7eb; border-top:1px solid #e5e7eb; transform: rotate(-45deg); background:#fff;"></div>
-              ${(widgetConfig.storeName || shop.split('.')[0]).substring(0,2).toUpperCase()}
+            <div style="border: 1px solid #e5e7eb; padding:6px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; letter-spacing:1px; color:#111; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+              ${(widgetConfig.storeName || shop.split('.')[0]).substring(0,3).toUpperCase()}
             </div>
             <div style="text-align:right;">
-              <div style="font-weight:700; font-size:1rem; color:#111;" id="cf-header-total">₹${total}</div>
+              <div style="font-weight:700; font-size:1.1rem; color:#111;" id="cf-header-total">₹${total}</div>
             </div>
           </div>
 
           <!-- Dynamic Banner -->
-          <div id="cf-promo-banner" style="background:${widgetConfig.preLoginBannerBg}; color:${widgetConfig.preLoginBannerColor}; text-align:center; padding:8px; font-size:0.75rem; font-weight:700; letter-spacing:0.5px;">
+          <div id="cf-promo-banner" style="background:${widgetConfig.preLoginBannerBg}; color:${widgetConfig.preLoginBannerColor}; text-align:center; padding:10px; font-size:0.85rem; font-weight:700; letter-spacing:0.5px;">
             ${widgetConfig.preLoginBannerText}
           </div>
 
           <!-- Main Scrollable Area -->
-          <div style="flex:1; overflow-y:auto; padding:16px; background:#f9fafb;">
+          <div style="flex:1; overflow-y:auto; padding:20px; background:#f9fafb;">
             
             <!-- Order Summary Accordion -->
-            <div class="cf-card" style="margin-bottom: 12px;">
-              <div id="cf-accordion-header" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; cursor:pointer;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <i class="ph ph-shopping-cart" style="font-size: 20px; color: #4b5563;"></i>
-                  <span style="font-weight:500; color:#374151; font-size:0.95rem;">Order summary</span>
+            <div class="cf-card" style="margin-bottom: 16px;">
+              <div id="cf-accordion-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <i class="ph ph-shopping-cart" style="font-size: 22px; color: #4b5563;"></i>
+                  <span style="font-weight:600; color:#1f2937; font-size:1rem;">Order summary</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:6px; color:#6b7280; font-size:0.85rem;">
+                <div style="display:flex; align-items:center; gap:8px; color:#6b7280; font-size:0.9rem; font-weight:500;">
                   <span id="cf-summary-qty-header">${quantity} item</span>
-                  <i id="cf-accordion-icon" class="ph ph-caret-down" style="font-size: 16px; transition: transform 0.2s;"></i>
+                  <i id="cf-accordion-icon" class="ph ph-caret-down" style="font-size: 18px; transition: transform 0.2s;"></i>
                 </div>
               </div>
 
               <!-- Expanded Details -->
-              <div id="cf-accordion-body" style="padding:0 16px 16px 16px; display:none; border-top:1px solid #f3f4f6;">
-                <div style="display:flex; gap:16px; align-items:flex-start; margin-top:16px;">
-                  ${productImage ? `<img src="${productImage}" style="width:64px; height:64px; border-radius:8px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:64px; height:64px; border-radius:8px; background:#e5e7eb;"></div>`}
+              <div id="cf-accordion-body" style="padding:0 20px 20px 20px; display:none; border-top:1px solid #f3f4f6;">
+                <div style="display:flex; gap:16px; align-items:flex-start; margin-top:20px;">
+                  ${finalProductImage ? `<img src="${finalProductImage}" style="width:72px; height:72px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb;" />` : `<div style="width:72px; height:72px; border-radius:10px; background:#e5e7eb; display:flex; align-items:center; justify-content:center;"><i class="ph ph-image" style="color:#9ca3af; font-size:24px;"></i></div>`}
                   <div style="flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                      <div style="font-size:0.85rem; color:#111827; font-weight:500; padding-right:12px; line-height:1.4;">${productTitle || 'Product'}</div>
+                      <div style="font-size:0.95rem; color:#111827; font-weight:500; padding-right:12px; line-height:1.4;">${productTitle || 'Product'}</div>
                       <div style="text-align:right;">
-                        <div style="font-weight:700; font-size:0.9rem; color:#111827;" id="cf-item-total">₹${total}</div>
+                        <div style="font-weight:700; font-size:1rem; color:#111827;" id="cf-item-total">₹${total}</div>
                       </div>
                     </div>
                     
-                    <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
-                      <button type="button" id="cf-delete-item" style="background:none; border:1px solid #e5e7eb; border-radius:6px; padding:4px; cursor:pointer; color:#9ca3af; display:flex;">
-                        <i class="ph ph-trash" style="font-size: 16px;"></i>
+                    <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+                      <button type="button" id="cf-delete-item" style="background:none; border:1px solid #e5e7eb; border-radius:8px; padding:6px; cursor:pointer; color:#9ca3af; display:flex; transition:all 0.2s;">
+                        <i class="ph ph-trash" style="font-size: 18px;"></i>
                       </button>
-                      <div style="display:flex; align-items:center; border:1px solid #e5e7eb; border-radius:20px; overflow:hidden;">
-                        <button type="button" id="cf-qty-minus" style="background:#fff; border:none; padding:2px 10px; cursor:pointer; font-size:1.1rem; color:#9ca3af;">-</button>
-                        <div id="cf-qty-display" style="padding:2px 8px; font-size:0.85rem; font-weight:600; color:#111827;">${quantity}</div>
-                        <button type="button" id="cf-qty-plus" style="background:#fff; border:none; padding:2px 10px; cursor:pointer; font-size:1.1rem; color:#9ca3af;">+</button>
+                      <div style="display:flex; align-items:center; border:1px solid #e5e7eb; border-radius:24px; overflow:hidden;">
+                        <button type="button" id="cf-qty-minus" style="background:#fff; border:none; padding:4px 12px; cursor:pointer; font-size:1.2rem; font-weight:500; color:#6b7280;">-</button>
+                        <div id="cf-qty-display" style="padding:4px 10px; font-size:0.95rem; font-weight:600; color:#111827;">${quantity}</div>
+                        <button type="button" id="cf-qty-plus" style="background:#fff; border:none; padding:4px 12px; cursor:pointer; font-size:1.2rem; font-weight:500; color:#6b7280;">+</button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div style="margin-top:16px; font-size:0.85rem; color:#4b5563;">
-                  <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <div style="margin-top:20px; font-size:0.95rem; color:#4b5563;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                     <span>Subtotal</span>
-                    <span id="cf-summary-subtotal">₹${total}</span>
+                    <span id="cf-summary-subtotal" style="font-weight:500;">₹${total}</span>
                   </div>
-                  <div id="cf-summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:8px; color:#059669; font-weight:500;">
+                  <div id="cf-summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:10px; color:#059669; font-weight:600;">
                     <span>Discount</span>
                     <span id="cf-summary-discount-value">-₹0</span>
                   </div>
-                  <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
                     <span>Shipping</span>
-                    <span style="color:#9ca3af;">Free</span>
+                    <span style="color:#10b981; font-weight:600;">FREE</span>
                   </div>
-                  <div style="border-top:1px dashed #e5e7eb; margin:12px 0;"></div>
-                  <div style="display:flex; justify-content:space-between; font-weight:700; font-size:0.95rem; color:#111827;">
+                  <div style="border-top:1px dashed #d1d5db; margin:16px 0;"></div>
+                  <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; color:#111827;">
                     <span>Total</span>
                     <span id="cf-summary-total">₹${total}</span>
                   </div>
@@ -170,87 +179,87 @@
             </div>
 
             <!-- Deliver To / Address Step -->
-            <div id="cf-deliver-to-card" class="cf-card" style="display:none; padding:12px 16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div id="cf-deliver-to-card" class="cf-card" style="display:none; padding:16px 20px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <i class="ph ph-map-pin" style="font-size: 18px; color: #4b5563;"></i>
-                  <span style="font-weight:500; color:#374151; font-size:0.95rem;">Deliver to <span style="background:#f3f4f6; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-left:4px;">Home</span></span>
+                  <i class="ph ph-map-pin" style="font-size: 20px; color: #4b5563;"></i>
+                  <span style="font-weight:600; color:#1f2937; font-size:1rem;">Deliver to <span style="background:#f3f4f6; padding:4px 10px; border-radius:12px; font-size:0.75rem; margin-left:6px; font-weight:600;">Home</span></span>
                 </div>
-                <button type="button" id="cf-edit-address-btn" style="background:none; border:none; color:${primaryColor}; font-size:0.85rem; font-weight:600; cursor:pointer;">Edit</button>
+                <button type="button" id="cf-edit-address-btn" style="background:none; border:none; color:${primaryColor}; font-size:0.9rem; font-weight:600; cursor:pointer;">Edit</button>
               </div>
-              <div style="font-size:0.85rem; color:#6b7280; line-height:1.4;">
+              <div style="font-size:0.95rem; color:#4b5563; line-height:1.5;">
                 <span id="cf-display-name" style="font-weight:600; color:#111827;"></span>, <span id="cf-display-address"></span><br/>
-                <div style="margin-top:4px; display:flex; gap:16px;">
-                  <span style="display:flex; align-items:center; gap:4px;"><i class="ph ph-phone" style="font-size: 14px;"></i> <span id="cf-display-phone"></span></span>
+                <div style="margin-top:6px; display:flex; gap:16px; font-weight:500;">
+                  <span style="display:flex; align-items:center; gap:6px;"><i class="ph ph-phone" style="font-size: 16px;"></i> <span id="cf-display-phone"></span></span>
                 </div>
               </div>
             </div>
 
             <!-- Offers & Rewards -->
             <div id="cf-offers-section">
-              <div class="cf-card" style="padding:6px; display:flex; align-items:center; padding-left:12px; margin-bottom:12px;">
-                <i class="ph ph-tag" style="font-size: 18px; color: #9ca3af;"></i>
-                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:8px; flex:1; background:transparent;" />
-                <button type="button" id="cf-apply-discount" style="background:transparent; color:${primaryColor}; border:none; padding:0 12px; font-weight:600; cursor:pointer;">Apply</button>
+              <div class="cf-card" style="padding:8px; display:flex; align-items:center; padding-left:16px; margin-bottom:16px;">
+                <i class="ph ph-tag" style="font-size: 20px; color: #9ca3af;"></i>
+                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" />
+                <button type="button" id="cf-apply-discount" style="background:${primaryColor}15; color:${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">Apply</button>
               </div>
-              <div id="cf-discount-msg" style="color:#059669; font-size:0.75rem; margin-top:-8px; margin-bottom:12px; padding-left:8px; display:none;">Discount code applied!</div>
+              <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:none;">Discount code applied!</div>
             </div>
 
             <!-- Pre-Verification: Phone & Add Address -->
             <div id="cf-phone-step">
-              <div class="cf-card" style="display:flex; align-items:center; padding:0 12px; height:48px; margin-bottom:12px;">
-                <div style="display:flex; align-items:center; gap:6px; border-right:1px solid #e5e7eb; padding-right:12px; height:100%;">
-                  <span style="font-size:1.1rem;">🇮🇳</span>
-                  <span style="color:#111; font-size:0.95rem;">+91</span>
+              <div class="cf-card" style="display:flex; align-items:center; padding:0 16px; height:56px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:8px; border-right:1px solid #e5e7eb; padding-right:16px; height:100%;">
+                  <span style="font-size:1.2rem;">🇮🇳</span>
+                  <span style="color:#111; font-size:1rem; font-weight:500;">+91</span>
                 </div>
-                <input type="tel" id="cf-login-phone" style="border:none; padding:0 12px; font-size:0.95rem; flex:1; outline:none; height:100%; background:transparent;" placeholder="Mobile Number" maxlength="10" />
+                <input type="tel" id="cf-login-phone" style="border:none; padding:0 16px; font-size:1.05rem; font-weight:500; flex:1; outline:none; height:100%; background:transparent;" placeholder="Mobile Number" maxlength="10" />
               </div>
 
-              <div id="cf-otp-step" style="display:none; margin-bottom:12px;">
-                <input type="text" id="cf-login-otp" class="cf-input" placeholder="Enter 4-digit OTP" style="text-align:center; letter-spacing:8px;" maxlength="4" />
-                <p id="cf-otp-error" style="color:#ef4444; font-size:0.8rem; margin-top:8px; text-align:center; display:none;"></p>
+              <div id="cf-otp-step" style="display:none; margin-bottom:16px;">
+                <input type="text" id="cf-login-otp" class="cf-input" placeholder="Enter 4-digit OTP" style="text-align:center; letter-spacing:12px; font-size:1.2rem; font-weight:600;" maxlength="4" />
+                <p id="cf-otp-error" style="color:#ef4444; font-size:0.85rem; font-weight:500; margin-top:8px; text-align:center; display:none;"></p>
               </div>
 
-              <button type="button" id="cf-add-address-btn" class="cf-btn-primary" style="margin-bottom:16px;">Continue</button>
-              <p id="cf-login-error" style="color:#ef4444; font-size:0.8rem; margin-top:-8px; margin-bottom:16px; text-align:center; display:none;"></p>
+              <button type="button" id="cf-add-address-btn" class="cf-btn-primary" style="margin-bottom:20px;">Continue</button>
+              <p id="cf-login-error" style="color:#ef4444; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; text-align:center; display:none;"></p>
               
               <!-- Badges -->
-              <div style="display:flex; justify-content:space-between; margin-top:24px; padding:0 10px;">
-                <div class="cf-badge"><i class="ph ph-star" style="font-size: 24px;"></i>Top Rated<br/>Products</div>
-                <div class="cf-badge"><i class="ph ph-lock-key" style="font-size: 24px;"></i>Secured<br/>Checkout</div>
-                <div class="cf-badge"><i class="ph ph-truck" style="font-size: 24px;"></i>Fast<br/>Shipping</div>
-                <div class="cf-badge"><i class="ph ph-smiley" style="font-size: 24px;"></i>100k+ Happy<br/>customers</div>
+              <div style="display:flex; justify-content:space-between; margin-top:32px; padding:0 10px;">
+                <div class="cf-badge"><i class="ph ph-star" style="font-size: 26px; color:#4b5563;"></i>Top Rated<br/>Products</div>
+                <div class="cf-badge"><i class="ph ph-lock-key" style="font-size: 26px; color:#4b5563;"></i>Secured<br/>Checkout</div>
+                <div class="cf-badge"><i class="ph ph-truck" style="font-size: 26px; color:#4b5563;"></i>Fast<br/>Shipping</div>
+                <div class="cf-badge"><i class="ph ph-smiley" style="font-size: 26px; color:#4b5563;"></i>100k+ Happy<br/>customers</div>
               </div>
             </div>
 
             <!-- Pre-Verification: Address Form Modal (Hidden by default) -->
             <div id="cf-address-form-modal" style="display:none;">
-              <h3 style="font-size:0.95rem; font-weight:600; color:#374151; margin-bottom:12px;">Add Shipping Address</h3>
-              <div style="display:flex; flex-direction:column; gap:12px;">
+              <h3 style="font-size:1.1rem; font-weight:700; color:#1f2937; margin-bottom:16px;">Add Shipping Address</h3>
+              <div style="display:flex; flex-direction:column; gap:16px;">
                 <input type="text" id="cf-name" class="cf-input" placeholder="Full Name" required />
                 <input type="email" id="cf-email" class="cf-input" placeholder="Email Address" required />
                 <input type="text" id="cf-address" class="cf-input" placeholder="Street Address" required />
-                <div style="display:flex; gap:12px;">
+                <div style="display:flex; gap:16px;">
                   <input type="text" id="cf-city" class="cf-input" placeholder="City" required />
                   <input type="text" id="cf-state" class="cf-input" placeholder="State" required />
                 </div>
                 <input type="text" id="cf-pincode" class="cf-input" placeholder="Pincode" required />
               </div>
-              <button type="button" id="cf-save-address-btn" class="cf-btn-primary" style="margin-top:16px;">Save Address</button>
+              <button type="button" id="cf-save-address-btn" class="cf-btn-primary" style="margin-top:20px;">Save Address</button>
             </div>
 
             <!-- Post-Verification: Payment Options -->
-            <form id="cf-checkout-form" style="display:none; margin-top:8px;">
-              <div style="font-size:0.85rem; font-weight:500; color:#4b5563; margin-bottom:8px;">Payment methods</div>
+            <form id="cf-checkout-form" style="display:none; margin-top:12px;">
+              <div style="font-size:0.95rem; font-weight:600; color:#374151; margin-bottom:12px;">Payment methods</div>
               <div id="cf-payment-options" class="cf-card" style="overflow:hidden;">
-                <div style="padding:20px; text-align:center; color:#6b7280; font-size:0.9rem;">Loading payment options...</div>
+                <div style="padding:24px; text-align:center; color:#6b7280; font-size:1rem; font-weight:500;">Loading secure options...</div>
               </div>
 
               <!-- Footer -->
-              <div style="margin-top:24px; text-align:center;">
-                <div style="display:flex; justify-content:center; align-items:center; gap:4px; color:#9ca3af; font-size:0.75rem; font-weight:500;">
-                  <i class="ph ph-lock-key" style="font-size: 14px;"></i>
-                  Secured by CheckoutFlow
+              <div style="margin-top:32px; text-align:center;">
+                <div style="display:flex; justify-content:center; align-items:center; gap:6px; color:#9ca3af; font-size:0.85rem; font-weight:600;">
+                  <i class="ph ph-shield-check" style="font-size: 18px;"></i>
+                  100% Secured by CheckoutFlow
                 </div>
               </div>
             </form>
@@ -266,7 +275,7 @@
 
       const closeWidget = () => {
         sheet.style.transform = 'translateY(100%)';
-        setTimeout(() => overlay.remove(), 300);
+        setTimeout(() => overlay.remove(), 400);
       };
       document.getElementById('cf-close').onclick = closeWidget;
       overlay.onclick = (e) => { if(e.target === overlay) closeWidget(); };
@@ -451,45 +460,44 @@
         const getDiscountTag = () => {
           if (!widgetConfig.isPrepaidDiscountEnabled) return '';
           const txt = widgetConfig.prepaidDiscountType === 'percentage' ? `${widgetConfig.prepaidDiscountValue}%` : `₹${widgetConfig.prepaidDiscountValue}`;
-          return `<span style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:#ecfdf5; color:#059669; font-size:0.75rem; font-weight:600; padding:4px 8px; border-radius:12px;"><i class="ph ph-tag" style="font-size: 12px;"></i> Get ${txt} off</span>`;
+          return `<span style="display:inline-flex; align-items:center; gap:6px; margin-top:6px; background:#ecfdf5; color:#059669; font-size:0.75rem; font-weight:700; padding:6px 10px; border-radius:12px;"><i class="ph ph-tag" style="font-size: 14px;"></i> Get ${txt} off</span>`;
         };
 
-        // Render card with class .cf-payment-option-label and data-payment-method
         const renderOption = (val, title, subtitle, iconHtml, isFirst, isPrepaid) => {
           return `
-            <div class="cf-payment-option-label" data-payment-method="${val}" style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-bottom:${isFirst ? '1px solid #e5e7eb' : '1px solid #e5e7eb'}; background:#fff; transition: background 0.2s;">
+            <div class="cf-payment-option-label" data-payment-method="${val}" style="display:flex; align-items:center; justify-content:space-between; padding:20px; cursor:pointer; border-bottom:${isFirst ? '1px solid #e5e7eb' : '1px solid #e5e7eb'}; background:#fff; transition: all 0.2s;">
               <div style="display:flex; align-items:center; gap:16px;">
-                <div style="width:40px; height:40px; border-radius:12px; border:1px solid #e5e7eb; display:flex; align-items:center; justify-content:center; background:#fff;">
+                <div style="width:48px; height:48px; border-radius:12px; border:1px solid #f3f4f6; display:flex; align-items:center; justify-content:center; background:#f9fafb;">
                   ${iconHtml}
                 </div>
                 <div>
                   <div style="display:flex; align-items:center;">
-                    <span style="font-weight:600; color:#1f2937; font-size:0.95rem;">${title}</span>
+                    <span style="font-weight:700; color:#111827; font-size:1.05rem;">${title}</span>
                   </div>
-                  ${isPrepaid ? getDiscountTag() : `<div style="color:#6b7280; font-size:0.8rem; margin-top:2px;">${subtitle}</div>`}
+                  ${isPrepaid ? getDiscountTag() : `<div style="color:#6b7280; font-size:0.85rem; margin-top:4px; font-weight:500;">${subtitle}</div>`}
                 </div>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span id="cf-price-${val}" style="font-weight:600; color:#111827; font-size:0.95rem;"></span>
-                <i class="ph ph-caret-right" style="font-size: 16px; color:#9ca3af;"></i>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span id="cf-price-${val}" style="font-weight:700; color:#111827; font-size:1.05rem;"></span>
+                <i class="ph ph-caret-right" style="font-size: 18px; color:#9ca3af;"></i>
               </div>
             </div>
           `;
         };
 
         const icons = {
-          upi: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
-          card: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
-          wallet: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-8H6a2 2 0 0 0-2 2z"/></svg>`,
-          net: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
-          cod: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`
+          upi: `<img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" style="height:20px;" />`,
+          card: `<div style="display:flex;gap:4px;"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" style="height:14px;" /><img src="https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg" style="height:14px;" /></div>`,
+          wallet: `<img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" style="height:16px;" />`,
+          net: `<i class="ph ph-bank" style="font-size:24px; color:#10b981;"></i>`,
+          cod: `<i class="ph ph-money" style="font-size:24px; color:#64748b;"></i>`
         };
 
         if (widgetConfig.hasRazorpay) {
-          html += renderOption('UPI', 'Pay via UPI', 'Use any registered UPI ID', icons.upi, true, true);
-          html += renderOption('Card', 'Debit/Credit cards', 'Visa, Mastercard, RuPay', icons.card, false, true);
+          html += renderOption('UPI', 'Pay via UPI', 'GPay, PhonePe, Paytm', icons.upi, true, true);
+          html += renderOption('Card', 'Debit / Credit cards', 'Visa, Mastercard, RuPay', icons.card, false, true);
           html += renderOption('Wallet', 'Wallets', 'Paytm, PhonePe', icons.wallet, false, true);
-          html += renderOption('Netbanking', 'Netbanking', 'Select from all banks', icons.net, false, true);
+          html += renderOption('Netbanking', 'Netbanking', 'All Indian banks', icons.net, false, true);
         }
         
         if (widgetConfig.isPartialCodEnabled) {
@@ -506,7 +514,6 @@
           card.onclick = async (e) => {
             e.preventDefault();
             const val = card.getAttribute('data-payment-method');
-            // Show a tiny spinner or loading state on the card clicked
             const priceEl = card.querySelector(`#cf-price-${val}`);
             const originalText = priceEl.innerText;
             priceEl.innerText = 'Wait...';
@@ -586,23 +593,42 @@
       document.getElementById('cf-apply-discount').onclick = async () => {
         const code = document.getElementById('cf-discount').value;
         if(!code) return;
+        
+        const btn = document.getElementById('cf-apply-discount');
+        btn.innerText = '...';
+        
         try {
-          const res = await fetch(`${apiBaseUrl}/api/discounts/validate`, {
+          const res = await fetch(`${apiBaseUrl}/api/validate-discount`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ shop, code })
           });
           const data = await res.json();
+          btn.innerText = 'Apply';
+          
           if (data.success && data.valid) {
             appliedDiscount = data.discount;
             const msgEl = document.getElementById('cf-discount-msg');
-            msgEl.innerText = "Discount applied!";
+            msgEl.innerText = "🎉 Coupon Applied!";
             msgEl.style.display = 'block';
             window.internalUpdatePricing();
+            
+            // Confetti Burst
+            if (window.confetti) {
+               window.confetti({
+                 particleCount: 150,
+                 spread: 80,
+                 origin: { y: 0.6 },
+                 colors: [primaryColor, '#10b981', '#f59e0b', '#3b82f6'],
+                 zIndex: 9999999
+               });
+            }
           } else {
             alert("Invalid or expired code");
           }
-        } catch(e) {}
+        } catch(e) {
+            btn.innerText = 'Apply';
+        }
       };
 
       // ONE-CLICK PAYMENT PROCESSOR
@@ -657,11 +683,11 @@
                 window.location.href = data.orderStatusUrl;
               } else {
                 sheet.innerHTML = `
-                  <div style="text-align:center; padding: 40px 20px;">
-                    <div style="font-size:3rem; color:#10b981; margin-bottom:20px;">✓</div>
-                    <h2 style="margin:0 0 10px 0; color:#111;">Order Confirmed!</h2>
-                    <p style="color:#666;">Your order has been placed successfully.</p>
-                    <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:20px; padding:10px 20px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer;">Close</button>
+                  <div style="text-align:center; padding: 60px 20px;">
+                    <div style="font-size:4rem; color:#10b981; margin-bottom:20px;">✓</div>
+                    <h2 style="margin:0 0 10px 0; color:#111; font-size:1.5rem;">Order Confirmed!</h2>
+                    <p style="color:#6b7280; font-size:1rem;">Your order has been placed successfully.</p>
+                    <button onclick="document.getElementById('checkoutflow-overlay').remove()" style="margin-top:30px; padding:14px 24px; background:#111; color:#fff; border:none; border-radius:12px; cursor:pointer; font-size:1rem; font-weight:600;">Close Checkout</button>
                   </div>
                 `;
               }
