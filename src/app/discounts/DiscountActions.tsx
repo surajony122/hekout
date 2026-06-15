@@ -35,10 +35,13 @@ export default function DiscountActions({ id, initialStatus }: { id: string, ini
       <button 
         onClick={toggleStatus} 
         disabled={loading}
-        className={`p-1.5 rounded-md transition-colors ${isActive ? 'text-rose-500 hover:bg-rose-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isActive ? 'bg-emerald-500' : 'bg-slate-300'} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
         title={isActive ? "Deactivate" : "Activate"}
       >
-        {isActive ? <PowerOff size={16} /> : <Power size={16} />}
+        <span className="sr-only">Toggle status</span>
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isActive ? 'translate-x-5' : 'translate-x-0'}`}
+        />
       </button>
       <a 
         href={`/discounts/${id}`}

@@ -24,7 +24,7 @@ const newOpenFunction = `open: async function(options) {
       };
 
       try {
-        const configRes = await fetch(\`\${apiBaseUrl}/api/widget/config?shop=\${shop}\`);
+        const configRes = await fetch(\`\${apiBaseUrl}/api/widget/config?shop=\${shop}&t=\${Date.now()}\`);
         const configData = await configRes.json();
         if (configData.success) {
           widgetConfig = configData.config;
@@ -562,8 +562,13 @@ const newOpenFunction = `open: async function(options) {
         document.getElementById('cf-summary-qty-header').innerText = \`\${currentQuantity} item\`;
         document.getElementById('cf-summary-subtotal').innerText = \`₹\${subtotal.toLocaleString('en-IN')}\`;
         
-        if (discountAmount > 0) {
+        if (appliedDiscount && appliedDiscount.type === 'freebie_product') {
           document.getElementById('cf-summary-discount-row').style.display = 'flex';
+          document.getElementById('cf-summary-discount-row').children[0].innerText = 'Free Gift';
+          document.getElementById('cf-summary-discount-value').innerText = appliedDiscount.freebieName || '1x Free Product';
+        } else if (discountAmount > 0) {
+          document.getElementById('cf-summary-discount-row').style.display = 'flex';
+          document.getElementById('cf-summary-discount-row').children[0].innerText = 'Discount';
           document.getElementById('cf-summary-discount-value').innerText = \`-₹\${discountAmount.toLocaleString('en-IN')}\`;
         } else {
           document.getElementById('cf-summary-discount-row').style.display = 'none';
