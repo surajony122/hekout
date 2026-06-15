@@ -6,9 +6,11 @@ import DiscountEditForm from './DiscountEditForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DiscountDetailsPage({ params }: { params: { id: string } }) {
+export default async function DiscountDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  
   const coupon = await prisma.coupon.findUnique({
-    where: { id: params.id }
+    where: { id }
   });
 
   if (!coupon) {

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const data = await request.json();
     const { code, discountValue, isAutoApply, isActive } = data;
 
@@ -11,7 +12,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     const updatedCoupon = await prisma.coupon.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         code: code.toUpperCase(),
         discountValue,
@@ -27,14 +28,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   // Toggle endpoint used by the DiscountActions list view
   try {
+    const { id } = await params;
     const data = await request.json();
     const { isActive } = data;
 
     const updatedCoupon = await prisma.coupon.update({
-      where: { id: params.id },
+      where: { id },
       data: { isActive }
     });
 
