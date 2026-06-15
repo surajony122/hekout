@@ -52,7 +52,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const merchant = await prisma.merchant.findFirst({ where: { isActive: true } });
     if (!merchant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    await prisma.coupon.delete({
+    await prisma.coupon.deleteMany({
       where: { id, merchantId: merchant.id }
     });
 
