@@ -28,7 +28,12 @@
       try {
         const configRes = await fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}`);
         const configData = await configRes.json();
-        if (configData.success) widgetConfig = configData.config;
+        if (configData.success) {
+          widgetConfig = configData.config;
+          if (widgetConfig.autoDiscount && !appliedDiscount) {
+            appliedDiscount = widgetConfig.autoDiscount;
+          }
+        }
       } catch (e) {}
 
       const primaryColor = widgetConfig.primaryColor || '#111827';
@@ -202,7 +207,7 @@
                 <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" />
                 <button type="button" id="cf-apply-discount" style="background:${primaryColor}15; color:${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">Apply</button>
               </div>
-              <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:none;">Discount code applied!</div>
+              <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:${appliedDiscount ? 'block' : 'none'};">🎉 Auto Discount Applied!</div>
             </div>
 
             <!-- Pre-Verification: Phone & Add Address -->

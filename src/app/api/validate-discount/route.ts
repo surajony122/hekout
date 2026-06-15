@@ -29,10 +29,14 @@ export async function POST(request: Request) {
 
     if (localCoupon) {
       return NextResponse.json({
+        success: true,
         valid: true,
-        type: localCoupon.discountType, // 'percentage', 'fixed_amount', or 'freebie_product'
-        value: localCoupon.discountValue,
-        freebieName: localCoupon.freebieName,
+        discount: {
+          code: localCoupon.code,
+          type: localCoupon.discountType,
+          value: localCoupon.discountValue,
+          freebieName: localCoupon.freebieName
+        },
         source: 'checkoutflow'
       });
     }
@@ -78,9 +82,13 @@ export async function POST(request: Request) {
     const rule = ruleData.price_rule;
 
     return NextResponse.json({
+      success: true,
       valid: true,
-      type: rule.value_type, // 'percentage' or 'fixed_amount'
-      value: Math.abs(parseFloat(rule.value)),
+      discount: {
+        code: code,
+        type: rule.value_type, // 'percentage' or 'fixed_amount'
+        value: Math.abs(parseFloat(rule.value))
+      },
       source: 'shopify'
     });
 
