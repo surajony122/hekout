@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     if (!targetUrl) {
       // 404 means discount not found
-      return NextResponse.json({ error: 'Invalid discount code' }, { status: 404 });
+      return NextResponse.json({ success: false, valid: false, error: 'Invalid discount code' }, { status: 200 });
     }
 
     // Step B: Fetch the actual Price Rule to get the value
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     // We can extract price_rule_id and fetch the price rule.
     const match = targetUrl.match(/price_rules\/(\d+)/);
     if (!match) {
-        return NextResponse.json({ error: 'Invalid discount code structure' }, { status: 404 });
+        return NextResponse.json({ success: false, valid: false, error: 'Invalid discount code structure' }, { status: 200 });
     }
     const priceRuleId = match[1];
 

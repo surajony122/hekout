@@ -625,7 +625,7 @@ const newOpenFunction = `open: async function(options) {
                });
             }
           } else {
-            alert("Invalid or expired code");
+            setTimeout(() => { alert("Invalid or expired code"); }, 10);
           }
         } catch(e) {
             btn.innerText = 'Apply';
