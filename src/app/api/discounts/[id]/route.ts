@@ -45,3 +45,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const merchant = await prisma.merchant.findFirst({ where: { isActive: true } });
+    if (!merchant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await prisma.coupon.delete({
+      where: { id, merchantId: merchant.id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete discount' }, { status: 500 });
+  }
+}

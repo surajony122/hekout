@@ -201,8 +201,8 @@ const newOpenFunction = `open: async function(options) {
             <div id="cf-offers-section">
               <div class="cf-card" style="padding:8px; display:flex; align-items:center; padding-left:16px; margin-bottom:16px;">
                 <i class="ph ph-tag" style="font-size: 20px; color: #9ca3af;"></i>
-                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" />
-                <button type="button" id="cf-apply-discount" style="background:\${primaryColor}15; color:\${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">Apply</button>
+                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" value="\${appliedDiscount ? appliedDiscount.code : ''}" />
+                <button type="button" id="cf-apply-discount" style="background:\${primaryColor}15; color:\${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">\${appliedDiscount ? 'Remove' : 'Apply'}</button>
               </div>
               <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:\${appliedDiscount ? 'block' : 'none'};">🎉 Auto Discount Applied!</div>
             </div>
@@ -598,14 +598,26 @@ const newOpenFunction = `open: async function(options) {
 
       // Discount logic
       document.getElementById('cf-apply-discount').onclick = async () => {
-        const code = document.getElementById('cf-discount').value;
+        const btn = document.getElementById('cf-apply-discount');
+        const inputEl = document.getElementById('cf-discount');
+        const msgEl = document.getElementById('cf-discount-msg');
+
+        if (btn.innerText === 'Remove') {
+          appliedDiscount = null;
+          inputEl.value = '';
+          btn.innerText = 'Apply';
+          msgEl.style.display = 'none';
+          window.internalUpdatePricing();
+          return;
+        }
+
+        const code = inputEl.value;
         if(!code) return;
         
-        const btn = document.getElementById('cf-apply-discount');
         btn.innerText = '...';
         
         try {
-          const res = await fetch(\`\${apiBaseUrl}/api/validate-discount\`, {
+          const res = await fetch(`${apiBaseUrl}/api/validate-discount`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ shop, code })
@@ -615,9 +627,9 @@ const newOpenFunction = `open: async function(options) {
           
           if (data.success && data.valid) {
             appliedDiscount = data.discount;
-            const msgEl = document.getElementById('cf-discount-msg');
             msgEl.innerText = "🎉 Coupon Applied!";
             msgEl.style.display = 'block';
+            btn.innerText = 'Remove';
             window.internalUpdatePricing();
             
             // Confetti Burst

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Power, PowerOff, Edit } from 'lucide-react';
+import { Trash2, Edit } from 'lucide-react';
 
 export default function DiscountActions({ id, initialStatus }: { id: string, initialStatus: boolean }) {
   const [isActive, setIsActive] = useState(initialStatus);
@@ -23,6 +23,24 @@ export default function DiscountActions({ id, initialStatus }: { id: string, ini
       }
     } catch (e) {
       alert('Error updating status');
+    }
+    setLoading(false);
+  };
+
+  const deleteDiscount = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this discount?")) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/discounts/\${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert('Failed to delete discount');
+      }
+    } catch (e) {
+      alert('Error deleting discount');
     }
     setLoading(false);
   };
@@ -50,6 +68,14 @@ export default function DiscountActions({ id, initialStatus }: { id: string, ini
       >
         <Edit size={16} />
       </a>
+      <button 
+        onClick={deleteDiscount} 
+        disabled={loading}
+        className="p-1.5 rounded-md transition-colors text-rose-500 hover:bg-rose-50"
+        title="Delete Discount"
+      >
+        <Trash2 size={16} />
+      </button>
     </div>
   );
 }
