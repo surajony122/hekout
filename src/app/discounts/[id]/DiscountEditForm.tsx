@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -8,17 +8,51 @@ export default function DiscountEditForm({ coupon }: { coupon: any }) {
   const router = useRouter();
   const [code, setCode] = useState(coupon.code);
   const [discountValue, setDiscountValue] = useState(coupon.discountValue);
+  const [minOrder, setMinOrder] = useState(coupon.minimumOrderValue || 0);
+  const [maxOrder, setMaxOrder] = useState(coupon.maximumOrderValue || '');
   const [isAutoApply, setIsAutoApply] = useState(coupon.isAutoApply);
   const [isActive, setIsActive] = useState(coupon.isActive);
+  const [isCombinable, setIsCombinable] = useState(coupon.isCombinable || false);
+  const [appliesToType, setAppliesToType] = useState(coupon.appliesToType || 'all');
+  const [applicableItemIds, setApplicableItemIds] = useState(coupon.applicableItemIds ? JSON.parse(coupon.applicableItemIds)[0] : '');
+  
   const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (appliesToType === 'products' && products.length === 0) {
+      fetch('/api/shopify/products').then(res => res.json()).then(data => {
+        if (data.success) setProducts(data.products);
+      });
+    }
+  }, [appliesToType]);
+
+  useEffect(() => {
+    if (appliesToType === 'collections' && collections.length === 0) {
+      fetch('/api/shopify/collections').then(res => res.json()).then(data => {
+        if (data.success) setCollections(data.collections);
+      });
+    }
+  }, [appliesToType]);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/discounts/${coupon.id}`, {
+      const res = await fetch(`/api/discounts/\${coupon.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, discountValue: Number(discountValue), isAutoApply, isActive })
+        body: JSON.stringify({ 
+          code, 
+          discountValue: Number(discountValue), 
+          minimumOrderValue: Number(minOrder),
+          maximumOrderValue: maxOrder ? Number(maxOrder) : null,
+          isAutoApply, 
+          isActive,
+          isCombinable,
+          appliesToType,
+          applicableItemIds: applicableItemIds ? JSON.stringify([applicableItemIds]) : null
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -47,39 +81,124 @@ export default function DiscountEditForm({ coupon }: { coupon: any }) {
           />
         </div>
         
+        {coupon.discountType !== 'freebie_product' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Value ({coupon.discountType === 'percentage' ? '%' : '₹'})</label>
+            <input 
+              type="number" 
+              value={discountValue} 
+              onChange={(e) => setDiscountValue(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" 
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Min Order Value</label>
+            <input 
+              type="number" 
+              value={minOrder} 
+              onChange={(e) => setMinOrder(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Max Order Value</label>
+            <input 
+              type="number" 
+              value={maxOrder} 
+              onChange={(e) => setMaxOrder(e.target.value)}
+              placeholder="No limit"
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" 
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Discount Value ({coupon.discountType === 'percentage' ? '%' : '₹'})</label>
-          <input 
-            type="number" 
-            value={discountValue} 
-            onChange={(e) => setDiscountValue(e.target.value)}
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" 
-          />
+          <label className="block text-sm font-medium text-slate-700 mb-1">Applies To</label>
+          <select 
+            value={appliesToType}
+            onChange={(e) => {
+              setAppliesToType(e.target.value);
+              setApplicableItemIds('');
+            }}
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500"
+          >
+            <option value="all">All Products</option>
+            <option value="products">Specific Products</option>
+            <option value="collections">Specific Collections</option>
+          </select>
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <label className="text-sm font-medium text-slate-700">Auto Apply at Checkout</label>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={isAutoApply} onChange={(e) => setIsAutoApply(e.target.checked)} className="sr-only peer"/>
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+        {appliesToType === 'products' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Select Product</label>
+            <select 
+              value={applicableItemIds}
+              onChange={(e) => setApplicableItemIds(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 bg-white"
+            >
+              <option value="">-- Select a product --</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id.split('/').pop()}>{p.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {appliesToType === 'collections' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Select Collection</label>
+            <select 
+              value={applicableItemIds}
+              onChange={(e) => setApplicableItemIds(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 bg-white"
+            >
+              <option value="">-- Select a collection --</option>
+              {collections.map((c) => (
+                <option key={c.id} value={c.id.split('/').pop()}>{c.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="pt-4 space-y-2">
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={isActive} 
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" 
+            />
+            <span className="text-sm font-medium text-slate-700">Active</span>
           </label>
-        </div>
-
-        <div className="flex items-center justify-between pt-2 pb-4">
-          <label className="text-sm font-medium text-slate-700">Coupon Status (Active)</label>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="sr-only peer"/>
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={isAutoApply} 
+              onChange={(e) => setIsAutoApply(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" 
+            />
+            <span className="text-sm font-medium text-slate-700">Auto Apply</span>
+          </label>
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={isCombinable} 
+              onChange={(e) => setIsCombinable(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" 
+            />
+            <span className="text-sm font-medium text-slate-700">Combinable with other codes</span>
           </label>
         </div>
 
         <button 
           onClick={handleSave} 
           disabled={loading}
-          className="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-70"
+          className="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Save size={18} />
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? 'Saving...' : <><Save size={16} /> Save Changes</>}
         </button>
       </div>
     </div>

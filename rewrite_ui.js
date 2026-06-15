@@ -11,7 +11,7 @@ const newOpenFunction = `open: async function(options) {
       
       this.trackEvent(shop, 'WIDGET_OPENED');
 
-      let appliedDiscount = null;
+      let appliedDiscounts = [];
 
       // Fetch config immediately to apply branding and banners
       const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
@@ -28,8 +28,21 @@ const newOpenFunction = `open: async function(options) {
         const configData = await configRes.json();
         if (configData.success) {
           widgetConfig = configData.config;
-          if (widgetConfig.autoDiscount && !appliedDiscount) {
-            appliedDiscount = widgetConfig.autoDiscount;
+          if (widgetConfig.autoDiscounts && widgetConfig.autoDiscounts.length > 0 && appliedDiscounts.length === 0) {
+            const total = price * quantity;
+            for (const ad of widgetConfig.autoDiscounts) {
+              try {
+                const valRes = await fetch(`${apiBaseUrl}/api/validate-discount`, {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ shop, code: ad.code, cartTotal: total, variantId, appliedDiscounts })
+                });
+                const d = await valRes.json();
+                if (d.success && d.valid) {
+                  appliedDiscounts.push(d.discount);
+                }
+              } catch(e) {}
+            }
           }
         }
       } catch (e) {}
@@ -201,10 +214,11 @@ const newOpenFunction = `open: async function(options) {
             <div id="cf-offers-section">
               <div class="cf-card" style="padding:8px; display:flex; align-items:center; padding-left:16px; margin-bottom:16px;">
                 <i class="ph ph-tag" style="font-size: 20px; color: #9ca3af;"></i>
-                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" value="${appliedDiscount ? appliedDiscount.code : ''}" />
-                <button type="button" id="cf-apply-discount" style="background:\${primaryColor}15; color:\${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">${appliedDiscount ? 'Remove' : 'Apply'}</button>
+                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" value="" />
+                <button type="button" id="cf-apply-discount" style="background:${primaryColor}15; color:${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">Apply</button>
               </div>
-              <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:\${appliedDiscount ? 'block' : 'none'};">🎉 Auto Discount Applied!</div>
+              <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:none;"></div>
+   <div id="cf-discount-tags" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;"></div>
             </div>
 
             <!-- Pre-Verification: Phone & Add Address -->
@@ -562,10 +576,11 @@ const newOpenFunction = `open: async function(options) {
         document.getElementById('cf-summary-qty-header').innerText = \`\${currentQuantity} item\`;
         document.getElementById('cf-summary-subtotal').innerText = \`₹\${subtotal.toLocaleString('en-IN')}\`;
         
-        if (appliedDiscount && appliedDiscount.type === 'freebie_product') {
+        const freebies = appliedDiscounts.filter(d => d.type === 'freebie_product');
+        if (freebies.length > 0) {
+          document.getElementById('cf-summary-discount-text').innerText = 'Freebie Applied';
+          document.getElementById('cf-summary-discount-value').innerText = freebies.map(f => f.freebieName).join(', ');
           document.getElementById('cf-summary-discount-row').style.display = 'flex';
-          document.getElementById('cf-summary-discount-row').children[0].innerText = 'Free Gift';
-          document.getElementById('cf-summary-discount-value').innerText = appliedDiscount.freebieName || '1x Free Product';
         } else if (discountAmount > 0) {
           document.getElementById('cf-summary-discount-row').style.display = 'flex';
           document.getElementById('cf-summary-discount-row').children[0].innerText = 'Discount';
@@ -684,7 +699,7 @@ const newOpenFunction = `open: async function(options) {
           state: document.getElementById('cf-state').value,
           pincode: document.getElementById('cf-pincode').value,
           paymentMethod: paymentMethod,
-          appliedDiscount: appliedDiscount ? { code: appliedDiscount.code, type: appliedDiscount.type, value: appliedDiscount.value } : null,
+          appliedDiscounts: appliedDiscounts,
           prepaidDiscount: prepaidDiscount
         };
 

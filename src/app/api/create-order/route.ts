@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscount, prepaidDiscount, paymentId } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscounts, prepaidDiscount, paymentId } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -87,18 +87,22 @@ export async function POST(request: Request) {
       variant_id: variantId ? parseInt(variantId) : undefined
     }];
 
-    if (appliedDiscount && appliedDiscount.type === 'freebie_product' && appliedDiscount.freebieName) {
-      lineItems.push({
-        title: appliedDiscount.freebieName,
-        price: '0.00',
-        quantity: 1,
-        applied_discount: {
-          description: appliedDiscount.code,
-          value: '100.0',
-          value_type: 'percentage',
-          amount: '0.00'
+    if (appliedDiscounts && appliedDiscounts.length > 0) {
+      for (const d of appliedDiscounts) {
+        if (d.type === 'freebie_product' && d.freebieName) {
+          lineItems.push({
+            title: d.freebieName,
+            price: '0.00',
+            quantity: 1,
+            applied_discount: {
+              description: d.code,
+              value: '100.0',
+              value_type: 'percentage',
+              amount: '0.00'
+            }
+          });
         }
-      });
+      }
     }
 
     const draftPayload = {
@@ -132,7 +136,7 @@ export async function POST(request: Request) {
           value: prepaidDiscount.toString()
         } : undefined),
         tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
-        note: `Discounts applied. ${appliedDiscount ? 'Coupon: ' + appliedDiscount.code : ''}`
+        note: `Discounts applied. ${couponCodeStr ? 'Coupons: ' + couponCodeStr : ''}`
       }
     };
 

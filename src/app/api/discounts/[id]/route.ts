@@ -5,7 +5,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const data = await request.json();
-    const { code, discountValue, isAutoApply, isActive } = data;
+    const { code, discountValue, minimumOrderValue, maximumOrderValue, isAutoApply, isActive, isCombinable, appliesToType, applicableItemIds } = data;
 
     if (!code || discountValue === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -16,8 +16,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       data: {
         code: code.toUpperCase(),
         discountValue,
+        minimumOrderValue,
+        maximumOrderValue: maximumOrderValue || null,
         isAutoApply,
-        isActive
+        isActive,
+        isCombinable,
+        appliesToType,
+        applicableItemIds: applicableItemIds || null
       }
     });
 

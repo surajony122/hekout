@@ -112,8 +112,12 @@ model Coupon {
   discountValue     Float
   freebieName       String?
   minimumOrderValue Float    @default(0)
+  maximumOrderValue Float?
   isAutoApply       Boolean  @default(false)
   isActive          Boolean  @default(true)
+  isCombinable      Boolean  @default(false)
+  appliesToType     String   @default("all") // 'all', 'products', 'collections'
+  applicableItemIds String?  @db.Text
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
