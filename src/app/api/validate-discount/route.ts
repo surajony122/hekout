@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, valid: false, error: 'Invalid discount code' }, { status: 200 });
     }
 
-    const match = targetUrl.match(/price_rules\\/(\\d+)/);
+    const match = targetUrl.match(/price_rules\/(\d+)/);
     if (!match) return NextResponse.json({ success: false, valid: false, error: 'Invalid discount code structure' }, { status: 200 });
     
     const priceRuleId = match[1];
