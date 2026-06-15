@@ -44,13 +44,16 @@ export async function POST(request: Request) {
     let totalDiscount = 0;
     let couponDiscountAmount = 0;
     let couponCodeStr = null;
-    if (appliedDiscount) {
-      if (appliedDiscount.type === 'percentage') {
-        couponDiscountAmount = total * (appliedDiscount.value / 100);
-      } else {
-        couponDiscountAmount = appliedDiscount.value;
+    
+    if (appliedDiscounts && appliedDiscounts.length > 0) {
+      couponCodeStr = appliedDiscounts.map((d: any) => d.code).join(', ');
+      for (const d of appliedDiscounts) {
+        if (d.type === 'percentage') {
+          couponDiscountAmount += total * (d.value / 100);
+        } else if (d.type === 'fixed_amount') {
+          couponDiscountAmount += d.value;
+        }
       }
-      couponCodeStr = appliedDiscount.code;
       totalDiscount += couponDiscountAmount;
     }
     
@@ -126,10 +129,10 @@ export async function POST(request: Request) {
           title: "Standard Shipping",
           price: "0.00"
         },
-        applied_discount: (appliedDiscount && appliedDiscount.type !== 'freebie_product') ? {
-          description: appliedDiscount.code,
-          value_type: appliedDiscount.type,
-          value: appliedDiscount.value.toString()
+        applied_discount: couponDiscountAmount > 0 ? {
+          description: couponCodeStr || 'Discount',
+          value_type: 'fixed_amount',
+          value: couponDiscountAmount.toString()
         } : (prepaidDiscount ? {
           description: 'Prepaid Discount',
           value_type: 'fixed_amount',
