@@ -43,29 +43,41 @@ export async function POST(request: Request) {
 
     // 2. Check Shopify Native Discounts if not found locally
     // Step A: Lookup the code to get the price_rule_id
-    // Shopify returns a 303 Redirect to the specific discount code URL. Fetch follows this automatically.
+    // Shopify returns a 303 Redirect to the specific discount code URL. Fetch drops headers on redirect, so we handle it manually.
     const lookupRes = await fetch(`https://${shop}/admin/api/2024-01/discount_codes/lookup.json?code=${encodeURIComponent(code)}`, {
       method: 'GET',
+      redirect: 'manual',
       headers: {
         'Content-Type': 'application/json',
         'X-Shopify-Access-Token': merchant.accessToken
       }
     });
 
-    if (!lookupRes.ok) {
+    let targetUrl = '';
+    if (lookupRes.status === 303 || lookupRes.status === 301 || lookupRes.status === 302) {
+      targetUrl = lookupRes.headers.get('location') || lookupRes.headers.get('Location') || '';
+    } else if (lookupRes.ok) {
+       const lookupData = await lookupRes.json();
+       if (lookupData.discount_code && lookupData.discount_code.price_rule_id) {
+           targetUrl = `https://${shop}/admin/api/2024-01/price_rules/${lookupData.discount_code.price_rule_id}.json`;
+       }
+    }
+
+    if (!targetUrl) {
       // 404 means discount not found
       return NextResponse.json({ error: 'Invalid discount code' }, { status: 404 });
     }
 
-    const lookupData = await lookupRes.json();
-    
-    if (!lookupData.discount_code || !lookupData.discount_code.price_rule_id) {
-      return NextResponse.json({ error: 'Invalid discount code structure' }, { status: 404 });
-    }
-
-    const priceRuleId = lookupData.discount_code.price_rule_id;
-
     // Step B: Fetch the actual Price Rule to get the value
+    // Target URL might be for discount_codes.json, we want the price_rule.
+    // If it's a redirect to /admin/price_rules/123/discount_codes/456.json
+    // We can extract price_rule_id and fetch the price rule.
+    const match = targetUrl.match(/price_rules\/(\d+)/);
+    if (!match) {
+        return NextResponse.json({ error: 'Invalid discount code structure' }, { status: 404 });
+    }
+    const priceRuleId = match[1];
+
     const ruleRes = await fetch(`https://${shop}/admin/api/2024-01/price_rules/${priceRuleId}.json`, {
       method: 'GET',
       headers: {
