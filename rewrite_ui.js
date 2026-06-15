@@ -11,6 +11,8 @@ const newOpenFunction = `open: async function(options) {
       
       this.trackEvent(shop, 'WIDGET_OPENED');
 
+      let appliedDiscount = null;
+
       // Fetch config immediately to apply branding and banners
       const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
       let widgetConfig = { 
@@ -65,7 +67,6 @@ const newOpenFunction = `open: async function(options) {
       let currentQuantity = quantity;
       let basePrice = price;
       let total = basePrice * currentQuantity;
-      let appliedDiscount = null;
       let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
       let customerData = null;
 

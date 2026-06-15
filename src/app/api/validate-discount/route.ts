@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, code } = data;
+    const { shop } = data;
+    const code = data.code ? data.code.toUpperCase() : null;
 
     if (!shop || !code) {
       return NextResponse.json({ error: 'Missing shop or discount code' }, { status: 400 });
