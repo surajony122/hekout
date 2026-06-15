@@ -5,11 +5,7 @@ import { cookies } from 'next/headers';
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const shop = cookieStore.get('shop_domain')?.value;
-    if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const merchant = await prisma.merchant.findUnique({ where: { shopDomain: shop } });
+    const merchant = await prisma.merchant.findFirst({ where: { isActive: true } });
     if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
 
     const { isActive } = await request.json();
