@@ -11,7 +11,6 @@ const newOpenFunction = `open: async function(options) {
       
       this.trackEvent(shop, 'WIDGET_OPENED');
 
-      let appliedDiscounts = [];
 
       // Fetch config immediately to apply branding and banners
       const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
@@ -210,16 +209,7 @@ const newOpenFunction = `open: async function(options) {
               </div>
             </div>
 
-            <!-- Offers & Rewards -->
-            <div id="cf-offers-section">
-              <div class="cf-card" style="padding:8px; display:flex; align-items:center; padding-left:16px; margin-bottom:16px;">
-                <i class="ph ph-tag" style="font-size: 20px; color: #9ca3af;"></i>
-                <input type="text" id="cf-discount" class="cf-input" placeholder="Enter coupon code" style="border:none; box-shadow:none; padding:10px 12px; flex:1; background:transparent; font-size:1rem;" value="" />
-                <button type="button" id="cf-apply-discount" style="background:${primaryColor}15; color:${primaryColor}; border-radius:8px; border:none; padding:8px 16px; font-weight:600; cursor:pointer; transition:all 0.2s;">Apply</button>
-              </div>
-              <div id="cf-discount-msg" style="color:#059669; font-size:0.85rem; font-weight:500; margin-top:-10px; margin-bottom:16px; padding-left:8px; display:none;"></div>
-   <div id="cf-discount-tags" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;"></div>
-            </div>
+
 
             <!-- Pre-Verification: Phone & Add Address -->
             <div id="cf-phone-step">
@@ -547,15 +537,7 @@ const newOpenFunction = `open: async function(options) {
 
       window.internalUpdatePricing = () => {
         const subtotal = basePrice * currentQuantity;
-        let discountAmount = 0;
 
-        if (appliedDiscount) {
-          if (appliedDiscount.type === 'percentage') {
-            discountAmount = subtotal * (appliedDiscount.value / 100);
-          } else if (appliedDiscount.type === 'fixed_amount') {
-            discountAmount = appliedDiscount.value;
-          }
-        }
         
         const priceEls = document.querySelectorAll('[id^="cf-price-"]');
         priceEls.forEach(el => {
@@ -570,24 +552,12 @@ const newOpenFunction = `open: async function(options) {
           }
         });
 
-        const finalTotal = Math.max(0, subtotal - discountAmount);
+        const finalTotal = Math.max(0, subtotal);
         document.getElementById('cf-item-total').innerText = \`₹\${subtotal.toLocaleString('en-IN')}\`;
         document.getElementById('cf-qty-display').innerText = currentQuantity;
         document.getElementById('cf-summary-qty-header').innerText = \`\${currentQuantity} item\`;
         document.getElementById('cf-summary-subtotal').innerText = \`₹\${subtotal.toLocaleString('en-IN')}\`;
         
-        const freebies = appliedDiscounts.filter(d => d.type === 'freebie_product');
-        if (freebies.length > 0) {
-          document.getElementById('cf-summary-discount-text').innerText = 'Freebie Applied';
-          document.getElementById('cf-summary-discount-value').innerText = freebies.map(f => f.freebieName).join(', ');
-          document.getElementById('cf-summary-discount-row').style.display = 'flex';
-        } else if (discountAmount > 0) {
-          document.getElementById('cf-summary-discount-row').style.display = 'flex';
-          document.getElementById('cf-summary-discount-row').children[0].innerText = 'Discount';
-          document.getElementById('cf-summary-discount-value').innerText = \`-₹\${discountAmount.toLocaleString('en-IN')}\`;
-        } else {
-          document.getElementById('cf-summary-discount-row').style.display = 'none';
-        }
         
         document.getElementById('cf-summary-total').innerText = \`₹\${finalTotal.toLocaleString('en-IN')}\`;
         document.getElementById('cf-header-total').innerText = \`₹\${finalTotal.toLocaleString('en-IN')}\`;
@@ -611,59 +581,6 @@ const newOpenFunction = `open: async function(options) {
         }
       };
 
-      // Discount logic
-      document.getElementById('cf-apply-discount').onclick = async () => {
-        const btn = document.getElementById('cf-apply-discount');
-        const inputEl = document.getElementById('cf-discount');
-        const msgEl = document.getElementById('cf-discount-msg');
-
-        if (btn.innerText === 'Remove') {
-          appliedDiscount = null;
-          inputEl.value = '';
-          btn.innerText = 'Apply';
-          msgEl.style.display = 'none';
-          window.internalUpdatePricing();
-          return;
-        }
-
-        const code = inputEl.value;
-        if(!code) return;
-        
-        btn.innerText = '...';
-        
-        try {
-          const res = await fetch(`${apiBaseUrl}/api/validate-discount`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ shop, code })
-          });
-          const data = await res.json();
-          btn.innerText = 'Apply';
-          
-          if (data.success && data.valid) {
-            appliedDiscount = data.discount;
-            msgEl.innerText = "🎉 Coupon Applied!";
-            msgEl.style.display = 'block';
-            btn.innerText = 'Remove';
-            window.internalUpdatePricing();
-            
-            // Confetti Burst
-            if (window.confetti) {
-               window.confetti({
-                 particleCount: 150,
-                 spread: 80,
-                 origin: { y: 0.6 },
-                 colors: [primaryColor, '#10b981', '#f59e0b', '#3b82f6'],
-                 zIndex: 9999999
-               });
-            }
-          } else {
-            setTimeout(() => { alert("Invalid or expired code"); }, 10);
-          }
-        } catch(e) {
-            btn.innerText = 'Apply';
-        }
-      };
 
       // ONE-CLICK PAYMENT PROCESSOR
       const processPayment = async (paymentMethod) => {
@@ -680,14 +597,6 @@ const newOpenFunction = `open: async function(options) {
           }
         }
         
-        let discountAmount = 0;
-        if (appliedDiscount) {
-          if (appliedDiscount.type === 'percentage') {
-            discountAmount = subtotal * (appliedDiscount.value / 100);
-          } else if (appliedDiscount.type === 'fixed_amount') {
-            discountAmount = appliedDiscount.value;
-          }
-        }
         
         const payload = {
           shop, variantId, quantity: currentQuantity, productTitle, price,
@@ -699,7 +608,6 @@ const newOpenFunction = `open: async function(options) {
           state: document.getElementById('cf-state').value,
           pincode: document.getElementById('cf-pincode').value,
           paymentMethod: paymentMethod,
-          appliedDiscounts: appliedDiscounts,
           prepaidDiscount: prepaidDiscount
         };
 
@@ -735,7 +643,7 @@ const newOpenFunction = `open: async function(options) {
 
         if (isPrepaid || isPartialCod) {
           try {
-            const rzpAmount = Math.max(0, subtotal - discountAmount - prepaidDiscount);
+            const rzpAmount = Math.max(0, subtotal - prepaidDiscount);
             const rzpOrderRes = await fetch(\`\${apiBaseUrl}/api/checkout/create-razorpay-order\`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

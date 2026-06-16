@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, appliedDiscounts, prepaidDiscount, paymentId } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, prepaidDiscount, paymentId } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -42,20 +42,6 @@ export async function POST(request: Request) {
     }
 
     let totalDiscount = 0;
-    let couponDiscountAmount = 0;
-    let couponCodeStr = null;
-    
-    if (appliedDiscounts && appliedDiscounts.length > 0) {
-      couponCodeStr = appliedDiscounts.map((d: any) => d.code).join(', ');
-      for (const d of appliedDiscounts) {
-        if (d.type === 'percentage') {
-          couponDiscountAmount += total * (d.value / 100);
-        } else if (d.type === 'fixed_amount') {
-          couponDiscountAmount += d.value;
-        }
-      }
-      totalDiscount += couponDiscountAmount;
-    }
     
     // Add prepaid discount if applicable
     let prepaidDiscountAmount = 0;
@@ -76,8 +62,6 @@ export async function POST(request: Request) {
         paymentMethod: paymentMethod || 'COD',
         paymentId: paymentId || null,
         prepaidDiscount: prepaidDiscountAmount,
-        couponDiscount: couponDiscountAmount,
-        couponCode: couponCodeStr,
         orderStatus: 'Pending'
       }
     });
@@ -90,23 +74,7 @@ export async function POST(request: Request) {
       variant_id: variantId ? parseInt(variantId) : undefined
     }];
 
-    if (appliedDiscounts && appliedDiscounts.length > 0) {
-      for (const d of appliedDiscounts) {
-        if (d.type === 'freebie_product' && d.freebieName) {
-          lineItems.push({
-            title: d.freebieName,
-            price: '0.00',
-            quantity: 1,
-            applied_discount: {
-              description: d.code,
-              value: '100.0',
-              value_type: 'percentage',
-              amount: '0.00'
-            }
-          });
-        }
-      }
-    }
+
 
     const draftPayload = {
       draft_order: {
@@ -129,17 +97,13 @@ export async function POST(request: Request) {
           title: "Standard Shipping",
           price: "0.00"
         },
-        applied_discount: couponDiscountAmount > 0 ? {
-          description: couponCodeStr || 'Discount',
-          value_type: 'fixed_amount',
-          value: couponDiscountAmount.toString()
-        } : (prepaidDiscount ? {
+        applied_discount: prepaidDiscount ? {
           description: 'Prepaid Discount',
           value_type: 'fixed_amount',
           value: prepaidDiscount.toString()
-        } : undefined),
+        } : undefined,
         tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
-        note: `Discounts applied. ${couponCodeStr ? 'Coupons: ' + couponCodeStr : ''}`
+        note: `Order via CheckoutFlow`
       }
     };
 

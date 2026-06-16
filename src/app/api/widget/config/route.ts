@@ -19,11 +19,6 @@ export async function GET(request: Request) {
     const ps = merchant.paymentSettings;
     const ws = merchant.widgetSettings;
 
-    const allAutoDiscounts = await prisma.coupon.findMany({
-      where: { merchantId: merchant.id, isActive: true, isAutoApply: true },
-      orderBy: { createdAt: 'desc' }
-    });
-
     return NextResponse.json({
       success: true,
       config: {
@@ -40,14 +35,7 @@ export async function GET(request: Request) {
         preLoginBannerColor: ws?.preLoginBannerColor || '#ffffff',
         postLoginBannerText: ws?.postLoginBannerText || '⚡ EXTRA 2% OFF ON UPI/CARDS',
         postLoginBannerBg: ws?.postLoginBannerBg || '#ecfdf5',
-        postLoginBannerColor: ws?.postLoginBannerColor || '#059669',
-        autoDiscounts: allAutoDiscounts.map(d => ({
-          code: d.code,
-          type: d.discountType,
-          value: d.discountValue,
-          freebieName: d.freebieName,
-          isCombinable: d.isCombinable
-        }))
+        postLoginBannerColor: ws?.postLoginBannerColor || '#059669'
       }
     });
 

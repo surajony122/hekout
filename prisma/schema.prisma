@@ -21,7 +21,7 @@ model Merchant {
   orders           Order[]
   customers        CustomerProfile[]
   analyticsEvents  AnalyticsEvent[]
-  coupons          Coupon[]
+
   otpVerifications OtpVerification[]
   paymentSettings  PaymentSettings?
   widgetSettings   WidgetSettings?
@@ -54,8 +54,7 @@ model Order {
   paymentId           String?  @map("payment_id") // Razorpay transaction ID
   
   prepaidDiscount     Float    @default(0) @map("prepaid_discount")
-  couponDiscount      Float    @default(0) @map("coupon_discount")
-  couponCode          String?  @map("coupon_code")
+
   verificationStatus  String?  @map("verification_status") // Pending, Verified
   orderStatus         String?  @map("order_status") // Pending, Synced, Failed
   
@@ -104,27 +103,7 @@ model AnalyticsEvent {
   @@map("analytics_events")
 }
 
-model Coupon {
-  id                String   @id @default(uuid())
-  merchantId        String   @map("merchant_id")
-  code              String
-  discountType      String   // 'percentage', 'fixed_amount', 'free_shipping', 'freebie_product'
-  discountValue     Float
-  freebieName       String?
-  minimumOrderValue Float    @default(0)
-  maximumOrderValue Float?
-  isAutoApply       Boolean  @default(false)
-  isActive          Boolean  @default(true)
-  isCombinable      Boolean  @default(false)
-  appliesToType     String   @default("all") // 'all', 'products', 'collections'
-  applicableItemIds String?  @db.Text
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-
-  @@map("coupons")
-}
 
 model OtpVerification {
   id         String   @id @default(uuid())
