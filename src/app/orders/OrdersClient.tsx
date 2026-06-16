@@ -158,12 +158,7 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                       <span className="font-medium">-₹{selectedOrder.prepaidDiscount.toLocaleString()}</span>
                     </div>
                   )}
-                  {(selectedOrder.couponDiscount > 0) && (
-                    <div className="flex justify-between text-emerald-600">
-                      <span>Coupon</span>
-                      <span className="font-medium">-₹{selectedOrder.couponDiscount.toLocaleString()}</span>
-                    </div>
-                  )}
+
                   <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between font-bold text-slate-900">
                     <span>Total Paid</span>
                     <span>₹{selectedOrder.total.toLocaleString()}</span>

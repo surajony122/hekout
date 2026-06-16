@@ -34,8 +34,7 @@ export async function GET(request: Request) {
         productTitle: true,
         price: true,
         quantity: true,
-        prepaidDiscount: true,
-        couponDiscount: true
+        prepaidDiscount: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -45,8 +44,7 @@ export async function GET(request: Request) {
     const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     const totalPrepaidDiscount = orders.reduce((sum, order) => sum + (order.prepaidDiscount || 0), 0);
-    const totalCouponDiscount = orders.reduce((sum, order) => sum + (order.couponDiscount || 0), 0);
-    const totalDiscountsGiven = totalPrepaidDiscount + totalCouponDiscount;
+        const totalDiscountsGiven = totalPrepaidDiscount;
 
     const codOrders = orders.filter(o => o.paymentMethod === 'COD').length;
     const prepaidOrders = orders.filter(o => o.paymentMethod !== 'COD').length;
@@ -122,7 +120,6 @@ export async function GET(request: Request) {
         aov,
         totalDiscountsGiven,
         totalPrepaidDiscount,
-        totalCouponDiscount,
         conversionRate,
         paymentSplit: [
           { name: 'COD', value: codOrders },
