@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
 
-    const {
+      const {
       razorpayKeyId,
       razorpayKeySecret,
       cashfreeAppId,
@@ -24,7 +24,8 @@ export async function POST(request: Request) {
       prepaidDiscountType,
       prepaidDiscountValue,
       isPartialCodEnabled,
-      partialCodAmount
+      partialCodAmount,
+      codFeeAmount
     } = body;
 
     const settings = await prisma.paymentSettings.upsert({
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
         prepaidDiscountType,
         prepaidDiscountValue,
         isPartialCodEnabled,
-        partialCodAmount
+        partialCodAmount,
+        codFeeAmount
       },
       create: {
         merchantId: merchant.id,
@@ -50,7 +52,8 @@ export async function POST(request: Request) {
         prepaidDiscountType,
         prepaidDiscountValue,
         isPartialCodEnabled,
-        partialCodAmount
+        partialCodAmount,
+        codFeeAmount
       }
     });
 

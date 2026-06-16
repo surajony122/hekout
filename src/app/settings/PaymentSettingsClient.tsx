@@ -14,6 +14,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
     prepaidDiscountValue: initialSettings.prepaidDiscountValue || 0,
     isPartialCodEnabled: initialSettings.isPartialCodEnabled || false,
     partialCodAmount: initialSettings.partialCodAmount || 0,
+    codFeeAmount: initialSettings.codFeeAmount !== undefined ? initialSettings.codFeeAmount : 69,
   });
 
   const [saving, setSaving] = useState(false);
@@ -161,6 +162,16 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
                 <input type="number" name="partialCodAmount" value={formData.partialCodAmount} onChange={handleChange} className="w-full md:w-1/2 px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" />
               </div>
             )}
+          </div>
+
+          {/* Standard COD Fee */}
+          <div className="border border-slate-100 rounded-xl p-5">
+            <h3 className="font-semibold text-slate-800 mb-2">Standard COD Fee</h3>
+            <p className="text-slate-500 text-xs mb-4">The fee charged when a user selects Cash on Delivery.</p>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">COD Fee Amount (₹)</label>
+              <input type="number" name="codFeeAmount" value={formData.codFeeAmount} onChange={handleChange} className="w-full md:w-1/2 px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" />
+            </div>
           </div>
         </div>
       </div>

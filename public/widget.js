@@ -17,8 +17,11 @@
       const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
       let widgetConfig = { 
         isPrepaidDiscountEnabled: false, prepaidDiscountType: 'percentage', prepaidDiscountValue: 0, 
-        isPartialCodEnabled: false, partialCodAmount: 0, hasRazorpay: false,
+        isPartialCodEnabled: false, partialCodAmount: 0, codFeeAmount: 69, hasRazorpay: false,
         primaryColor: '#7c3aed',
+        brandLogoUrl: '',
+        preLoginBannerText: '🎉 FREE SHIPPING ON ALL ORDERS TODAY!', preLoginBannerBg: '#000000', preLoginBannerColor: '#ffffff',
+        postLoginBannerText: '⚡ EXTRA 2% OFF ON UPI/CARDS', postLoginBannerBg: '#ecfdf5', postLoginBannerColor: '#059669'
       };
 
       try {
@@ -155,15 +158,15 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             </div>
             <div class="brand-center">
-              <div class="brand-logo">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,18).toUpperCase()}</div>
+              ${widgetConfig.brandLogoUrl ? `<img src="${widgetConfig.brandLogoUrl}" alt="Logo" style="max-height:28px; object-fit:contain;"/>` : `<div class="brand-logo">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,18).toUpperCase()}</div>`}
             </div>
             <div class="header-price">
               <div class="final" id="hFinal">₹${total.toLocaleString('en-IN')}</div>
               <div class="orig" id="hOrig" style="display:none;"></div>
             </div>
           </div>
-          <div class="upi-strip">
-            <span class="star">✦</span> EXTRA 1% DISCOUNT ON UPI <span class="star">✦</span>
+          <div class="upi-strip" id="dynamic-banner" style="background:${widgetConfig.preLoginBannerBg}; color:${widgetConfig.preLoginBannerColor}; padding:8px; text-align:center; font-size:11px; font-weight:800; letter-spacing:0.5px; border-bottom:1px solid var(--border);">
+            ${widgetConfig.preLoginBannerText}
           </div>
         </div>
 
@@ -231,7 +234,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                 <div class="totals-box">
                   <div class="tr"><span class="l">Subtotal</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
                   <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount</span><span class="v" id="tDisc">-₹0</span></div>
-                  <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹69</span></div>
+                  <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
                   <div class="tr free-sh"><span class="l">Shipping</span><span class="v">FREE</span></div>
                   <hr class="tr-div">
                   <div class="tr grand"><span class="l">Total</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
@@ -335,7 +338,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         let codFee = 0;
         
         if (currentPaymentMethod === 'COD') {
-           codFee = 69;
+           codFee = widgetConfig.codFeeAmount || 0;
         } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
            discount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
@@ -378,7 +381,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         });
         
         const elCod = document.getElementById('ppCOD');
-        if(elCod) elCod.innerText = `₹${(subtotal + 69).toLocaleString('en-IN')}`;
+        if(elCod) elCod.innerText = `₹${(subtotal + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
       };
 
       document.getElementById('qty-plus').onclick = () => { currentQuantity++; updatePricing(); };
@@ -494,7 +497,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             { id: 'Card', name: 'Debit / Credit cards', sub: 'Visa · Mastercard · RuPay', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p2);fill:none;stroke-width:2;"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>' },
             { id: 'Wallet', name: 'Wallets', sub: 'Paytm · PhonePe', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p2);fill:none;stroke-width:2;"><path d="M20 12V22H4V12"/><path d="M12 22V7M12 7a5 5 0 01-5-5 5 5 0 005 5z"/></svg>' },
             { id: 'Netbanking', name: 'Net banking', sub: 'All Indian banks', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p1);fill:none;stroke-width:2;"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>' },
-            { id: 'COD', name: 'Cash on Delivery', sub: 'Pay at doorstep · ₹69 fee', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:#d97706;fill:none;stroke-width:2;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>' }
+            { id: 'COD', name: 'Cash on Delivery', sub: `Pay at doorstep · ₹${widgetConfig.codFeeAmount || 0} fee`, icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:#d97706;fill:none;stroke-width:2;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>' }
          ];
 
          methods.forEach(m => {

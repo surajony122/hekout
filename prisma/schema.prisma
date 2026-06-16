@@ -139,6 +139,9 @@ model PaymentSettings {
   // Partial COD
   isPartialCodEnabled      Boolean @default(false) @map("is_partial_cod_enabled")
   partialCodAmount         Float   @default(0) @map("partial_cod_amount")
+  
+  // Standard COD
+  codFeeAmount             Float   @default(69) @map("cod_fee_amount")
 
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
@@ -153,6 +156,7 @@ model WidgetSettings {
   merchantId          String   @unique @map("merchant_id")
   
   primaryColor        String   @default("#111827") @map("primary_color")
+  brandLogoUrl        String?  @map("brand_logo_url")
   
   preLoginBannerText  String?  @map("pre_login_banner_text")
   preLoginBannerBg    String?  @default("#000000") @map("pre_login_banner_bg")

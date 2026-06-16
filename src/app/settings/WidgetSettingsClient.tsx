@@ -14,6 +14,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
     postLoginBannerText: initialSettings.postLoginBannerText || '⚡ EXTRA 2% OFF ON UPI/CARDS',
     postLoginBannerBg: initialSettings.postLoginBannerBg || '#ecfdf5',
     postLoginBannerColor: initialSettings.postLoginBannerColor || '#059669',
+    brandLogoUrl: initialSettings.brandLogoUrl || '',
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -59,6 +60,21 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
               />
             </div>
             <p className="text-xs text-slate-500">Used for primary buttons, active states, and highlights.</p>
+          </div>
+
+          <div className="space-y-2 pt-4 border-t border-slate-100">
+            <label className="text-sm font-medium leading-none">Brand Logo URL</label>
+            <Input 
+              value={settings.brandLogoUrl} 
+              onChange={e => setSettings({...settings, brandLogoUrl: e.target.value})} 
+              placeholder="https://yourstore.com/logo.png"
+            />
+            <p className="text-xs text-slate-500">Optional. Provide an image URL to replace the text store name in the checkout header.</p>
+            {settings.brandLogoUrl && (
+              <div className="mt-2 p-2 border rounded-md bg-slate-50 max-w-xs">
+                <img src={settings.brandLogoUrl} alt="Brand Logo Preview" className="max-h-12 object-contain" />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
