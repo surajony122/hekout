@@ -1,10 +1,6 @@
 const fs = require('fs');
 
 const gokwikHtml = fs.readFileSync('gokwik-checkout-v2.html', 'utf8');
-
-const styleMatch = gokwikHtml.match(/<style>([\s\S]*?)<\/style>/);
-const css = styleMatch ? styleMatch[1] : '';
-
 const jsMatch = gokwikHtml.match(/<script>([\s\S]*?)<\/script>/);
 const js = jsMatch ? jsMatch[1] : '';
 const confettiStart = js.indexOf('/* ── CONFETTI');
@@ -13,6 +9,8 @@ let confettiJs = '';
 if (confettiStart !== -1 && confettiEnd !== -1) {
   confettiJs = js.substring(confettiStart, confettiEnd);
 }
+
+const css = fs.readFileSync('new_styles.css', 'utf8');
 
 let oldWidget = fs.readFileSync('old_widget_utf8.js', 'utf8');
 

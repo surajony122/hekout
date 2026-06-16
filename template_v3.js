@@ -69,14 +69,15 @@ open: async function(options) {
               <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             </div>
             <div class="brand-center">
-              <div class="brand-oct">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,6).toUpperCase()}</div>
+              <div class="brand-logo">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,18).toUpperCase()}</div>
             </div>
             <div class="header-price">
               <div class="final" id="hFinal">₹${total.toLocaleString('en-IN')}</div>
+              <div class="orig" id="hOrig" style="display:none;"></div>
             </div>
           </div>
           <div class="upi-strip">
-            <span class="star">✦</span> SECURE CHECKOUT <span class="star" style="animation-delay:.4s">✦</span>
+            <span class="star">✦</span> EXTRA 1% DISCOUNT ON UPI <span class="star">✦</span>
           </div>
         </div>
 
@@ -121,10 +122,10 @@ open: async function(options) {
             <!-- ORDER SUMMARY -->
             <div class="card">
               <div class="summary-hdr" id="sumHdr">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                <svg class="icon" viewBox="0 0 24 24" style="stroke:var(--p2);"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
                 <span class="summary-hdr-text">Order summary</span>
                 <div class="summary-hdr-right">
-                  <span id="itemLbl">${currentQuantity} item</span>
+                  <span id="itemLbl">${currentQuantity} items</span>
                   <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
               </div>
@@ -143,6 +144,8 @@ open: async function(options) {
                 </div>
                 <div class="totals-box">
                   <div class="tr"><span class="l">Subtotal</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
+                  <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount</span><span class="v" id="tDisc">-₹0</span></div>
+                  <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹69</span></div>
                   <div class="tr free-sh"><span class="l">Shipping</span><span class="v">FREE</span></div>
                   <hr class="tr-div">
                   <div class="tr grand"><span class="l">Total</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
@@ -157,13 +160,27 @@ open: async function(options) {
                   <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   <span class="deliver-top-t">Deliver to</span>
                   <span class="tag">Home</span>
-                  <span class="edit-lnk" id="cf-edit-addr">Edit</span>
+                  <span class="edit-lnk" id="cf-edit-addr">Edit &gt;</span>
                 </div>
                 <div class="addr-box">
                   <span class="aname" id="disp-name">Name</span>, <span id="disp-addr">Address</span><br>
                   <div class="addr-contact">
-                    <span><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 12 19.79 19.79 0 01.14 3.18 2 2 0 012.11 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l.45-.45a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><span id="disp-phone"></span></span>
+                    <span><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 12 19.79 19.79 0 01.14 3.18 2 2 0 012.11 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l.45-.45a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> <span id="disp-phone"></span></span>
+                    <span><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span id="disp-email">support@store.com</span></span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SHIPPING CARD -->
+            <div class="card" style="padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--p1);fill:none;stroke-width:2;"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  <span style="font-weight:800; font-size:15px; color:var(--text1);">Shipping</span>
+                </div>
+                <div style="font-weight:800; font-size:14px; color:var(--green); display:flex; align-items:center; gap:4px;">
+                   FREE <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
               </div>
             </div>
@@ -222,24 +239,55 @@ open: async function(options) {
       };
 
       // --- DYNAMIC PRICING ---
-      const updatePricing = () => {
+      let currentPaymentMethod = null;
+      
+      const updatePricing = (method = null) => {
+        if (method) currentPaymentMethod = method;
+        
         const subtotal = basePrice * currentQuantity;
-        document.getElementById('hFinal').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        let discount = 0;
+        let codFee = 0;
+        
+        if (currentPaymentMethod === 'COD') {
+           codFee = 69;
+        } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
+           discount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+        }
+        
+        const grandTotal = Math.max(0, subtotal - discount) + codFee;
+
+        document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
-        document.getElementById('tGrand').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        document.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('itemLbl').innerText = `${currentQuantity} items`;
         document.getElementById('q1').innerText = currentQuantity;
         document.getElementById('p1').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
 
+        const discRow = document.getElementById('trDisc');
+        if (discount > 0) {
+           discRow.style.display = 'flex';
+           document.getElementById('tDisc').innerText = `-₹${discount.toLocaleString('en-IN')}`;
+        } else {
+           discRow.style.display = 'none';
+        }
+
+        const codRow = document.getElementById('trCod');
+        if (codFee > 0) {
+           codRow.style.display = 'flex';
+           document.getElementById('tCodFee').innerText = `₹${codFee.toLocaleString('en-IN')}`;
+        } else {
+           codRow.style.display = 'none';
+        }
+
         // Update drawer prices
-        ['UPI','Card','Wallet','Netbanking'].forEach(method => {
-           const el = document.getElementById(`pp${method}`);
+        ['UPI','Card','Wallet','Netbanking'].forEach(m => {
+           const el = document.getElementById(`pp${m}`);
            if(el) {
-              let discount = 0;
+              let mDisc = 0;
               if (widgetConfig.isPrepaidDiscountEnabled) {
-                 discount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+                 mDisc = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
               }
-              el.innerText = `₹${Math.max(0, subtotal - discount).toLocaleString('en-IN')}`;
+              el.innerText = `₹${Math.max(0, subtotal - mDisc).toLocaleString('en-IN')}`;
            }
         });
         
@@ -305,6 +353,7 @@ open: async function(options) {
             document.getElementById('disp-name').innerText = customerData.name;
             document.getElementById('disp-addr').innerText = `${customerData.address}, ${customerData.city}`;
             document.getElementById('disp-phone').innerText = verifiedPhone;
+            document.getElementById('disp-email').innerText = customerData.email || '';
             
             document.getElementById('cf-addr-name').value = customerData.name || '';
             document.getElementById('cf-addr-email').value = customerData.email || '';
@@ -323,6 +372,7 @@ open: async function(options) {
 
       document.getElementById('cf-addr-btn').onclick = () => {
         const name = document.getElementById('cf-addr-name').value;
+        const email = document.getElementById('cf-addr-email').value;
         const addr = document.getElementById('cf-addr-street').value;
         const city = document.getElementById('cf-addr-city').value;
         if(!name || !addr || !city) return;
@@ -330,6 +380,7 @@ open: async function(options) {
         document.getElementById('disp-name').innerText = name;
         document.getElementById('disp-addr').innerText = `${addr}, ${city}`;
         document.getElementById('disp-phone').innerText = verifiedPhone;
+        document.getElementById('disp-email').innerText = email;
         
         stateAddress.style.display = 'none';
         renderPaymentMethods();
@@ -381,7 +432,7 @@ open: async function(options) {
             }
 
             html += `
-              <div class="pay-row" onclick="document.getElementById('drw${m.id}').style.display='flex'" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
+              <div class="pay-row" onclick="updatePricing('${m.id}'); document.getElementById('drw${m.id}').style.display='flex'" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
                 <div style="width:40px; height:40px; border-radius:10px; border:1px solid var(--border2); display:flex; align-items:center; justify-content:center;">
                   ${m.icon}
                 </div>
