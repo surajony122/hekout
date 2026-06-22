@@ -292,11 +292,11 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         <div id="drawers-container"></div>
         
         <!-- SUCCESS SCREEN -->
-        <div class="success-screen" id="successScr" style="position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900;">
-          <div class="s-icon" style="margin-top:80px;"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
-          <div class="s-title">Order placed! 🎉</div>
-          <div class="s-sub">Your order is confirmed.</div>
-          <button class="track-btn" id="close-success-btn" style="margin-top:30px;">Close</button>
+        <div class="success-screen" id="successScr" style="display:none; flex-direction:column; align-items:center; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900; text-align:center;">
+          <div class="s-icon" style="margin-top:80px;"><svg viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
+          <div class="s-title" style="font-size:24px; font-weight:800; color:var(--text1); margin-top:24px;">Order placed! 🎉</div>
+          <div class="s-sub" style="font-size:15px; color:var(--text3); margin-top:8px;">Your order is confirmed.</div>
+          <button class="cf-btn" id="close-success-btn" style="margin-top:40px; width:80%;">Close</button>
         </div>
       `;
 
