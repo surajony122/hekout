@@ -38,7 +38,7 @@
 
       const sheet = document.createElement('div');
       sheet.id = 'checkoutflow-sheet';
-      sheet.style.cssText = 'width:100%; max-width:480px; height:88vh; background:#f5f3ff; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.2);';
+      sheet.style.cssText = 'width:100%; max-width:400px; height:88vh; background:#f5f3ff; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.2);';
 
       let currentQuantity = quantity;
       let basePrice = price;
@@ -146,11 +146,11 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
           /* Custom form styles */
           .cf-input { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font); color: var(--text1); outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
           .cf-input:focus { border-color: var(--p1); }
-          .cf-btn { width: 100%; height: 52px; background: var(--pg); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 800; cursor: pointer; font-family: var(--font); transition: transform 0.15s, box-shadow 0.15s; }
+          .cf-btn { width: 100%; height: 52px; background: var(--p1); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 800; cursor: pointer; font-family: var(--font); transition: transform 0.15s, box-shadow 0.15s; }
           .cf-btn:active { transform: scale(0.98); }
         </style>
         
-        <canvas id="confetti-canvas"></canvas>
+        <canvas id="confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000;"></canvas>
 
         <div class="top-header">
           <div class="header-row">
@@ -506,7 +506,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             // Drawer
             dHtml += `
               <div class="overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
-                <div class="drawer" style="width:100%; max-width:480px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                <div class="drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                    <div style="font-size:18px; font-weight:800; margin-bottom:16px;">${m.name}</div>
                    <button class="cf-btn" onclick="executePayment('${m.id}')" id="paybtn-${m.id}">Pay ${m.id}</button>
                    <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'" style="background:transparent; color:var(--text2); box-shadow:none; margin-top:8px;">Cancel</button>
