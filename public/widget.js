@@ -64,6 +64,11 @@
       rzpScript.src = 'https://checkout.razorpay.com/v1/checkout.js';
       document.head.appendChild(rzpScript);
 
+      const fontLink = document.createElement('link');
+      fontLink.rel = 'stylesheet';
+      fontLink.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap';
+      document.head.appendChild(fontLink);
+
       sheet.innerHTML = `
         <style>
           :root {
@@ -80,7 +85,7 @@
   --red: #ef4444;
   --radius: 16px;
   --radius-sm: 10px;
-  --font: 'Inter', system-ui, sans-serif;
+  --font: 'Poppins', sans-serif;
   --grad: linear-gradient(90deg, #a855f7, #ec4899);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
@@ -90,18 +95,18 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 .back-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 50%; cursor: pointer; }
 .back-btn svg { width: 18px; height: 18px; stroke: var(--text1); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .brand-center { flex: 1; text-align: center; }
-.brand-logo { color: var(--p1); font-weight: 800; font-size: 14px; letter-spacing: 1px; display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { color: var(--p1); font-weight: 600; font-size: 14px; letter-spacing: 1px; display: inline-flex; align-items: center; gap: 8px; }
 .brand-logo::before, .brand-logo::after { content: ''; width: 16px; height: 1px; background: var(--p1); }
 .header-price { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
-.final { font-weight: 800; font-size: 16px; color: var(--p2); }
+.final { font-weight: 600; font-size: 16px; color: var(--p2); }
 .orig { font-size: 11px; color: var(--text3); text-decoration: line-through; }
-.upi-strip { background: var(--grad); color: #fff; text-align: center; padding: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; display: flex; justify-content: center; align-items: center; gap: 6px; }
+.upi-strip { background: var(--grad); color: #fff; text-align: center; padding: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; display: flex; justify-content: center; align-items: center; gap: 6px; }
 .scroll-body { padding: 16px; flex: 1; overflow-y: auto; background: var(--bg); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.05); }
 .summary-hdr { display: flex; align-items: center; padding: 16px; cursor: pointer; user-select: none; }
 .summary-hdr .icon { width: 20px; height: 20px; stroke: var(--text1); fill: none; stroke-width: 2; margin-right: 12px; }
-.summary-hdr-text { font-weight: 800; font-size: 15px; flex: 1; color: var(--text1); }
-.summary-hdr-right { display: flex; align-items: center; gap: 8px; color: var(--p2); font-size: 13px; font-weight: 600; }
+.summary-hdr-text { font-weight: 600; font-size: 15px; flex: 1; color: var(--text1); }
+.summary-hdr-right { display: flex; align-items: center; gap: 8px; color: var(--p2); font-size: 13px; font-weight: 500; }
 .summary-hdr-right .chev { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.2s; }
 .summary-hdr.open .chev { transform: rotate(180deg); }
 .summary-body { display: none; padding: 0 16px 16px; border-top: 1px dashed var(--border); }
@@ -109,34 +114,34 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 .oi { display: flex; gap: 14px; padding-top: 16px; }
 .oi-thumb { width: 64px; height: 64px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; background: var(--bg); overflow: hidden; }
 .oi-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-.oi-name { font-weight: 700; font-size: 13px; line-height: 1.4; color: var(--text1); }
+.oi-name { font-weight: 500; font-size: 13px; line-height: 1.4; color: var(--text1); }
 .oi-ctrls { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 6px; width: fit-content; overflow: hidden; margin-top: 8px; }
-.qty-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--text1); font-weight: 600; cursor: pointer; user-select: none; }
-.qty-n { width: 32px; text-align: center; font-size: 13px; font-weight: 700; }
-.oi-price { text-align: right; font-weight: 800; font-size: 14px; }
+.qty-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--text1); font-weight: 500; cursor: pointer; user-select: none; }
+.qty-n { width: 32px; text-align: center; font-size: 13px; font-weight: 500; }
+.oi-price { text-align: right; font-weight: 600; font-size: 14px; }
 .totals-box { margin-top: 16px; background: var(--bg); border-radius: var(--radius-sm); padding: 12px; }
-.tr { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: var(--text3); font-weight: 600; }
+.tr { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: var(--text3); font-weight: 500; }
 .tr:last-child { margin-bottom: 0; }
 .tr.discount { color: var(--green); }
 .tr.free-sh .v { color: var(--green); }
 .tr-div { border: none; border-top: 1px dashed var(--border); margin: 10px 0; }
-.tr.grand { font-size: 15px; font-weight: 800; color: var(--text1); }
+.tr.grand { font-size: 15px; font-weight: 600; color: var(--text1); }
 .deliver-inner { padding: 16px; }
 .deliver-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .deliver-top svg { width: 18px; height: 18px; stroke: var(--p1); fill: none; stroke-width: 2; }
-.deliver-top-t { font-weight: 800; font-size: 15px; color: var(--text1); }
-.tag { background: var(--bg); color: var(--p2); font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 20px; }
-.edit-lnk { margin-left: auto; color: var(--p2); font-size: 13px; font-weight: 700; cursor: pointer; }
+.deliver-top-t { font-weight: 600; font-size: 15px; color: var(--text1); }
+.tag { background: var(--bg); color: var(--p2); font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 20px; }
+.edit-lnk { margin-left: auto; color: var(--p2); font-size: 13px; font-weight: 500; cursor: pointer; }
 .addr-box { font-size: 13px; line-height: 1.5; color: var(--text3); }
-.aname { font-weight: 700; color: var(--text1); }
-.addr-contact { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.aname { font-weight: 500; color: var(--text1); }
+.addr-contact { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; font-weight: 500; }
 .addr-contact span { display: flex; align-items: center; gap: 8px; }
 .addr-contact svg { width: 14px; height: 14px; stroke: var(--p2); fill: none; stroke-width: 2; }
-.sec-lbl { font-size: 12px; font-weight: 800; color: var(--text3); margin: 20px 0 10px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-.pow-row { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); margin-top: 24px; }
-.pow-chip { font-weight: 800; color: var(--p1); }
+.sec-lbl { font-size: 12px; font-weight: 600; color: var(--text3); margin: 20px 0 10px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.pow-row { text-align: center; font-size: 11px; font-weight: 500; color: var(--text3); margin-top: 24px; }
+.pow-chip { font-weight: 600; color: var(--p1); }
 .overlay { display: none; position: fixed; inset: 0; background: rgba(30,27,75,0.5); z-index: 200; align-items: flex-end; }
-.drawer { width: 100%; max-width: 480px; margin: 0 auto; background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); }
+.drawer { width: 100%; max-width: 400px; margin: 0 auto; background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .pay-row { display: flex; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid var(--border); cursor: pointer; background: var(--surface); transition: background 0.2s; }
 .pay-row:hover { background: var(--bg); }
@@ -146,7 +151,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
           /* Custom form styles */
           .cf-input { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font); color: var(--text1); outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
           .cf-input:focus { border-color: var(--p1); }
-          .cf-btn { width: 100%; height: 52px; background: var(--p1); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 800; cursor: pointer; font-family: var(--font); transition: transform 0.15s, box-shadow 0.15s; }
+          .cf-btn { width: 100%; height: 52px; background: var(--p1); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: transform 0.15s, box-shadow 0.15s; }
           .cf-btn:active { transform: scale(0.98); }
         </style>
         
@@ -165,7 +170,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               <div class="orig" id="hOrig" style="display:none;"></div>
             </div>
           </div>
-          <div class="upi-strip" id="dynamic-banner" style="background:${widgetConfig.preLoginBannerBg}; color:${widgetConfig.preLoginBannerColor}; padding:8px; text-align:center; font-size:11px; font-weight:800; letter-spacing:0.5px; border-bottom:1px solid var(--border);">
+          <div class="upi-strip" id="dynamic-banner" style="background:${widgetConfig.preLoginBannerBg}; color:${widgetConfig.preLoginBannerColor}; padding:8px; text-align:center; font-size:11px; font-weight:600; letter-spacing:0.5px; border-bottom:1px solid var(--border);">
             ${widgetConfig.preLoginBannerText}
           </div>
         </div>
@@ -174,14 +179,14 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
           
           <!-- STATE 1: PHONE -->
           <div id="state-phone" style="padding: 20px 10px;">
-             <h3 style="margin-bottom:16px; color:var(--text1); font-size:16px; font-weight:800;">Enter mobile number</h3>
+             <h3 style="margin-bottom:16px; color:var(--text1); font-size:16px; font-weight:600;">Enter mobile number</h3>
              <div class="card" style="padding:16px; margin-bottom:16px;">
                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                 <span style="font-size:20px;">🇮🇳</span> <span style="font-weight:700;">+91</span>
+                 <span style="font-size:20px;">🇮🇳</span> <span style="font-weight:500;">+91</span>
                  <input type="tel" id="cf-phone-in" class="cf-input" style="margin-bottom:0; border:none; border-left:1.5px solid var(--border2); border-radius:0; padding-left:12px;" placeholder="Mobile Number" maxlength="10" />
                </div>
                <div id="cf-otp-box" style="display:none; margin-top:16px; padding-top:16px; border-top:1.5px dashed var(--border2);">
-                 <input type="text" id="cf-otp-in" class="cf-input" placeholder="Enter 4-digit OTP" style="text-align:center; letter-spacing:8px; font-weight:700;" maxlength="4" />
+                 <input type="text" id="cf-otp-in" class="cf-input" placeholder="Enter 4-digit OTP" style="text-align:center; letter-spacing:8px; font-weight:500;" maxlength="4" />
                  <div id="cf-otp-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none;"></div>
                </div>
              </div>
@@ -191,7 +196,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
           <!-- STATE 2: ADDRESS -->
           <div id="state-address" style="display:none; padding: 20px 10px;">
-             <h3 style="margin-bottom:16px; color:var(--text1); font-size:16px; font-weight:800;">Add shipping address</h3>
+             <h3 style="margin-bottom:16px; color:var(--text1); font-size:16px; font-weight:600;">Add shipping address</h3>
              <div class="card" style="padding:16px;">
                 <input type="text" id="cf-addr-name" class="cf-input" placeholder="Full Name" />
                 <input type="email" id="cf-addr-email" class="cf-input" placeholder="Email Address" />
@@ -214,11 +219,11 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                 <svg class="icon" viewBox="0 0 24 24" style="stroke:var(--p2);"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
                 <span class="summary-hdr-text">Order summary</span>
                 <div class="summary-hdr-right">
-                  <span id="itemLbl">${currentQuantity} items</span>
+                  <span id="itemLbl">₹${total.toLocaleString('en-IN')} (${currentQuantity} item)</span>
                   <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
               </div>
-              <div class="summary-body show" id="sumBody">
+              <div class="summary-body" id="sumBody">
                 <div class="oi" id="oi1">
                   <div class="oi-thumb">${finalProductImage ? `<img src="${finalProductImage}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
                   <div class="oi-info">
@@ -266,9 +271,9 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:10px;">
                   <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--p1);fill:none;stroke-width:2;"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                  <span style="font-weight:800; font-size:15px; color:var(--text1);">Shipping</span>
+                  <span style="font-weight:600; font-size:15px; color:var(--text1);">Shipping</span>
                 </div>
-                <div style="font-weight:800; font-size:14px; color:var(--green); display:flex; align-items:center; gap:4px;">
+                <div style="font-weight:600; font-size:14px; color:var(--green); display:flex; align-items:center; gap:4px;">
                    FREE <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
               </div>
@@ -294,7 +299,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         <!-- SUCCESS SCREEN -->
         <div class="success-screen" id="successScr" style="display:none; flex-direction:column; align-items:center; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900; text-align:center;">
           <div class="s-icon" style="margin-top:80px;"><svg viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
-          <div class="s-title" style="font-size:24px; font-weight:800; color:var(--text1); margin-top:24px;">Order placed! 🎉</div>
+          <div class="s-title" style="font-size:24px; font-weight:600; color:var(--text1); margin-top:24px;">Order placed! 🎉</div>
           <div class="s-sub" style="font-size:15px; color:var(--text3); margin-top:8px;">Your order is confirmed.</div>
           <button class="cf-btn" id="close-success-btn" style="margin-top:40px; width:80%;">Close</button>
         </div>
@@ -348,7 +353,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
         document.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('itemLbl').innerText = `${currentQuantity} items`;
+        document.getElementById('itemLbl').innerText = `₹${grandTotal.toLocaleString('en-IN')} (${currentQuantity} item${currentQuantity>1?'s':''})`;
         document.getElementById('q1').innerText = currentQuantity;
         document.getElementById('p1').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
 
@@ -507,8 +512,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             dHtml += `
               <div class="overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
                 <div class="drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
-                   <div style="font-size:18px; font-weight:800; margin-bottom:16px;">${m.name}</div>
-                   <button class="cf-btn" onclick="executePayment('${m.id}')" id="paybtn-${m.id}">Pay ${m.id}</button>
+                   <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
+                   <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="paybtn-${m.id}">Pay ${m.id}</button>
                    <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'" style="background:transparent; color:var(--text2); box-shadow:none; margin-top:8px;">Cancel</button>
                 </div>
               </div>
@@ -517,20 +522,20 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             // Row
             let offerTxt = '';
             if (m.id !== 'COD' && widgetConfig.isPrepaidDiscountEnabled) {
-                offerTxt = `<div style="font-size:11px; font-weight:700; color:var(--green); margin-top:4px;">Discount Applied</div>`;
+                offerTxt = `<div style="font-size:11px; font-weight:500; color:var(--green); margin-top:4px;">Discount Applied</div>`;
             }
 
             html += `
-              <div class="pay-row" onclick="updatePricing('${m.id}'); document.getElementById('drw${m.id}').style.display='flex'" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
+              <div class="pay-row" onclick="window.cfUpdatePricing('${m.id}'); document.getElementById('drw${m.id}').style.display='flex'" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
                 <div style="width:40px; height:40px; border-radius:10px; border:1px solid var(--border2); display:flex; align-items:center; justify-content:center;">
                   ${m.icon}
                 </div>
                 <div style="flex:1;">
-                  <div style="font-size:14px; font-weight:700;">${m.name}</div>
+                  <div style="font-size:14px; font-weight:500;">${m.name}</div>
                   <div style="font-size:11px; color:var(--text3);">${m.sub}</div>
                   ${offerTxt}
                 </div>
-                <div style="font-weight:800; font-size:15px;" id="pp${m.id}"></div>
+                <div style="font-weight:600; font-size:15px;" id="pp${m.id}"></div>
               </div>
             `;
          });
@@ -541,7 +546,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       };
 
       // --- PAYMENT EXECUTION ---
-      window.executePayment = async (method) => {
+      window.cfUpdatePricing = updatePricing;
+      window.cfExecutePayment = async (method) => {
          const btn = document.getElementById(`paybtn-${method}`);
          btn.innerText = 'Processing...';
          
@@ -577,7 +583,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                    document.getElementById('state-checkout').style.display='none';
                    document.getElementById('successScr').style.display='flex';
                    if(window.launchConfetti) window.launchConfetti();
-                   setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 800);
+                   setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                 } else {
                    btn.innerText = 'Failed';
                    alert("Failed to create order");
