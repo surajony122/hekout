@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, prepaidDiscount, paymentId } = data;
+    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, prepaidDiscount, paymentId, appliedCoupon } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -45,9 +45,19 @@ export async function POST(request: Request) {
     
     // Add prepaid discount if applicable
     let prepaidDiscountAmount = 0;
+    let discountTitles = [];
+
     if (prepaidDiscount) {
       prepaidDiscountAmount = parseFloat(prepaidDiscount) || 0;
       totalDiscount += prepaidDiscountAmount;
+      if(prepaidDiscountAmount > 0) discountTitles.push('Prepaid Discount');
+    }
+
+    let couponDiscountAmount = 0;
+    if (appliedCoupon && appliedCoupon.amount) {
+      couponDiscountAmount = parseFloat(appliedCoupon.amount) || 0;
+      totalDiscount += couponDiscountAmount;
+      if(couponDiscountAmount > 0) discountTitles.push(appliedCoupon.code);
     }
     
     const finalTotal = Math.max(0, total - totalDiscount);
@@ -113,10 +123,10 @@ export async function POST(request: Request) {
           title: shippingTitle,
           price: shippingPrice
         },
-        applied_discount: prepaidDiscount ? {
-          description: 'Prepaid Discount',
+        applied_discount: totalDiscountAmount > 0 ? {
+          description: discountTitles.join(' + '),
           value_type: 'fixed_amount',
-          value: prepaidDiscount.toString()
+          value: totalDiscountAmount.toString()
         } : undefined,
         tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
         note: `Order via CheckoutFlow`

@@ -146,6 +146,34 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 .pay-row { display: flex; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid var(--border); cursor: pointer; background: var(--surface); transition: background 0.2s; }
 .pay-row:hover { background: var(--bg); }
 
+
+.os-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.os-top { display: flex; justify-content: space-between; align-items: center; padding: 16px; font-weight: 600; font-size: 15px; cursor: pointer; }
+.os-prices { display: flex; align-items: center; gap: 8px; }
+.os-orig { font-size: 13px; color: var(--text3); text-decoration: line-through; font-weight: 400; }
+.os-final { color: var(--text1); }
+.os-save-banner { background: #dcfce7; color: #166534; font-size: 12px; font-weight: 600; text-align: center; padding: 6px; }
+.os-bottom { padding: 16px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; }
+.os-cpn-applied { display: inline-flex; align-items: center; gap: 8px; }
+.os-cpn-tag { background: var(--green); color: #fff; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
+.os-cpn-link { color: #f97316; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+.cpn-input-row { display: flex; gap: 8px; margin-bottom: 20px; border: 1px solid var(--border2); border-radius: 8px; padding: 4px; }
+.cpn-input { flex: 1; height: 36px; border: none; padding: 0 12px; font-size: 14px; outline: none; background: transparent; }
+.cpn-apply-btn { height: 36px; padding: 0 16px; background: transparent; color: #f97316; font-weight: 600; border: none; cursor: pointer; font-size: 14px; }
+
+.cpn-list { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; }
+.cpn-item { border: 1px solid var(--border2); border-radius: 8px; padding: 12px; }
+.cpn-item.active { border-color: var(--green); background: #f0fdf4; }
+.cpn-item.disabled { opacity: 0.6; background: #f9fafb; }
+.cpn-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cpn-code { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.cpn-action { font-size: 13px; font-weight: 600; color: #f97316; cursor: pointer; }
+.cpn-applied-txt { color: var(--text3); font-size: 13px; font-weight: 600; }
+.cpn-save-box { border: 1px solid var(--green); color: var(--green); display: inline-block; padding: 4px 8px; font-size: 12px; font-weight: 600; border-radius: 4px; margin-bottom: 8px; }
+.cpn-desc { font-size: 12px; color: var(--text3); line-height: 1.4; }
+.cpn-err { color: var(--red); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+
           :root { --p1: ${primaryColor}; }
           
           /* Custom form styles */
@@ -213,38 +241,28 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
           <!-- STATE 3: CHECKOUT (GOKWIK UI) -->
           <div id="state-checkout" style="display:none; padding-bottom:60px;">
             
-            <!-- ORDER SUMMARY -->
-            <div class="card">
-              <div class="summary-hdr" id="sumHdr">
-                <svg class="icon" viewBox="0 0 24 24" style="stroke:var(--p2);"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                <span class="summary-hdr-text">Order summary</span>
-                <div class="summary-hdr-right">
-                  <span id="itemLbl">₹${total.toLocaleString('en-IN')} (${currentQuantity} item)</span>
-                  <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
-              </div>
-              <div class="summary-body" id="sumBody">
-                <div class="oi" id="oi1">
-                  <div class="oi-thumb">${finalProductImage ? `<img src="${finalProductImage}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
-                  <div class="oi-info">
-                    <div class="oi-name">${productTitle || 'Product'}</div>
-                    <div class="oi-ctrls">
-                      <div class="qty-btn" id="qty-minus">−</div>
-                      <span class="qty-n" id="q1">${currentQuantity}</span>
-                      <div class="qty-btn" id="qty-plus">+</div>
-                    </div>
+            <!-- NEW ORDER SUMMARY BAR -->
+            <div class="os-bar" id="osBarTop">
+               <div class="os-top" id="sumHdr" style="border-bottom:none;">
+                 <div>Order summary (<span id="osItemCount">${currentQuantity} Item</span>)</div>
+                 <div class="os-prices">
+                    <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
+                    <span class="os-final" id="hFinal">₹${total.toLocaleString('en-IN')}</span>
+                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M9 18l6-6-6-6"/></svg>
+                 </div>
+               </div>
+               <div class="os-save-banner" id="osSaveBanner" style="display:none;">Yay! You've saved <span id="osSaveAmt"></span> so far 🥳</div>
+               <div class="os-bottom">
+                  <div class="os-cpn-applied" id="osCpnActive" style="display:none;">
+                     <div class="os-cpn-tag">
+                        <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                        <span id="osCpnCode"></span>
+                     </div>
+                     <span class="os-cpn-save" id="osCpnSave"></span>
                   </div>
-                  <div class="oi-price"><div class="pr" id="p1">₹${total.toLocaleString('en-IN')}</div></div>
-                </div>
-                <div class="totals-box">
-                  <div class="tr"><span class="l">Subtotal</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
-                  <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount</span><span class="v" id="tDisc">-₹0</span></div>
-                  <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
-                  <div class="tr free-sh"><span class="l">Shipping</span><span class="v">FREE</span></div>
-                  <hr class="tr-div">
-                  <div class="tr grand"><span class="l">Total</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
-                </div>
-              </div>
+                  <div id="osCpnEmpty" style="font-size:13px; color:var(--text3); font-weight:500;">No coupon applied</div>
+                  <div class="os-cpn-link" id="osCpnLink">Enter a Coupon ></div>
+               </div>
             </div>
 
             <!-- DELIVER TO -->
@@ -327,10 +345,126 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       const sumHdr = document.getElementById('sumHdr');
       const sumBody = document.getElementById('sumBody');
       
-      sumHdr.onclick = () => {
-         const open = sumBody.classList.toggle('show');
-         sumHdr.classList.toggle('open', open);
+      
+      // Open Drawers
+      document.getElementById('sumHdr').onclick = () => { document.getElementById('drwBill').style.display='flex'; };
+      document.getElementById('osCpnLink').onclick = () => { document.getElementById('drwCoupon').style.display='flex'; };
+
+      let availableCoupons = [];
+      let appliedCoupon = null;
+
+      const fetchCoupons = async () => {
+         try {
+           const res = await fetch(`${apiBaseUrl}/api/widget/coupons?shop=${shop}`);
+           const data = await res.json();
+           if(data.success) {
+              availableCoupons = data.coupons;
+              autoApplyCoupon();
+              renderCoupons();
+           }
+         } catch(e){}
       };
+      fetchCoupons();
+
+      const autoApplyCoupon = () => {
+         const subtotal = basePrice * currentQuantity;
+         let couponDiscount = 0;
+         if (appliedCoupon) {
+           if(appliedCoupon.type === 'percentage') {
+              couponDiscount = subtotal * (appliedCoupon.value / 100);
+              if(appliedCoupon.maxDiscount && couponDiscount > appliedCoupon.maxDiscount) couponDiscount = appliedCoupon.maxDiscount;
+           } else {
+              couponDiscount = appliedCoupon.value;
+           }
+         }
+         const validAuto = availableCoupons.filter(c => c.isAuto && currentQuantity >= c.minItems && subtotal >= c.minCartValue);
+         if(validAuto.length > 0 && !appliedCoupon) {
+            appliedCoupon = validAuto[0];
+            updatePricing();
+            renderCoupons();
+         }
+      };
+
+      const renderCoupons = () => {
+         const subtotal = basePrice * currentQuantity;
+         const container = document.getElementById('cpn-list-container');
+         let html = '<div style="font-weight:600; font-size:15px; margin-bottom:8px;">Applicable coupons</div>';
+         
+         const applicable = availableCoupons.filter(c => currentQuantity >= c.minItems && subtotal >= c.minCartValue);
+         const unlockable = availableCoupons.filter(c => currentQuantity < c.minItems || subtotal < c.minCartValue);
+
+         if(applicable.length === 0 && unlockable.length === 0) {
+            container.innerHTML = '<div style="color:var(--text3); font-size:13px;">No coupons available right now.</div>';
+            return;
+         }
+
+         applicable.forEach(c => {
+            const isActive = appliedCoupon && appliedCoupon.id === c.id;
+            const cls = isActive ? 'active' : '';
+            const valTxt = c.type === 'percentage' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+            const actTxt = isActive ? '<span class="cpn-applied-txt">Applied</span>' : `<span class="cpn-action" onclick="window.cfApplyCoupon('${c.id}')">Apply</span>`;
+            
+            html += `
+               <div class="cpn-item ${cls}">
+                 <div class="cpn-item-header">
+                    <div class="cpn-code">${isActive ? '<svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>' : '<svg viewBox="0 0 24 24" style="stroke:var(--text3);fill:none;stroke-width:2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>'} ${c.code}</div>
+                    ${actTxt}
+                 </div>
+                 <div class="cpn-save-box">${valTxt}</div>
+                 ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
+               </div>
+            `;
+         });
+
+         if(unlockable.length > 0) {
+            html += '<div style="font-weight:600; font-size:15px; margin:20px 0 8px;">Unlock Coupons</div>';
+            unlockable.forEach(c => {
+               html += `
+                  <div class="cpn-item disabled">
+                    <div class="cpn-item-header">
+                       <div class="cpn-code" style="color:var(--text3)"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> ${c.code}</div>
+                       <span style="color:var(--text3); font-size:13px; font-weight:600;">Apply</span>
+                    </div>
+                    <div class="cpn-err">Applicable only on ${c.minCartValue > 0 ? `₹${c.minCartValue} orders` : `${c.minItems} or more items`}.</div>
+                    ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
+                  </div>
+               `;
+            });
+         }
+         container.innerHTML = html;
+      };
+
+      window.cfApplyCoupon = (id) => {
+         appliedCoupon = availableCoupons.find(c => c.id === id);
+         document.getElementById('drwCoupon').style.display = 'none';
+         updatePricing();
+         renderCoupons();
+      };
+
+      // Handle manual input
+      document.getElementById('cpn-manual-btn').onclick = () => {
+         const code = document.getElementById('cpn-manual-input').value.trim().toUpperCase();
+         const err = document.getElementById('cpn-manual-err');
+         if(!code) return;
+         const subtotal = basePrice * currentQuantity;
+         const c = availableCoupons.find(x => x.code.toUpperCase() === code);
+         
+         if(!c) {
+            err.style.display = 'block'; err.innerText = 'Invalid coupon code.'; return;
+         }
+         if(currentQuantity < c.minItems || subtotal < c.minCartValue) {
+            err.style.display = 'block'; err.innerText = 'Requirements not met for this coupon.'; return;
+         }
+         
+         err.style.display = 'none';
+         appliedCoupon = c;
+         document.getElementById('cpn-manual-input').value = '';
+         document.getElementById('drwCoupon').style.display = 'none';
+         updatePricing();
+         renderCoupons();
+      };
+
+
 
       // --- DYNAMIC PRICING ---
       let currentPaymentMethod = null;
@@ -339,28 +473,71 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         if (method) currentPaymentMethod = method;
         
         const subtotal = basePrice * currentQuantity;
-        let discount = 0;
+        let couponDiscount = 0;
+        
+        if (appliedCoupon) {
+           if(appliedCoupon.type === 'percentage') {
+              couponDiscount = subtotal * (appliedCoupon.value / 100);
+              if(appliedCoupon.maxDiscount && couponDiscount > appliedCoupon.maxDiscount) couponDiscount = appliedCoupon.maxDiscount;
+           } else {
+              couponDiscount = appliedCoupon.value;
+           }
+        }
+
+        let prepaidDiscount = 0;
         let codFee = 0;
         
         if (currentPaymentMethod === 'COD') {
            codFee = widgetConfig.codFeeAmount || 0;
         } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
-           discount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+           prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
         
-        const grandTotal = Math.max(0, subtotal - discount) + codFee;
+        const totalDiscount = couponDiscount + prepaidDiscount;
+        const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee;
 
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        document.getElementById('osItemCount').innerText = `${currentQuantity} item${currentQuantity>1?'s':''}`;
+        
+        // Original price in header
+        if(totalDiscount > 0) {
+           document.getElementById('osOrigPrice').style.display = 'inline';
+           document.getElementById('osOrigPrice').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        } else {
+           document.getElementById('osOrigPrice').style.display = 'none';
+        }
+
+        // Green Save Banner
+        if(couponDiscount > 0) {
+           document.getElementById('osSaveBanner').style.display = 'block';
+           document.getElementById('osSaveAmt').innerText = `₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
+        } else {
+           document.getElementById('osSaveBanner').style.display = 'none';
+        }
+
+        // Coupon Box in Order Summary Bar
+        if(appliedCoupon) {
+           document.getElementById('osCpnEmpty').style.display = 'none';
+           document.getElementById('osCpnActive').style.display = 'inline-flex';
+           document.getElementById('osCpnCode').innerText = appliedCoupon.code;
+           document.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
+           document.getElementById('osCpnLink').innerText = 'Change >';
+        } else {
+           document.getElementById('osCpnEmpty').style.display = 'block';
+           document.getElementById('osCpnActive').style.display = 'none';
+           document.getElementById('osCpnLink').innerText = 'Enter a Coupon >';
+        }
+
+        // Drawer values
         document.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
         document.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('itemLbl').innerText = `₹${grandTotal.toLocaleString('en-IN')} (${currentQuantity} item${currentQuantity>1?'s':''})`;
         document.getElementById('q1').innerText = currentQuantity;
         document.getElementById('p1').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
 
         const discRow = document.getElementById('trDisc');
-        if (discount > 0) {
+        if (totalDiscount > 0) {
            discRow.style.display = 'flex';
-           document.getElementById('tDisc').innerText = `-₹${discount.toLocaleString('en-IN')}`;
+           document.getElementById('tDisc').innerText = `-₹${Math.round(totalDiscount).toLocaleString('en-IN')}`;
         } else {
            discRow.style.display = 'none';
         }
@@ -373,22 +550,21 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
            codRow.style.display = 'none';
         }
 
-        // Update drawer prices
         ['UPI','Card','Wallet','Netbanking'].forEach(m => {
            const el = document.getElementById(`pp${m}`);
            if(el) {
-              let mDisc = 0;
+              let mDisc = couponDiscount;
               if (widgetConfig.isPrepaidDiscountEnabled) {
-                 mDisc = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+                 mDisc += widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
               }
               el.innerText = `₹${Math.max(0, subtotal - mDisc).toLocaleString('en-IN')}`;
            }
         });
         const elCod = document.getElementById('ppCOD');
-        if(elCod) elCod.innerText = `₹${Math.round(subtotal + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
+        if(elCod) elCod.innerText = `₹${Math.round(subtotal - couponDiscount + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
 
         const elCodBtn = document.getElementById('cod-confirm-btn');
-        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${Math.round(subtotal + codFee).toLocaleString('en-IN')})`;
+        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${Math.round(subtotal - couponDiscount + codFee).toLocaleString('en-IN')})`;
 
         const elOnlineBtn = document.getElementById('cod-save-btn');
         if(elOnlineBtn) {
@@ -511,6 +687,57 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          const dContainer = document.getElementById('drawers-container');
          let html = '';
          let dHtml = '';
+
+         // --- BILL SUMMARY DRAWER ---
+         dHtml += `
+            <div class="cf-payment-overlay" id="drwBill" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
+              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                   <div style="font-size:18px; font-weight:600;">Order Summary</div>
+                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </div>
+                <div class="card" style="padding:16px;">
+                   <div class="oi" id="oi1" style="padding-top:0;">
+                     <div class="oi-thumb">${finalProductImage ? `<img src="${finalProductImage}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
+                     <div class="oi-info">
+                       <div class="oi-name">${productTitle || 'Product'}</div>
+                       <div class="oi-ctrls">
+                         <div class="qty-btn" id="qty-minus">−</div>
+                         <span class="qty-n" id="q1">${currentQuantity}</span>
+                         <div class="qty-btn" id="qty-plus">+</div>
+                       </div>
+                     </div>
+                     <div class="oi-price"><div class="pr" id="p1">₹${total.toLocaleString('en-IN')}</div></div>
+                   </div>
+                </div>
+                <div style="font-size:16px; font-weight:700; margin:20px 0 12px;">Bill summary</div>
+                <div class="tr"><span class="l">Sub total</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
+                <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount on MRP</span><span class="v" id="tDisc">-₹0</span></div>
+                <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
+                <hr class="tr-div">
+                <div class="tr grand" style="font-size:16px;"><span class="l">Total amount</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
+              </div>
+            </div>
+         `;
+
+         // --- COUPON DRAWER ---
+         dHtml += `
+            <div class="cf-payment-overlay" id="drwCoupon" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
+              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                   <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
+                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwCoupon').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </div>
+                <div class="cpn-input-row">
+                   <svg viewBox="0 0 24 24" style="width:20px; height:20px; stroke:var(--green); fill:none; stroke-width:2; margin:8px 0 0 8px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                   <input type="text" class="cpn-input" id="cpn-manual-input" placeholder="Enter coupon code" style="text-transform:uppercase;" />
+                   <button class="cpn-apply-btn" id="cpn-manual-btn">Apply</button>
+                </div>
+                <div id="cpn-manual-err" class="cpn-err" style="display:none;"></div>
+                <div id="cpn-list-container" class="cpn-list">Loading coupons...</div>
+              </div>
+            </div>
+         `;
          
          const methods = [
             { id: 'UPI', name: 'Pay via UPI', sub: 'GPay · PhonePe · Paytm', icon: '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" style="height:14px;"/>' },
@@ -590,7 +817,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             state: document.getElementById('cf-addr-state').value,
             pincode: document.getElementById('cf-addr-pin').value,
             paymentMethod: method,
-            prepaidDiscount
+            prepaidDiscount,
+            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(couponDiscount) } : undefined
          };
 
          const createFinalOrder = async () => {
