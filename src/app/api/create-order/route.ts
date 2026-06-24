@@ -144,7 +144,6 @@ export async function POST(request: Request) {
 
     // 5. Complete Shopify Draft Order to convert it to a Real Order
     // If it's a COD or Partial COD order, we pass ?payment_pending=true so it doesn't get marked as fully Paid
-    const methodUpper = (paymentMethod || 'COD').toUpperCase();
     const isPending = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
     const completeUrl = `https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json${isPending ? '?payment_pending=true' : ''}`;
     
