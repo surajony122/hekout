@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import PaymentSettingsClient from './PaymentSettingsClient';
 import WidgetSettingsClient from './WidgetSettingsClient';
+import DiscountSettingsClient from './DiscountSettingsClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -42,6 +43,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="widget" className="text-xs">Widget Design</TabsTrigger>
           <TabsTrigger value="otp" className="text-xs">OTP</TabsTrigger>
           <TabsTrigger value="payments" className="text-xs">Payments</TabsTrigger>
+          <TabsTrigger value="discounts" className="text-xs">Discounts</TabsTrigger>
           <TabsTrigger value="shipping" className="text-xs">Shipping</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
           <TabsTrigger value="integrations" className="text-xs">Integrations</TabsTrigger>
@@ -82,6 +84,12 @@ export default async function SettingsPage() {
           <PaymentSettingsClient 
             merchantId={merchant?.id || ''} 
             initialSettings={paymentSettings || {}} 
+          />
+        </TabsContent>
+
+        <TabsContent value="discounts" className="space-y-4">
+          <DiscountSettingsClient 
+            merchantId={merchant?.id || ''} 
           />
         </TabsContent>
 
