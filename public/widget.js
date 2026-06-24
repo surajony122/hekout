@@ -391,6 +391,13 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
       // Confetti Logic
       
+      window.launchConfetti = () => {
+         const canvas = document.getElementById('confetti-canvas');
+         if (!canvas || !window.confetti) return;
+         const myConfetti = window.confetti.create(canvas, { resize: true, useWorker: true });
+         myConfetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      };
+
 
       // --- STATE MANAGEMENT ---
       const statePhone = document.getElementById('state-phone');
@@ -608,7 +615,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               if (widgetConfig.isPrepaidDiscountEnabled) {
                  mDisc += widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
               }
-              el.innerText = `₹${Math.max(0, subtotal - mDisc).toLocaleString('en-IN')}`;
+              el.innerText = `₹${Math.round(Math.max(0, subtotal - mDisc)).toLocaleString('en-IN')}`;
            }
         });
         const elCod = document.getElementById('ppCOD');
