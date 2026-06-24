@@ -204,6 +204,30 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         </div>
 
         <div class="scroll-body" style="overflow-y:auto; flex:1;">
+          <!-- NEW ORDER SUMMARY BAR -->
+            <div class="os-bar" id="osBarTop" style="margin-bottom: 24px;">
+               <div class="os-top" id="sumHdr" style="border-bottom:none;">
+                 <div>Order summary (<span id="osItemCount">${currentQuantity} Item</span>)</div>
+                 <div class="os-prices">
+                    <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
+                    <span class="os-final" id="hFinal">₹${total.toLocaleString('en-IN')}</span>
+                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M9 18l6-6-6-6"/></svg>
+                 </div>
+               </div>
+               <div class="os-save-banner" id="osSaveBanner" style="display:none;">Yay! You've saved <span id="osSaveAmt"></span> so far 🥳</div>
+               <div class="os-bottom">
+                  <div class="os-cpn-applied" id="osCpnActive" style="display:none;">
+                     <div class="os-cpn-tag">
+                        <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                        <span id="osCpnCode"></span>
+                     </div>
+                     <span class="os-cpn-save" id="osCpnSave"></span>
+                  </div>
+                  <div id="osCpnEmpty" style="font-size:13px; color:var(--text3); font-weight:500;">No coupon applied</div>
+                  <div class="os-cpn-link" id="osCpnLink">Enter a Coupon ></div>
+               </div>
+            </div>
+
           
           <!-- STATE 1: PHONE -->
           <div id="state-phone" style="padding: 20px 10px;">
@@ -241,31 +265,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
           <!-- STATE 3: CHECKOUT (GOKWIK UI) -->
           <div id="state-checkout" style="display:none; padding-bottom:60px;">
             
-            <!-- NEW ORDER SUMMARY BAR -->
-            <div class="os-bar" id="osBarTop">
-               <div class="os-top" id="sumHdr" style="border-bottom:none;">
-                 <div>Order summary (<span id="osItemCount">${currentQuantity} Item</span>)</div>
-                 <div class="os-prices">
-                    <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
-                    <span class="os-final" id="hFinal">₹${total.toLocaleString('en-IN')}</span>
-                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M9 18l6-6-6-6"/></svg>
-                 </div>
-               </div>
-               <div class="os-save-banner" id="osSaveBanner" style="display:none;">Yay! You've saved <span id="osSaveAmt"></span> so far 🥳</div>
-               <div class="os-bottom">
-                  <div class="os-cpn-applied" id="osCpnActive" style="display:none;">
-                     <div class="os-cpn-tag">
-                        <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                        <span id="osCpnCode"></span>
-                     </div>
-                     <span class="os-cpn-save" id="osCpnSave"></span>
-                  </div>
-                  <div id="osCpnEmpty" style="font-size:13px; color:var(--text3); font-weight:500;">No coupon applied</div>
-                  <div class="os-cpn-link" id="osCpnLink">Enter a Coupon ></div>
-               </div>
-            </div>
-
-            <!-- DELIVER TO -->
+                        <!-- DELIVER TO -->
             <div class="card">
               <div class="deliver-inner">
                 <div class="deliver-top">
@@ -792,7 +792,11 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          });
          
          container.innerHTML = html;
-         dContainer.innerHTML = dHtml;
+         
+         let dynD = document.getElementById('dynamic-drawers');
+         if(!dynD) { dynD = document.createElement('div'); dynD.id = 'dynamic-drawers'; dContainer.appendChild(dynD); }
+         dynD.innerHTML = dHtml;
+
          updatePricing();
       };
 
