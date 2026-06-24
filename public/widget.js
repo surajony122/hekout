@@ -312,7 +312,59 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         </div>
         
         <!-- DRAWERS WRAPPER -->
-        <div id="drawers-container"></div>
+        <div id="drawers-container">
+
+         
+            <div class="cf-payment-overlay" id="drwBill" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
+              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                   <div style="font-size:18px; font-weight:600;">Order Summary</div>
+                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </div>
+                <div class="card" style="padding:16px;">
+                   <div class="oi" id="oi1" style="padding-top:0;">
+                     <div class="oi-thumb">${finalProductImage ? `<img src="${finalProductImage}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
+                     <div class="oi-info">
+                       <div class="oi-name">${productTitle || 'Product'}</div>
+                       <div class="oi-ctrls">
+                         <div class="qty-btn" id="qty-minus">−</div>
+                         <span class="qty-n" id="q1">${currentQuantity}</span>
+                         <div class="qty-btn" id="qty-plus">+</div>
+                       </div>
+                     </div>
+                     <div class="oi-price"><div class="pr" id="p1">₹${total.toLocaleString('en-IN')}</div></div>
+                   </div>
+                </div>
+                <div style="font-size:16px; font-weight:700; margin:20px 0 12px;">Bill summary</div>
+                <div class="tr"><span class="l">Sub total</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
+                <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount on MRP</span><span class="v" id="tDisc">-₹0</span></div>
+                <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
+                <hr class="tr-div">
+                <div class="tr grand" style="font-size:16px;"><span class="l">Total amount</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
+              </div>
+            </div>
+         
+
+         
+         
+            <div class="cf-payment-overlay" id="drwCoupon" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
+              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                   <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
+                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwCoupon').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </div>
+                <div class="cpn-input-row">
+                   <svg viewBox="0 0 24 24" style="width:20px; height:20px; stroke:var(--green); fill:none; stroke-width:2; margin:8px 0 0 8px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                   <input type="text" class="cpn-input" id="cpn-manual-input" placeholder="Enter coupon code" style="text-transform:uppercase;" />
+                   <button class="cpn-apply-btn" id="cpn-manual-btn">Apply</button>
+                </div>
+                <div id="cpn-manual-err" class="cpn-err" style="display:none;"></div>
+                <div id="cpn-list-container" class="cpn-list">Loading coupons...</div>
+              </div>
+            </div>
+         
+
+</div>
         
         <!-- SUCCESS SCREEN -->
         <div class="success-screen" id="successScr" style="display:none; flex-direction:column; align-items:center; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900; text-align:center;">
@@ -343,8 +395,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       const stateAddress = document.getElementById('state-address');
       const stateCheckout = document.getElementById('state-checkout');
       const sumHdr = document.getElementById('sumHdr');
-      const sumBody = document.getElementById('sumBody');
-      
+            
       
       // Open Drawers
       document.getElementById('sumHdr').onclick = () => { document.getElementById('drwBill').style.display='flex'; };
@@ -688,57 +739,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          let html = '';
          let dHtml = '';
 
-         // --- BILL SUMMARY DRAWER ---
-         dHtml += `
-            <div class="cf-payment-overlay" id="drwBill" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
-              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                   <div style="font-size:18px; font-weight:600;">Order Summary</div>
-                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </div>
-                <div class="card" style="padding:16px;">
-                   <div class="oi" id="oi1" style="padding-top:0;">
-                     <div class="oi-thumb">${finalProductImage ? `<img src="${finalProductImage}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
-                     <div class="oi-info">
-                       <div class="oi-name">${productTitle || 'Product'}</div>
-                       <div class="oi-ctrls">
-                         <div class="qty-btn" id="qty-minus">−</div>
-                         <span class="qty-n" id="q1">${currentQuantity}</span>
-                         <div class="qty-btn" id="qty-plus">+</div>
-                       </div>
-                     </div>
-                     <div class="oi-price"><div class="pr" id="p1">₹${total.toLocaleString('en-IN')}</div></div>
-                   </div>
-                </div>
-                <div style="font-size:16px; font-weight:700; margin:20px 0 12px;">Bill summary</div>
-                <div class="tr"><span class="l">Sub total</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
-                <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount on MRP</span><span class="v" id="tDisc">-₹0</span></div>
-                <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
-                <hr class="tr-div">
-                <div class="tr grand" style="font-size:16px;"><span class="l">Total amount</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
-              </div>
-            </div>
-         `;
-
-         // --- COUPON DRAWER ---
-         dHtml += `
-            <div class="cf-payment-overlay" id="drwCoupon" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
-              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                   <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
-                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwCoupon').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </div>
-                <div class="cpn-input-row">
-                   <svg viewBox="0 0 24 24" style="width:20px; height:20px; stroke:var(--green); fill:none; stroke-width:2; margin:8px 0 0 8px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                   <input type="text" class="cpn-input" id="cpn-manual-input" placeholder="Enter coupon code" style="text-transform:uppercase;" />
-                   <button class="cpn-apply-btn" id="cpn-manual-btn">Apply</button>
-                </div>
-                <div id="cpn-manual-err" class="cpn-err" style="display:none;"></div>
-                <div id="cpn-list-container" class="cpn-list">Loading coupons...</div>
-              </div>
-            </div>
-         `;
-         
+                  
          const methods = [
             { id: 'UPI', name: 'Pay via UPI', sub: 'GPay · PhonePe · Paytm', icon: '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" style="height:14px;"/>' },
             { id: 'Card', name: 'Debit / Credit cards', sub: 'Visa · Mastercard · RuPay', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p2);fill:none;stroke-width:2;"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>' },
