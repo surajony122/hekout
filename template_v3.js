@@ -289,6 +289,7 @@ open: async function(options) {
 
       let availableCoupons = [];
       let appliedCoupon = null;
+      let currentCouponDiscount = 0;
 
       const fetchCoupons = async () => {
          try {
@@ -305,18 +306,11 @@ open: async function(options) {
 
       const autoApplyCoupon = () => {
          const subtotal = basePrice * currentQuantity;
-         let couponDiscount = 0;
-         if (appliedCoupon) {
-           if(appliedCoupon.type === 'percentage') {
-              couponDiscount = subtotal * (appliedCoupon.value / 100);
-              if(appliedCoupon.maxDiscount && couponDiscount > appliedCoupon.maxDiscount) couponDiscount = appliedCoupon.maxDiscount;
-           } else {
-              couponDiscount = appliedCoupon.value;
-           }
-         }
+         
          const validAuto = availableCoupons.filter(c => c.isAuto && currentQuantity >= c.minItems && subtotal >= c.minCartValue);
          if(validAuto.length > 0 && !appliedCoupon) {
             appliedCoupon = validAuto[0];
+            if(window.launchConfetti) window.launchConfetti();
             updatePricing();
             renderCoupons();
          }
@@ -373,6 +367,7 @@ open: async function(options) {
 
       window.cfApplyCoupon = (id) => {
          appliedCoupon = availableCoupons.find(c => c.id === id);
+         if(window.launchConfetti) window.launchConfetti();
          document.getElementById('drwCoupon').style.display = 'none';
          updatePricing();
          renderCoupons();
@@ -395,6 +390,7 @@ open: async function(options) {
          
          err.style.display = 'none';
          appliedCoupon = c;
+         if(window.launchConfetti) window.launchConfetti();
          document.getElementById('cpn-manual-input').value = '';
          document.getElementById('drwCoupon').style.display = 'none';
          updatePricing();
@@ -430,6 +426,7 @@ open: async function(options) {
            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
         
+        currentCouponDiscount = couponDiscount;
         const totalDiscount = couponDiscount + prepaidDiscount;
         const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee;
 
@@ -691,7 +688,7 @@ open: async function(options) {
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
          const btn = document.getElementById(`paybtn-${method}`) || document.getElementById('cod-save-btn');
-         if (btn) btn.innerText = 'Processing...';
+         if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
          
          let prepaidDiscount = 0;
          const subtotal = basePrice * currentQuantity;
@@ -710,7 +707,7 @@ open: async function(options) {
             pincode: document.getElementById('cf-addr-pin').value,
             paymentMethod: method,
             prepaidDiscount,
-            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(couponDiscount) } : undefined
+            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(currentCouponDiscount) } : undefined
          };
 
          const createFinalOrder = async () => {

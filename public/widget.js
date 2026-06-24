@@ -174,6 +174,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 .cpn-desc { font-size: 12px; color: var(--text3); line-height: 1.4; }
 .cpn-err { color: var(--red); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
 
+@keyframes cf-spin { 100% { transform: rotate(360deg); } }
+
           :root { --p1: ${primaryColor}; }
           
           /* Custom form styles */
@@ -403,6 +405,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
       let availableCoupons = [];
       let appliedCoupon = null;
+      let currentCouponDiscount = 0;
 
       const fetchCoupons = async () => {
          try {
@@ -419,18 +422,11 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
       const autoApplyCoupon = () => {
          const subtotal = basePrice * currentQuantity;
-         let couponDiscount = 0;
-         if (appliedCoupon) {
-           if(appliedCoupon.type === 'percentage') {
-              couponDiscount = subtotal * (appliedCoupon.value / 100);
-              if(appliedCoupon.maxDiscount && couponDiscount > appliedCoupon.maxDiscount) couponDiscount = appliedCoupon.maxDiscount;
-           } else {
-              couponDiscount = appliedCoupon.value;
-           }
-         }
+         
          const validAuto = availableCoupons.filter(c => c.isAuto && currentQuantity >= c.minItems && subtotal >= c.minCartValue);
          if(validAuto.length > 0 && !appliedCoupon) {
             appliedCoupon = validAuto[0];
+            if(window.launchConfetti) window.launchConfetti();
             updatePricing();
             renderCoupons();
          }
@@ -487,6 +483,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
       window.cfApplyCoupon = (id) => {
          appliedCoupon = availableCoupons.find(c => c.id === id);
+         if(window.launchConfetti) window.launchConfetti();
          document.getElementById('drwCoupon').style.display = 'none';
          updatePricing();
          renderCoupons();
@@ -509,6 +506,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          
          err.style.display = 'none';
          appliedCoupon = c;
+         if(window.launchConfetti) window.launchConfetti();
          document.getElementById('cpn-manual-input').value = '';
          document.getElementById('drwCoupon').style.display = 'none';
          updatePricing();
@@ -544,6 +542,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
         
+        currentCouponDiscount = couponDiscount;
         const totalDiscount = couponDiscount + prepaidDiscount;
         const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee;
 
@@ -805,7 +804,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
          const btn = document.getElementById(`paybtn-${method}`) || document.getElementById('cod-save-btn');
-         if (btn) btn.innerText = 'Processing...';
+         if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
          
          let prepaidDiscount = 0;
          const subtotal = basePrice * currentQuantity;
@@ -824,7 +823,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             pincode: document.getElementById('cf-addr-pin').value,
             paymentMethod: method,
             prepaidDiscount,
-            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(couponDiscount) } : undefined
+            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(currentCouponDiscount) } : undefined
          };
 
          const createFinalOrder = async () => {
