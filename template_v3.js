@@ -298,12 +298,11 @@ open: async function(options) {
               el.innerText = `₹${Math.max(0, subtotal - mDisc).toLocaleString('en-IN')}`;
            }
         });
-        
         const elCod = document.getElementById('ppCOD');
-        if(elCod) elCod.innerText = `₹${(subtotal + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
+        if(elCod) elCod.innerText = `₹${Math.round(subtotal + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
 
         const elCodBtn = document.getElementById('cod-confirm-btn');
-        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${(subtotal + codFee).toLocaleString('en-IN')})`;
+        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${Math.round(subtotal + codFee).toLocaleString('en-IN')})`;
 
         const elOnlineBtn = document.getElementById('cod-save-btn');
         if(elOnlineBtn) {
@@ -312,9 +311,9 @@ open: async function(options) {
                mDisc = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
             }
             if (mDisc > 0) {
-                elOnlineBtn.innerText = `Pay Online (Save ₹${mDisc.toLocaleString('en-IN')})`;
+                elOnlineBtn.innerHTML = `Pay Online <span style="background:rgba(255,255,255,0.25); padding:4px 8px; border-radius:20px; font-size:12px; margin-left:6px; font-weight:600;">Save ₹${Math.round(mDisc).toLocaleString('en-IN')}</span>`;
             } else {
-                elOnlineBtn.innerText = `Pay Online`;
+                elOnlineBtn.innerHTML = `Pay Online`;
             }
         }
       };
