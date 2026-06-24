@@ -148,12 +148,12 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
 
 .os-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-.os-top { display: flex; justify-content: space-between; align-items: center; padding: 16px; font-weight: 600; font-size: 15px; cursor: pointer; }
-.os-prices { display: flex; align-items: center; gap: 8px; }
-.os-orig { font-size: 13px; color: var(--text3); text-decoration: line-through; font-weight: 400; }
-.os-final { color: var(--text1); }
+.os-top { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; font-weight: 500; font-size: 14px; cursor: pointer; }
+.os-prices { display: flex; align-items: center; gap: 6px; }
+.os-orig { font-size: 12px; color: var(--text3); text-decoration: line-through; font-weight: 400; }
+.os-final { color: var(--text1); font-weight: 700; font-size: 14px; }
 .os-save-banner { background: #dcfce7; color: #166534; font-size: 12px; font-weight: 600; text-align: center; padding: 6px; }
-.os-bottom { padding: 16px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; }
+.os-bottom { padding: 10px 14px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; }
 .os-cpn-applied { display: inline-flex; align-items: center; gap: 8px; }
 .os-cpn-tag { background: var(--green); color: #fff; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
 .os-cpn-link { color: #f97316; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
@@ -205,12 +205,12 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
         <div class="scroll-body" style="overflow-y:auto; flex:1;">
           <!-- NEW ORDER SUMMARY BAR -->
-            <div class="os-bar" id="osBarTop" style="margin-bottom: 24px;">
+            <div class="os-bar" id="osBarTop" style="margin-bottom: 16px;">
                <div class="os-top" id="sumHdr" style="border-bottom:none;">
                  <div>Order summary (<span id="osItemCount">${currentQuantity} Item</span>)</div>
                  <div class="os-prices">
                     <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
-                    <span class="os-final" id="hFinal">₹${total.toLocaleString('en-IN')}</span>
+                    <span class="os-final" id="osFinalPrice">₹${total.toLocaleString('en-IN')}</span>
                     <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M9 18l6-6-6-6"/></svg>
                  </div>
                </div>
@@ -548,6 +548,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee;
 
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        document.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('osItemCount').innerText = `${currentQuantity} item${currentQuantity>1?'s':''}`;
         
         // Original price in header

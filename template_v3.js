@@ -91,12 +91,12 @@ open: async function(options) {
 
         <div class="scroll-body" style="overflow-y:auto; flex:1;">
           <!-- NEW ORDER SUMMARY BAR -->
-            <div class="os-bar" id="osBarTop" style="margin-bottom: 24px;">
+            <div class="os-bar" id="osBarTop" style="margin-bottom: 16px;">
                <div class="os-top" id="sumHdr" style="border-bottom:none;">
                  <div>Order summary (<span id="osItemCount">${currentQuantity} Item</span>)</div>
                  <div class="os-prices">
                     <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
-                    <span class="os-final" id="hFinal">₹${total.toLocaleString('en-IN')}</span>
+                    <span class="os-final" id="osFinalPrice">₹${total.toLocaleString('en-IN')}</span>
                     <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M9 18l6-6-6-6"/></svg>
                  </div>
                </div>
@@ -434,6 +434,7 @@ open: async function(options) {
         const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee;
 
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        document.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('osItemCount').innerText = `${currentQuantity} item${currentQuantity>1?'s':''}`;
         
         // Original price in header
