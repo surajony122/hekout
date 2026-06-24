@@ -500,10 +500,11 @@ open: async function(options) {
                    setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                 } else {
                    btn.innerText = 'Failed';
-                   alert("Failed to create order");
+                   alert("Failed to create order: " + (data.error || 'Unknown error'));
                 }
              } catch(e) {
                 btn.innerText = 'Error';
+                alert("Network error: " + e.message);
              }
          };
 

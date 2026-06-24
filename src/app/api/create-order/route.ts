@@ -70,26 +70,42 @@ export async function POST(request: Request) {
     const lineItems: any[] = [{
       title: productTitle || 'Custom Product',
       price: price,
-      quantity: parseInt(quantity) || 1,
-      variant_id: variantId ? parseInt(variantId) : undefined
+      quantity: parseInt(quantity) || 1
     }];
+    
+    const parsedVariantId = parseInt(variantId);
+    if (!isNaN(parsedVariantId)) {
+       lineItems[0].variant_id = parsedVariantId;
+    }
 
-
+    // Add COD Fee to Shopify Draft Order if applicable
+    const methodUpper = (paymentMethod || 'COD').toUpperCase();
+    const isCod = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
+    if (isCod) {
+       const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
+       if (paymentSettings?.codFeeAmount) {
+          lineItems.push({
+             title: 'Cash on Delivery Fee',
+             price: paymentSettings.codFeeAmount.toString(),
+             quantity: 1
+          });
+       }
+    }
 
     const draftPayload = {
       draft_order: {
         line_items: lineItems,
         customer: {
-          first_name: customerName,
-          email: customerEmail,
-          phone: customerPhone
+          first_name: customerName || undefined,
+          email: customerEmail || undefined,
+          phone: customerPhone || undefined
         },
         shipping_address: {
-          first_name: customerName,
-          address1: address,
-          city: city,
-          province: state,
-          zip: pincode,
+          first_name: customerName || undefined,
+          address1: address || undefined,
+          city: city || undefined,
+          province: state || undefined,
+          zip: pincode || undefined,
           country: 'India'
         },
         use_customer_default_address: false,
@@ -121,7 +137,7 @@ export async function POST(request: Request) {
     if (!draftRes.ok) {
       console.error("Shopify Draft Order Error:", draftData);
       await prisma.order.update({ where: { id: order.id }, data: { orderStatus: 'Failed' }});
-      return NextResponse.json({ error: 'Failed to create Shopify Draft Order' }, { status: 500 });
+      return NextResponse.json({ error: 'Shopify Draft Order Error: ' + JSON.stringify(draftData.errors || draftData) }, { status: 500 });
     }
 
     const shopifyDraftOrderId = draftData.draft_order.id.toString();
