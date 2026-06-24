@@ -571,8 +571,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       // --- PAYMENT EXECUTION ---
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
-         const btn = document.getElementById(`paybtn-${method}`);
-         btn.innerText = 'Processing...';
+         const btn = document.getElementById(`paybtn-${method}`) || document.getElementById('cod-save-btn');
+         if (btn) btn.innerText = 'Processing...';
          
          let prepaidDiscount = 0;
          const subtotal = basePrice * currentQuantity;
@@ -613,11 +613,11 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                        setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                    }
                 } else {
-                   btn.innerText = 'Failed';
+                   if (btn) btn.innerText = 'Failed';
                    alert("Failed to create order: " + (data.error || 'Unknown error'));
                 }
              } catch(e) {
-                btn.innerText = 'Error';
+                if (btn) btn.innerText = 'Error';
                 alert("Network error: " + e.message);
              }
          };
@@ -634,7 +634,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
              
              if (!rzpOrderData.success) {
                alert('Failed to initialize payment gateway: ' + rzpOrderData.error);
-               btn.innerText = `Pay ${method}`;
+               if (btn) btn.innerText = `Pay ${method}`;
                return;
              }
 
@@ -646,7 +646,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                description: "Order Payment",
                order_id: rzpOrderData.orderId,
                handler: async function (response) {
-                 btn.innerText = 'Verifying...';
+                 if (btn) btn.innerText = 'Verifying...';
                  const verifyRes = await fetch(`${apiBaseUrl}/api/checkout/verify-payment`, {
                    method: 'POST',
                    headers: { 'Content-Type': 'application/json' },
@@ -662,7 +662,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                    await createFinalOrder();
                  } else {
                    alert('Payment verification failed.');
-                   btn.innerText = `Pay ${method}`;
+                   if (btn) btn.innerText = `Pay ${method}`;
                  }
                },
                prefill: {
@@ -676,13 +676,13 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
              const rzp = new window.Razorpay(options);
              rzp.on('payment.failed', function (response){
                alert('Payment failed. Reason: ' + response.error.description);
-               btn.innerText = `Pay ${method}`;
+               if (btn) btn.innerText = `Pay ${method}`;
              });
              rzp.open();
              
            } catch(e) {
              alert('Error initiating payment.');
-             btn.innerText = `Pay ${method}`;
+             if (btn) btn.innerText = `Pay ${method}`;
            }
          } else {
             await createFinalOrder();
