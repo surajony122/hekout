@@ -78,17 +78,17 @@ export async function POST(request: Request) {
        lineItems[0].variant_id = parsedVariantId;
     }
 
-    // Add COD Fee to Shopify Draft Order if applicable
+    // Calculate Shipping / COD Fee
+    let shippingTitle = "Standard Shipping";
+    let shippingPrice = "0.00";
+
     const methodUpper = (paymentMethod || 'COD').toUpperCase();
     const isCod = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
     if (isCod) {
        const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
        if (paymentSettings?.codFeeAmount) {
-          lineItems.push({
-             title: 'Cash on Delivery Fee',
-             price: paymentSettings.codFeeAmount.toString(),
-             quantity: 1
-          });
+          shippingTitle = "Cash on Delivery Fee";
+          shippingPrice = paymentSettings.codFeeAmount.toString();
        }
     }
 
@@ -110,8 +110,8 @@ export async function POST(request: Request) {
         },
         use_customer_default_address: false,
         shipping_line: {
-          title: "Standard Shipping",
-          price: "0.00"
+          title: shippingTitle,
+          price: shippingPrice
         },
         applied_discount: prepaidDiscount ? {
           description: 'Prepaid Discount',
