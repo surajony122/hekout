@@ -123,10 +123,10 @@ export async function POST(request: Request) {
           title: shippingTitle,
           price: shippingPrice
         },
-        applied_discount: totalDiscountAmount > 0 ? {
+        applied_discount: totalDiscount > 0 ? {
           description: discountTitles.join(' + '),
           value_type: 'fixed_amount',
-          value: totalDiscountAmount.toString()
+          value: totalDiscount.toString()
         } : undefined,
         tags: `${paymentMethod || 'COD'}, CheckoutFlow`,
         note: `Order via CheckoutFlow`
