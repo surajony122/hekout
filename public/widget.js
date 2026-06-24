@@ -140,8 +140,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 .sec-lbl { font-size: 12px; font-weight: 600; color: var(--text3); margin: 20px 0 10px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .pow-row { text-align: center; font-size: 11px; font-weight: 500; color: var(--text3); margin-top: 24px; }
 .pow-chip { font-weight: 600; color: var(--p1); }
-.overlay { display: none; position: fixed; inset: 0; background: rgba(30,27,75,0.5); z-index: 200; align-items: flex-end; }
-.drawer { width: 100%; max-width: 400px; margin: 0 auto; background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); }
+.cf-payment-overlay { display: none; position: fixed; inset: 0; background: rgba(30,27,75,0.5); z-index: 200; align-items: flex-end; }
+.cf-payment-drawer { width: 100%; max-width: 400px; margin: 0 auto; background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .pay-row { display: flex; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid var(--border); cursor: pointer; background: var(--surface); transition: background 0.2s; }
 .pay-row:hover { background: var(--bg); }
@@ -510,8 +510,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
             // Drawer
             dHtml += `
-              <div class="overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
-                <div class="drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+              <div class="cf-payment-overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
+                <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                    <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                    <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="paybtn-${m.id}">Pay ${m.id}</button>
                    <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'" style="background:transparent; color:var(--text2); box-shadow:none; margin-top:8px;">Cancel</button>

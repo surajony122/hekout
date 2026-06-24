@@ -424,8 +424,8 @@ open: async function(options) {
 
             // Drawer
             dHtml += `
-              <div class="overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
-                <div class="drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+              <div class="cf-payment-overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
+                <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                    <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                    <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="paybtn-${m.id}">Pay ${m.id}</button>
                    <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'" style="background:transparent; color:var(--text2); box-shadow:none; margin-top:8px;">Cancel</button>
