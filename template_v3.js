@@ -301,6 +301,22 @@ open: async function(options) {
         
         const elCod = document.getElementById('ppCOD');
         if(elCod) elCod.innerText = `₹${(subtotal + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
+
+        const elCodBtn = document.getElementById('cod-confirm-btn');
+        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${(subtotal + codFee).toLocaleString('en-IN')})`;
+
+        const elOnlineBtn = document.getElementById('cod-save-btn');
+        if(elOnlineBtn) {
+            let mDisc = 0;
+            if (widgetConfig.isPrepaidDiscountEnabled) {
+               mDisc = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+            }
+            if (mDisc > 0) {
+                elOnlineBtn.innerText = `Pay Online (Save ₹${mDisc.toLocaleString('en-IN')})`;
+            } else {
+                elOnlineBtn.innerText = `Pay Online`;
+            }
+        }
       };
 
       document.getElementById('qty-plus').onclick = () => { currentQuantity++; updatePricing(); };
@@ -423,15 +439,19 @@ open: async function(options) {
             if (m.id !== 'COD' && !widgetConfig.hasRazorpay) return; // Skip online methods if RP disabled
 
             // Drawer
-            dHtml += `
-              <div class="cf-payment-overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
-                <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
-                   <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
-                   <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="paybtn-${m.id}">Pay ${m.id}</button>
-                   <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'" style="background:transparent; color:var(--text2); box-shadow:none; margin-top:8px;">Cancel</button>
+            if (m.id === 'COD') {
+              dHtml += `
+                <div class="cf-payment-overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
+                  <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                     <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
+                     <div style="display:flex; flex-direction:column; gap:10px;">
+                        <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'; window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
+                        <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="cod-confirm-btn" style="background:var(--surface); color:var(--text1); border:1.5px solid var(--border2); box-shadow:none;">Confirm COD</button>
+                     </div>
+                  </div>
                 </div>
-              </div>
-            `;
+              `;
+            }
 
             // Row
             let offerTxt = '';
@@ -439,8 +459,12 @@ open: async function(options) {
                 offerTxt = `<div style="font-size:11px; font-weight:500; color:var(--green); margin-top:4px;">Discount Applied</div>`;
             }
 
+            const clickAction = m.id === 'COD' 
+                ? `window.cfUpdatePricing('${m.id}'); document.getElementById('drw${m.id}').style.display='flex'`
+                : `window.cfUpdatePricing('${m.id}'); window.cfExecutePayment('${m.id}')`;
+
             html += `
-              <div class="pay-row" onclick="window.cfUpdatePricing('${m.id}'); document.getElementById('drw${m.id}').style.display='flex'" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
+              <div class="pay-row" onclick="${clickAction}" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
                 <div style="width:40px; height:40px; border-radius:10px; border:1px solid var(--border2); display:flex; align-items:center; justify-content:center;">
                   ${m.icon}
                 </div>
@@ -493,11 +517,16 @@ open: async function(options) {
                 const data = await res.json();
                 
                 if(data.success) {
-                   document.getElementById(`drw${method}`).style.display='none';
-                   document.getElementById('state-checkout').style.display='none';
-                   document.getElementById('successScr').style.display='flex';
-                   if(window.launchConfetti) window.launchConfetti();
-                   setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
+                   if (data.orderStatusUrl) {
+                       window.location.href = data.orderStatusUrl;
+                   } else {
+                       const drw = document.getElementById(`drw${method}`);
+                       if (drw) drw.style.display = 'none';
+                       document.getElementById('state-checkout').style.display='none';
+                       document.getElementById('successScr').style.display='flex';
+                       if(window.launchConfetti) window.launchConfetti();
+                       setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
+                   }
                 } else {
                    btn.innerText = 'Failed';
                    alert("Failed to create order: " + (data.error || 'Unknown error'));
