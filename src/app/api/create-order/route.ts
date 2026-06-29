@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon } = data;
+    const { shop, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon, upsellVariantId } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -30,7 +30,57 @@ export async function POST(request: Request) {
     
     const variantData = await variantRes.json();
     const realPrice = parseFloat(variantData.variant.price) || 0;
-    const total = realPrice * (parseInt(quantity) || 1);
+    let total = realPrice * (parseInt(quantity) || 1);
+    let finalProductTitle = productTitle || 'Custom Product';
+    
+    // 1c. Upsell Processing
+    let upsellRealPrice = 0;
+    let upsellDiscountAmount = 0;
+    let upsellLineItem = null;
+
+    if (upsellVariantId) {
+      const upsellRes = await fetch(`https://${shop}/admin/api/2024-01/variants/${upsellVariantId}.json`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': merchant.accessToken
+        }
+      });
+
+      if (upsellRes.ok) {
+        const upsellData = await upsellRes.json();
+        upsellRealPrice = parseFloat(upsellData.variant.price) || 0;
+        
+        // Fetch active upsell from DB to get the discount
+        const activeUpsell = await prisma.upsellFunnel.findFirst({
+          where: { merchantId: merchant.id, offerVariantId: upsellVariantId.toString(), isActive: true }
+        });
+
+        if (activeUpsell) {
+           if (activeUpsell.discountType === 'percentage') {
+             upsellDiscountAmount = upsellRealPrice * (activeUpsell.discountValue / 100);
+           } else {
+             upsellDiscountAmount = activeUpsell.discountValue;
+           }
+           finalProductTitle += ` + ${activeUpsell.offerTitle}`;
+           
+           upsellLineItem = {
+             title: activeUpsell.offerTitle,
+             price: upsellRealPrice.toString(),
+             quantity: 1,
+             variant_id: parseInt(upsellVariantId)
+           };
+           
+           total += upsellRealPrice;
+           
+           // Track impression/conversion asynchronously (fire & forget)
+           prisma.upsellFunnel.update({
+             where: { id: activeUpsell.id },
+             data: { conversions: { increment: 1 }, revenue: { increment: (upsellRealPrice - upsellDiscountAmount) } }
+           }).catch(() => {});
+        }
+      }
+    }
 
     // 2. Create/Update Customer Profile Locally
     const customer = await prisma.customerProfile.findFirst({
@@ -56,10 +106,11 @@ export async function POST(request: Request) {
       });
     }
 
-    let totalDiscount = 0;
+    let totalDiscount = upsellDiscountAmount;
     let prepaidDiscountAmount = 0;
     let couponDiscountAmount = 0;
     let discountTitles = [];
+    if (upsellDiscountAmount > 0) discountTitles.push('Upsell Offer');
 
     // Fetch Payment Settings for Prepaid Discount
     const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
@@ -105,7 +156,7 @@ export async function POST(request: Request) {
         merchantId: merchant.id,
         customerName, customerPhone, customerEmail,
         address, city, state, pincode,
-        productTitle, variantId, quantity: parseInt(quantity) || 1, price: realPrice, total: finalTotal,
+        productTitle: finalProductTitle, variantId, quantity: parseInt(quantity) || 1, price: realPrice, total: finalTotal,
         paymentMethod: paymentMethod || 'COD',
         paymentId: paymentId || null,
         prepaidDiscount: prepaidDiscountAmount,
@@ -123,6 +174,10 @@ export async function POST(request: Request) {
     const parsedVariantId = parseInt(variantId);
     if (!isNaN(parsedVariantId)) {
        lineItems[0].variant_id = parsedVariantId;
+    }
+
+    if (upsellLineItem) {
+       lineItems.push(upsellLineItem);
     }
 
     // Calculate Shipping / COD Fee
