@@ -60,7 +60,7 @@ export default function FunnelPage() {
             </CardHeader>
             <CardContent>
               <div className="h-[350px] w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={350}>
                   <BarChart data={enrichedFunnel} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="step" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
