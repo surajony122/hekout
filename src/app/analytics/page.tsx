@@ -116,25 +116,25 @@ export default function AnalyticsPage() {
 
         <Card className="shadow-sm border-slate-200">
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-slate-600">Device Breakdown</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Checkout Drop-off Funnel</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[250px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[{ name: 'Mobile', value: 85 }, { name: 'Desktop', value: 12 }, { name: 'Tablet', value: 3 }]} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                <BarChart data={data.funnel} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                  <YAxis dataKey="step" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} width={100} />
                   <Tooltip 
                     cursor={{ fill: '#f8fafc' }}
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: any) => [`${value}%`, 'Traffic']}
+                    formatter={(value: any) => [`${value} Users`, 'Reached']}
                   />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={30} />
+                  <Bar dataKey="users" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs text-slate-500 text-center mt-4">This is placeholder device data. Will connect to live tracker soon.</p>
+            <p className="text-xs text-slate-500 text-center mt-4">Tracks the conversion journey of all visitors.</p>
           </CardContent>
         </Card>
       </div>

@@ -427,6 +427,17 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       };
       fetchCoupons();
 
+      
+      const cfTrack = async (evt) => {
+         try {
+            await fetch(`${apiBaseUrl}/api/analytics`, {
+               method: 'POST',
+               headers: {'Content-Type': 'application/json'},
+               body: JSON.stringify({ shop, eventName: evt })
+            });
+         } catch(e){}
+      };
+
       const autoApplyCoupon = () => {
          const subtotal = basePrice * currentQuantity;
          
@@ -678,6 +689,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             const data = await res.json();
             if (data.success || data.valid) {
               localStorage.setItem('checkoutflow_verified_phone', verifiedPhone);
+              cfTrack('OTP_VERIFIED');
               checkCustomer();
             } else {
               phoneBtn.innerText = 'Verify & Continue';
