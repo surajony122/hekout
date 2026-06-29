@@ -26,6 +26,7 @@ model Merchant {
   paymentSettings  PaymentSettings?
   widgetSettings   WidgetSettings?
   discounts        Discount[]
+  upsellFunnels    UpsellFunnel[]
 
   @@map("merchants")
 }
@@ -197,3 +198,24 @@ model Discount {
   @@map("discounts")
 }
 
+model UpsellFunnel {
+  id               String   @id @default(uuid())
+  merchantId       String   @map("merchant_id")
+  name             String
+  triggerVariantId String?  @map("trigger_variant_id") // If null, applies to all products
+  offerVariantId   String   @map("offer_variant_id")
+  offerTitle       String
+  offerPrice       Float
+  discountType     String   @default("percentage") // percentage, flat
+  discountValue    Float
+  isActive         Boolean  @default(true) @map("is_active")
+  impressions      Int      @default(0)
+  conversions      Int      @default(0)
+  revenue          Float    @default(0)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("upsell_funnels")
+}
