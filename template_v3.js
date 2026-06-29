@@ -589,6 +589,30 @@ open: async function(options) {
                 elOnlineBtn.innerHTML = `Pay Online`;
             }
         }
+
+        // --- SHIPPING TIER LOGIC ---
+        const threshold = widgetConfig.freeShippingThreshold || 999;
+        const msgEl = document.getElementById('cf-shipping-msg');
+        const statEl = document.getElementById('cf-shipping-status');
+        const barEl = document.getElementById('cf-shipping-bar');
+        
+        if (msgEl && statEl && barEl) {
+           if (subtotal >= threshold) {
+              msgEl.innerText = "You've unlocked Free Shipping! 🚚";
+              msgEl.style.color = "var(--green)";
+              statEl.innerText = "FREE";
+              statEl.style.color = "var(--green)";
+              barEl.style.width = "100%";
+           } else {
+              const diff = threshold - subtotal;
+              const pct = Math.min(100, Math.round((subtotal / threshold) * 100));
+              msgEl.innerText = `Add ₹${diff.toLocaleString('en-IN')} more to get Free Shipping`;
+              msgEl.style.color = "var(--text1)";
+              statEl.innerText = `₹${threshold.toLocaleString('en-IN')}`;
+              statEl.style.color = "var(--text3)";
+              barEl.style.width = `${pct}%`;
+           }
+        }
       };
 
       document.getElementById('qty-plus').onclick = () => { currentQuantity++; updatePricing(); };
