@@ -144,6 +144,9 @@ model PaymentSettings {
   
   // Standard COD
   codFeeAmount             Float   @default(69) @map("cod_fee_amount")
+  
+  // Free Shipping
+  freeShippingThreshold    Float   @default(999) @map("free_shipping_threshold")
 
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")

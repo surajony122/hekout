@@ -170,16 +170,18 @@ open: async function(options) {
               </div>
             </div>
 
-            <!-- SHIPPING CARD -->
-            <div class="card" style="padding:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--p1);fill:none;stroke-width:2;"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                  <span style="font-weight:600; font-size:15px; color:var(--text1);">Shipping</span>
-                </div>
-                <div style="font-weight:600; font-size:14px; color:var(--green); display:flex; align-items:center; gap:4px;">
-                   FREE <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
+            
+            <!-- DYNAMIC SHIPPING TIER BAR -->
+            <div class="card" style="padding:16px; margin-top:16px;" id="cf-shipping-tier-box">
+               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <div style="font-size:13px; font-weight:600; color:var(--text1);" id="cf-shipping-msg">Calculating shipping...</div>
+                  <div style="font-size:13px; font-weight:700; color:var(--text1);" id="cf-shipping-status"></div>
+               </div>
+               <div style="width:100%; height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                  <div id="cf-shipping-bar" style="height:100%; width:0%; background:var(--green); transition:width 0.4s ease;"></div>
+               </div>
+            </div>
+
               </div>
             </div>
 
