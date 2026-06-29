@@ -38,7 +38,8 @@ export async function GET(request: Request) {
         preLoginBannerColor: ws?.preLoginBannerColor || '#ffffff',
         postLoginBannerText: ws?.postLoginBannerText || '⚡ EXTRA 2% OFF ON UPI/CARDS',
         postLoginBannerBg: ws?.postLoginBannerBg || '#ecfdf5',
-        postLoginBannerColor: ws?.postLoginBannerColor || '#059669'
+        postLoginBannerColor: ws?.postLoginBannerColor || '#059669',
+        fbPixelId: ws?.fbPixelId || null
       }
     });
 
