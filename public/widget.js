@@ -297,8 +297,6 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                   <div id="cf-shipping-bar" style="height:100%; width:0%; background:var(--green); transition:width 0.4s ease;"></div>
                </div>
             </div>
-
-              </div>
             </div>
 
             <!-- PAYMENT METHODS -->
