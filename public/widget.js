@@ -713,6 +713,22 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         } catch(e) { stateAddress.style.display = 'block'; }
       };
 
+      
+      document.getElementById('cf-addr-pin').addEventListener('keyup', async (e) => {
+         const val = e.target.value.trim();
+         if(val.length === 6) {
+            try {
+               const res = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+               const data = await res.json();
+               if(data && data[0] && data[0].Status === 'Success') {
+                  const postOffice = data[0].PostOffice[0];
+                  document.getElementById('cf-addr-city').value = postOffice.District;
+                  document.getElementById('cf-addr-state').value = postOffice.State;
+               }
+            } catch(err) {}
+         }
+      });
+
       document.getElementById('cf-addr-btn').onclick = () => {
         const name = document.getElementById('cf-addr-name').value;
         const email = document.getElementById('cf-addr-email').value;
