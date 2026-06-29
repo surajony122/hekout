@@ -60,6 +60,11 @@ model Order {
   verificationStatus  String?  @map("verification_status") // Pending, Verified
   orderStatus         String?  @map("order_status") // Pending, Synced, Failed
   
+  // Marketing Attribution
+  utmSource         String?  @map("utm_source")
+  utmMedium         String?  @map("utm_medium")
+  utmCampaign       String?  @map("utm_campaign")
+
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
@@ -171,6 +176,9 @@ model WidgetSettings {
   postLoginBannerBg   String?  @default("#000000") @map("post_login_banner_bg")
   postLoginBannerColor String? @default("#ffffff") @map("post_login_banner_color")
   
+  // Tracking
+  fbPixelId               String? @map("fb_pixel_id")
+
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
