@@ -79,7 +79,7 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                       <div className="text-sm text-slate-700 font-medium">{order.customerName || 'Guest'}</div>
                     </TableCell>
                     <TableCell className="py-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mt-2 flex-wrap">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${order.paymentMethod === 'COD' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${order.paymentMethod === 'COD' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                           {order.paymentMethod === 'COD' ? 'Unpaid' : 'Paid'}
@@ -88,6 +88,11 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                           <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                           {isCompleted ? 'Fulfilled' : 'Unfulfilled'}
                         </span>
+                        {order.utmSource && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            {order.utmSource}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="py-4 text-sm font-medium text-slate-900">

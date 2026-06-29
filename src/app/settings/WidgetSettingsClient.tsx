@@ -15,6 +15,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
     postLoginBannerBg: initialSettings.postLoginBannerBg || '#ecfdf5',
     postLoginBannerColor: initialSettings.postLoginBannerColor || '#059669',
     brandLogoUrl: initialSettings.brandLogoUrl || '',
+    fbPixelId: initialSettings.fbPixelId || '',
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -75,6 +76,17 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
                 <img src={settings.brandLogoUrl} alt="Brand Logo Preview" className="max-h-12 object-contain" />
               </div>
             )}
+          </div>
+          
+          <div className="space-y-2 pt-4 border-t border-slate-100">
+            <label className="text-sm font-medium leading-none">Facebook (Meta) Pixel ID</label>
+            <Input 
+              value={settings.fbPixelId} 
+              onChange={e => setSettings({...settings, fbPixelId: e.target.value})} 
+              placeholder="e.g. 1234567890"
+              className="max-w-xs"
+            />
+            <p className="text-xs text-slate-500">Enter your Pixel ID to automatically track events like InitiateCheckout and Purchase.</p>
           </div>
         </CardContent>
       </Card>
