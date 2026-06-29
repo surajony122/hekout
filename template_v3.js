@@ -747,8 +747,11 @@ open: async function(options) {
 
             // Row
             let offerTxt = '';
-            if (m.id !== 'COD' && widgetConfig.isPrepaidDiscountEnabled) {
-                offerTxt = `<div style="font-size:11px; font-weight:500; color:var(--green); margin-top:4px;">Discount Applied</div>`;
+            if (m.id !== 'COD' && widgetConfig.isPrepaidDiscountEnabled && widgetConfig.prepaidDiscountValue > 0) {
+                const discountText = widgetConfig.prepaidDiscountType === 'percentage' 
+                    ? `Extra ${widgetConfig.prepaidDiscountValue}% OFF` 
+                    : `Save ₹${widgetConfig.prepaidDiscountValue}`;
+                offerTxt = `<div style="font-size:11px; font-weight:500; color:var(--green); margin-top:4px;">${discountText}</div>`;
             }
 
             const clickAction = m.id === 'COD' 
