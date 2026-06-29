@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, price, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, prepaidDiscount, paymentId, appliedCoupon } = data;
+    const { shop, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon } = data;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -15,7 +15,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found or missing access token' }, { status: 403 });
     }
 
-    const total = (parseFloat(price) || 0) * (parseInt(quantity) || 1);
+    // 1b. Server-Side Price Fetching
+    const variantRes = await fetch(`https://${shop}/admin/api/2024-01/variants/${variantId}.json`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': merchant.accessToken
+      }
+    });
+
+    if (!variantRes.ok) {
+      return NextResponse.json({ error: 'Invalid product variant' }, { status: 400 });
+    }
+    
+    const variantData = await variantRes.json();
+    const realPrice = parseFloat(variantData.variant.price) || 0;
+    const total = realPrice * (parseInt(quantity) || 1);
 
     // 2. Create/Update Customer Profile Locally
     const customer = await prisma.customerProfile.findFirst({
@@ -42,22 +57,44 @@ export async function POST(request: Request) {
     }
 
     let totalDiscount = 0;
-    
-    // Add prepaid discount if applicable
     let prepaidDiscountAmount = 0;
+    let couponDiscountAmount = 0;
     let discountTitles = [];
 
-    if (prepaidDiscount) {
-      prepaidDiscountAmount = parseFloat(prepaidDiscount) || 0;
+    // Fetch Payment Settings for Prepaid Discount
+    const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
+    const methodUpper = (paymentMethod || 'COD').toUpperCase();
+    const isCod = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
+
+    // Calculate Prepaid Discount securely
+    if (!isCod && paymentSettings?.isPrepaidDiscountEnabled) {
+      if (paymentSettings.prepaidDiscountType === 'percentage') {
+        prepaidDiscountAmount = total * (paymentSettings.prepaidDiscountValue / 100);
+      } else {
+        prepaidDiscountAmount = paymentSettings.prepaidDiscountValue;
+      }
       totalDiscount += prepaidDiscountAmount;
-      if(prepaidDiscountAmount > 0) discountTitles.push('Prepaid Discount');
+      if (prepaidDiscountAmount > 0) discountTitles.push('Prepaid Discount');
     }
 
-    let couponDiscountAmount = 0;
-    if (appliedCoupon && appliedCoupon.amount) {
-      couponDiscountAmount = parseFloat(appliedCoupon.amount) || 0;
-      totalDiscount += couponDiscountAmount;
-      if(couponDiscountAmount > 0) discountTitles.push(appliedCoupon.code);
+    // Calculate Coupon Discount securely
+    if (appliedCoupon && appliedCoupon.code) {
+      const dbCoupon = await prisma.discount.findFirst({
+        where: { merchantId: merchant.id, code: appliedCoupon.code, isActive: true }
+      });
+
+      if (dbCoupon) {
+        if (dbCoupon.type === 'percentage') {
+          couponDiscountAmount = total * (dbCoupon.value / 100);
+          if (dbCoupon.maxDiscount && couponDiscountAmount > dbCoupon.maxDiscount) {
+            couponDiscountAmount = dbCoupon.maxDiscount;
+          }
+        } else {
+          couponDiscountAmount = dbCoupon.value;
+        }
+        totalDiscount += couponDiscountAmount;
+        if (couponDiscountAmount > 0) discountTitles.push(dbCoupon.code);
+      }
     }
     
     const finalTotal = Math.max(0, total - totalDiscount);
@@ -68,7 +105,7 @@ export async function POST(request: Request) {
         merchantId: merchant.id,
         customerName, customerPhone, customerEmail,
         address, city, state, pincode,
-        productTitle, variantId, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0, total: finalTotal,
+        productTitle, variantId, quantity: parseInt(quantity) || 1, price: realPrice, total: finalTotal,
         paymentMethod: paymentMethod || 'COD',
         paymentId: paymentId || null,
         prepaidDiscount: prepaidDiscountAmount,
@@ -79,7 +116,7 @@ export async function POST(request: Request) {
     // 4. Create Shopify Draft Order via Admin API
     const lineItems: any[] = [{
       title: productTitle || 'Custom Product',
-      price: price,
+      price: realPrice.toString(),
       quantity: parseInt(quantity) || 1
     }];
     
@@ -92,10 +129,8 @@ export async function POST(request: Request) {
     let shippingTitle = "Standard Shipping";
     let shippingPrice = "0.00";
 
-    const methodUpper = (paymentMethod || 'COD').toUpperCase();
-    const isCod = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
-    if (isCod) {
-       const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
+    const isCodForShipping = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
+    if (isCodForShipping) {
        if (paymentSettings?.codFeeAmount) {
           shippingTitle = "Cash on Delivery Fee";
           shippingPrice = paymentSettings.codFeeAmount.toString();
