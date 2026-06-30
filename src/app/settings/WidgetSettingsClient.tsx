@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -35,7 +35,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
       } else {
         setMessage('Failed to save settings.');
       }
-    } catch (err) {
+    } catch {
       setMessage('Error saving settings.');
     }
     setLoading(false);
@@ -73,6 +73,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
             <p className="text-xs text-slate-500">Optional. Provide an image URL to replace the text store name in the checkout header.</p>
             {settings.brandLogoUrl && (
               <div className="mt-2 p-2 border rounded-md bg-slate-50 max-w-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={settings.brandLogoUrl} alt="Brand Logo Preview" className="max-h-12 object-contain" />
               </div>
             )}

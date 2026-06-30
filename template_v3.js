@@ -20,6 +20,12 @@ open: async function(options) {
 
       const primaryColor = widgetConfig.primaryColor || '#7c3aed';
 
+      // Remove any existing widget instances to prevent duplicate ID bugs
+      const existingOverlay = document.getElementById('checkoutflow-overlay');
+      if (existingOverlay) existingOverlay.remove();
+      const existingSheet = document.getElementById('checkoutflow-sheet');
+      if (existingSheet) existingSheet.remove();
+
       const overlay = document.createElement('div');
       overlay.id = 'checkoutflow-overlay';
       overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:999999; display:flex; align-items:flex-end; justify-content:center;';

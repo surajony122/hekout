@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     let totalDiscount = upsellDiscountAmount;
     let prepaidDiscountAmount = 0;
     let couponDiscountAmount = 0;
-    let discountTitles = [];
+    const discountTitles = [];
     if (upsellDiscountAmount > 0) discountTitles.push('Upsell Offer');
 
     // Calculate Coupon Discount securely

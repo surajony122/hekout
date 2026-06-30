@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Save, CheckCircle2, CreditCard, Percent } from 'lucide-react';
 
-export default function PaymentSettingsClient({ merchantId, initialSettings }: { merchantId: string, initialSettings: any }) {
+export default function PaymentSettingsClient({ merchantId, initialSettings }: { merchantId: string, initialSettings: Record<string, any> }) {
   const [formData, setFormData] = useState({
     razorpayKeyId: initialSettings.razorpayKeyId || '',
     razorpayKeySecret: initialSettings.razorpayKeySecret || '',
@@ -26,6 +26,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let finalValue: any = value;
     
     if (type === 'checkbox') {

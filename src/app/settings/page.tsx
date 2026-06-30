@@ -53,7 +53,7 @@ export default async function SettingsPage() {
           <Card className="shadow-sm border-slate-200">
             <CardHeader>
               <CardTitle>Store Details</CardTitle>
-              <CardDescription>Update your store's branding and information.</CardDescription>
+              <CardDescription>Update your store&apos;s branding and information.</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-500">General settings coming soon.</p>

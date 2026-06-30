@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function UpsellsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [funnels, setFunnels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function UpsellsPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
     fetchFunnels();
   }, []);
 
@@ -184,7 +186,7 @@ export default function UpsellsPage() {
         </CardHeader>
         <CardContent>
           {funnels.length === 0 ? (
-            <div className="text-center py-10 text-slate-500 text-sm">No upsells created yet. Click "Create Funnel" to start.</div>
+            <div className="text-center py-10 text-slate-500 text-sm">No upsells created yet. Click &quot;Create Funnel&quot; to start.</div>
           ) : (
             <Table>
               <TableHeader>
