@@ -185,7 +185,7 @@ export async function POST(request: Request) {
         address, city, state, pincode,
         productTitle: finalProductTitle, 
         variantId: cartItems[0]?.variantId || variantId || '', 
-        quantity: cartItems.reduce((acc, i) => acc + (parseInt(i.quantity) || 1), 0), 
+        quantity: cartItems.reduce((acc: number, i: any) => acc + (parseInt(i.quantity) || 1), 0), 
         price: parseFloat(cartItems[0]?.price) || 0, 
         total: finalTotal,
         paymentMethod: paymentMethod || 'COD',
