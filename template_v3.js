@@ -224,6 +224,7 @@ open: async function(options) {
                 <div style="font-size:16px; font-weight:700; margin:20px 0 12px;">Bill summary</div>
                 <div class="tr"><span class="l">Sub total</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
                 <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount on MRP</span><span class="v" id="tDisc">-₹0</span></div>
+                <div class="tr" id="trShip" style="display:none;"><span class="l">Shipping Fee</span><span class="v" id="tShipFee">₹0</span></div>
                 <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
                 <hr class="tr-div">
                 <div class="tr grand" style="font-size:16px;"><span class="l">Total amount</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
@@ -495,16 +496,22 @@ open: async function(options) {
 
         let prepaidDiscount = 0;
         let codFee = 0;
+        let shippingFee = 0;
+        
+        const threshold = widgetConfig.freeShippingThreshold || 999;
+        if (subtotal < threshold) {
+            shippingFee = widgetConfig.shippingFeeAmount || 0;
+        }
         
         if (currentPaymentMethod === 'COD') {
            codFee = widgetConfig.codFeeAmount || 0;
         } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
-           prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+           prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
         
         currentCouponDiscount = couponDiscount;
         const totalDiscount = couponDiscount + prepaidDiscount;
-        const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee;
+        const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee + shippingFee;
 
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;

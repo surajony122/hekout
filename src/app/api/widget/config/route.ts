@@ -28,6 +28,7 @@ export async function GET(request: Request) {
         isPartialCodEnabled: ps?.isPartialCodEnabled || false,
         partialCodAmount: ps?.partialCodAmount || 0,
         codFeeAmount: ps?.codFeeAmount !== undefined ? ps?.codFeeAmount : 69,
+        shippingFeeAmount: ps?.shippingFeeAmount !== undefined ? ps?.shippingFeeAmount : 0,
         freeShippingThreshold: ps?.freeShippingThreshold !== undefined ? ps?.freeShippingThreshold : 999,
         hasRazorpay: !!ps?.razorpayKeyId,
         storeName: merchant.storeName || shop.split('.')[0],

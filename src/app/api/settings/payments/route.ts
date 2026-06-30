@@ -25,7 +25,9 @@ export async function POST(request: Request) {
       prepaidDiscountValue,
       isPartialCodEnabled,
       partialCodAmount,
-      codFeeAmount
+      codFeeAmount,
+      shippingFeeAmount,
+      freeShippingThreshold
     } = body;
 
     const settings = await prisma.paymentSettings.upsert({
@@ -40,7 +42,9 @@ export async function POST(request: Request) {
         prepaidDiscountValue,
         isPartialCodEnabled,
         partialCodAmount,
-        codFeeAmount
+        codFeeAmount,
+        shippingFeeAmount: shippingFeeAmount !== undefined ? parseFloat(shippingFeeAmount) : 0,
+        freeShippingThreshold: freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : 999
       },
       create: {
         merchantId: merchant.id,
@@ -53,7 +57,9 @@ export async function POST(request: Request) {
         prepaidDiscountValue,
         isPartialCodEnabled,
         partialCodAmount,
-        codFeeAmount
+        codFeeAmount,
+        shippingFeeAmount: shippingFeeAmount !== undefined ? parseFloat(shippingFeeAmount) : 0,
+        freeShippingThreshold: freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : 999
       }
     });
 

@@ -15,6 +15,8 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
     isPartialCodEnabled: initialSettings.isPartialCodEnabled || false,
     partialCodAmount: initialSettings.partialCodAmount || 0,
     codFeeAmount: initialSettings.codFeeAmount !== undefined ? initialSettings.codFeeAmount : 69,
+    shippingFeeAmount: initialSettings.shippingFeeAmount !== undefined ? initialSettings.shippingFeeAmount : 0,
+    freeShippingThreshold: initialSettings.freeShippingThreshold !== undefined ? initialSettings.freeShippingThreshold : 999,
   });
 
   const [saving, setSaving] = useState(false);
@@ -171,6 +173,22 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">COD Fee Amount (₹)</label>
               <input type="number" name="codFeeAmount" value={formData.codFeeAmount} onChange={handleChange} className="w-full md:w-1/2 px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+
+          {/* Shipping Settings */}
+          <div className="border border-slate-100 rounded-xl p-5">
+            <h3 className="font-semibold text-slate-800 mb-2">Shipping Rules</h3>
+            <p className="text-slate-500 text-xs mb-4">Set your base shipping fee and the cart value required to unlock free shipping.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Base Shipping Fee (₹)</label>
+                <input type="number" name="shippingFeeAmount" value={formData.shippingFeeAmount} onChange={handleChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Free Shipping Threshold (₹)</label>
+                <input type="number" name="freeShippingThreshold" value={formData.freeShippingThreshold} onChange={handleChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" />
+              </div>
             </div>
           </div>
         </div>
