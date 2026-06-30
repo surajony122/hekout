@@ -829,6 +829,8 @@
           };
 
           const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button[name="add"], .shopify-payment-button');
+          if (!submitBtn) return; // Do not inject if form lacks an add to cart button
+          
           if (submitBtn && submitBtn.parentNode) {
              const dynamicCheckout = form.querySelector('.shopify-payment-button');
              if (dynamicCheckout && dynamicCheckout.parentNode) {
@@ -842,9 +844,8 @@
         });
 
         // 2. Inject on Cart Page / Drawer
-        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout');
+        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout, button[name="checkout"], [data-checkout-button]');
         cartCheckoutElements.forEach(checkoutBtn => {
-          if (checkoutBtn.name !== 'checkout' && checkoutBtn.type !== 'submit' && !checkoutBtn.classList.contains('cart__checkout') && !checkoutBtn.classList.contains('cart-checkout')) return;
           const container = checkoutBtn.parentNode;
           if (container && !container.querySelector('.checkoutflow-cart-btn')) {
              const btn = document.createElement('button');
