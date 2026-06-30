@@ -598,7 +598,6 @@ open: async function(options) {
         }
 
         // --- SHIPPING TIER LOGIC ---
-        const threshold = widgetConfig.freeShippingThreshold || 999;
         const msgEl = document.getElementById('cf-shipping-msg');
         const statEl = document.getElementById('cf-shipping-status');
         const barEl = document.getElementById('cf-shipping-bar');
