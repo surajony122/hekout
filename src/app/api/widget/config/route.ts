@@ -27,7 +27,9 @@ export async function GET(request: Request) {
         prepaidDiscountValue: ps?.prepaidDiscountValue || 0,
         isPartialCodEnabled: ps?.isPartialCodEnabled || false,
         partialCodAmount: ps?.partialCodAmount || 0,
+        isCodFeeEnabled: ps?.isCodFeeEnabled !== false, // default true
         codFeeAmount: ps?.codFeeAmount !== undefined ? ps?.codFeeAmount : 69,
+        isShippingFeeEnabled: ps?.isShippingFeeEnabled || false,
         shippingFeeAmount: ps?.shippingFeeAmount !== undefined ? ps?.shippingFeeAmount : 0,
         freeShippingThreshold: ps?.freeShippingThreshold !== undefined ? ps?.freeShippingThreshold : 999,
         hasRazorpay: !!ps?.razorpayKeyId,

@@ -25,7 +25,9 @@ export async function POST(request: Request) {
       prepaidDiscountValue,
       isPartialCodEnabled,
       partialCodAmount,
+      isCodFeeEnabled,
       codFeeAmount,
+      isShippingFeeEnabled,
       shippingFeeAmount,
       freeShippingThreshold
     } = body;
@@ -42,7 +44,9 @@ export async function POST(request: Request) {
         prepaidDiscountValue,
         isPartialCodEnabled,
         partialCodAmount,
+        isCodFeeEnabled,
         codFeeAmount,
+        isShippingFeeEnabled,
         shippingFeeAmount: shippingFeeAmount !== undefined ? parseFloat(shippingFeeAmount) : 0,
         freeShippingThreshold: freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : 999
       },
@@ -57,7 +61,9 @@ export async function POST(request: Request) {
         prepaidDiscountValue,
         isPartialCodEnabled,
         partialCodAmount,
+        isCodFeeEnabled,
         codFeeAmount,
+        isShippingFeeEnabled,
         shippingFeeAmount: shippingFeeAmount !== undefined ? parseFloat(shippingFeeAmount) : 0,
         freeShippingThreshold: freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : 999
       }

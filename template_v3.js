@@ -497,13 +497,17 @@ open: async function(options) {
         let codFee = 0;
         let shippingFee = 0;
         
-        const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
-        if (threshold === 0 || subtotal < threshold) {
-            shippingFee = widgetConfig.shippingFeeAmount || 0;
+        if (widgetConfig.isShippingFeeEnabled) {
+            const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
+            if (threshold === 0 || subtotal < threshold) {
+                shippingFee = widgetConfig.shippingFeeAmount || 0;
+            }
         }
         
         if (currentPaymentMethod === 'COD') {
-           codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
+           if (widgetConfig.isCodFeeEnabled !== false) {
+               codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
+           }
         } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
@@ -618,7 +622,8 @@ open: async function(options) {
         const boxEl = document.getElementById('cf-shipping-tier-box');
         
         if (msgEl && statEl && barEl && boxEl) {
-           if (threshold === 0) {
+           const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
+           if (!widgetConfig.isShippingFeeEnabled || threshold === 0) {
               boxEl.style.display = 'none';
            } else {
               boxEl.style.display = 'block';
@@ -841,13 +846,17 @@ open: async function(options) {
          let codFee = 0;
          const subtotal = basePrice * currentQuantity;
          
-         const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
-         if (threshold === 0 || subtotal < threshold) {
-             shippingFee = widgetConfig.shippingFeeAmount || 0;
+         if (widgetConfig.isShippingFeeEnabled) {
+             const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
+             if (threshold === 0 || subtotal < threshold) {
+                 shippingFee = widgetConfig.shippingFeeAmount || 0;
+             }
          }
          
          if (method === 'COD') {
-            codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
+            if (widgetConfig.isCodFeeEnabled !== false) {
+                codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
+            }
          } else if (widgetConfig.isPrepaidDiscountEnabled) {
             prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - currentCouponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
          }
