@@ -698,14 +698,21 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               if (widgetConfig.isPrepaidDiscountEnabled) {
                  mDisc += widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
               }
-              el.innerText = `₹${Math.round(Math.max(0, subtotal - mDisc) + shippingFee).toLocaleString('en-IN')}`;
+              const finalVal = Math.max(0, subtotal - mDisc) + shippingFee;
+              el.innerText = `₹${Number.isInteger(finalVal) ? finalVal : finalVal.toFixed(2)}`;
            }
         });
         const elCod = document.getElementById('ppCOD');
-        if(elCod) elCod.innerText = `₹${Math.round(Math.max(0, subtotal - couponDiscount) + shippingFee + codFee).toLocaleString('en-IN')}`;
+        if(elCod) {
+           const finalCod = Math.max(0, subtotal - couponDiscount) + shippingFee + codFee;
+           elCod.innerText = `₹${Number.isInteger(finalCod) ? finalCod : finalCod.toFixed(2)}`;
+        }
 
         const elCodBtn = document.getElementById('cod-confirm-btn');
-        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${Math.round(Math.max(0, subtotal - couponDiscount) + shippingFee + codFee).toLocaleString('en-IN')})`;
+        if(elCodBtn) {
+           const finalCodBtn = Math.max(0, subtotal - couponDiscount) + shippingFee + codFee;
+           elCodBtn.innerText = `Confirm COD (₹${Number.isInteger(finalCodBtn) ? finalCodBtn : finalCodBtn.toFixed(2)})`;
+        }
 
         const elOnlineBtn = document.getElementById('cod-save-btn');
         if(elOnlineBtn) {
