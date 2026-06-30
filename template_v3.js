@@ -580,16 +580,16 @@ open: async function(options) {
            if(el) {
               let mDisc = couponDiscount;
               if (widgetConfig.isPrepaidDiscountEnabled) {
-                 mDisc += widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+                 mDisc += widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
               }
-              el.innerText = `₹${Math.round(Math.max(0, subtotal - mDisc)).toLocaleString('en-IN')}`;
+              el.innerText = `₹${Math.round(Math.max(0, subtotal - mDisc) + shippingFee).toLocaleString('en-IN')}`;
            }
         });
         const elCod = document.getElementById('ppCOD');
-        if(elCod) elCod.innerText = `₹${Math.round(subtotal - couponDiscount + (widgetConfig.codFeeAmount || 0)).toLocaleString('en-IN')}`;
+        if(elCod) elCod.innerText = `₹${Math.round(Math.max(0, subtotal - couponDiscount) + shippingFee + codFee).toLocaleString('en-IN')}`;
 
         const elCodBtn = document.getElementById('cod-confirm-btn');
-        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${Math.round(subtotal - couponDiscount + codFee).toLocaleString('en-IN')})`;
+        if(elCodBtn) elCodBtn.innerText = `Confirm COD (₹${Math.round(Math.max(0, subtotal - couponDiscount) + shippingFee + codFee).toLocaleString('en-IN')})`;
 
         const elOnlineBtn = document.getElementById('cod-save-btn');
         if(elOnlineBtn) {
