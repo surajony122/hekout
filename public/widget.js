@@ -619,7 +619,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         }
         
         if (currentPaymentMethod === 'COD') {
-           codFee = widgetConfig.codFeeAmount || 0;
+           codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
         } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
         }
@@ -673,6 +673,14 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
            document.getElementById('tDisc').innerText = `-₹${Math.round(totalDiscount).toLocaleString('en-IN')}`;
         } else {
            discRow.style.display = 'none';
+        }
+
+        const shipRow = document.getElementById('trShip');
+        if (shippingFee > 0) {
+           shipRow.style.display = 'flex';
+           document.getElementById('tShipFee').innerText = `₹${shippingFee.toLocaleString('en-IN')}`;
+        } else {
+           shipRow.style.display = 'none';
         }
 
         const codRow = document.getElementById('trCod');
