@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon, upsellVariantId, notes, utmSource, utmMedium, utmCampaign, shippingFee, codFee } = data;
+    const { shop, items, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon, upsellVariantId, notes, utmSource, utmMedium, utmCampaign, shippingFee, codFee } = data;
     const shippingFeePayload = shippingFee || 0;
     const codFeePayload = codFee || 0;
 
@@ -18,22 +18,46 @@ export async function POST(request: Request) {
     }
 
     // 1b. Server-Side Price Fetching
-    const variantRes = await fetch(`https://${shop}/admin/api/2024-01/variants/${variantId}.json`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': merchant.accessToken
-      }
-    });
-
-    if (!variantRes.ok) {
-      return NextResponse.json({ error: 'Invalid product variant' }, { status: 400 });
-    }
+    const cartItems = items || [{ variantId, quantity: parseInt(quantity) || 1, title: productTitle || 'Custom Product', price: 0 }];
     
-    const variantData = await variantRes.json();
-    const realPrice = parseFloat(variantData.variant.price) || 0;
-    let total = realPrice * (parseInt(quantity) || 1);
-    let finalProductTitle = productTitle || 'Custom Product';
+    let total = 0;
+    const lineItems: any[] = [];
+    let finalProductTitle = '';
+
+    for (const item of cartItems) {
+        const variantRes = await fetch(`https://${shop}/admin/api/2024-01/variants/${item.variantId}.json`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': merchant.accessToken
+          }
+        });
+        
+        if (variantRes.ok) {
+           const variantData = await variantRes.json();
+           const realPrice = parseFloat(variantData.variant.price) || 0;
+           const qty = parseInt(item.quantity) || 1;
+           total += realPrice * qty;
+           const title = item.title || variantData.variant.title || variantData.variant.name || 'Product';
+           if (!finalProductTitle) {
+               finalProductTitle = title;
+           } else if (finalProductTitle.length < 50) {
+               finalProductTitle += `, ${title}`;
+           }
+           
+           const parsedVariantId = parseInt(item.variantId);
+           lineItems.push({
+               title: title,
+               price: realPrice.toString(),
+               quantity: qty,
+               ...(isNaN(parsedVariantId) ? {} : { variant_id: parsedVariantId })
+           });
+        }
+    }
+
+    if (lineItems.length === 0) {
+      return NextResponse.json({ error: 'Invalid product variants' }, { status: 400 });
+    }
     
     // 1c. Upsell Processing
     let upsellRealPrice = 0;
@@ -159,7 +183,11 @@ export async function POST(request: Request) {
         merchantId: merchant.id,
         customerName, customerPhone, customerEmail,
         address, city, state, pincode,
-        productTitle: finalProductTitle, variantId, quantity: parseInt(quantity) || 1, price: realPrice, total: finalTotal,
+        productTitle: finalProductTitle, 
+        variantId: cartItems[0]?.variantId || variantId || '', 
+        quantity: cartItems.reduce((acc, i) => acc + (parseInt(i.quantity) || 1), 0), 
+        price: parseFloat(cartItems[0]?.price) || 0, 
+        total: finalTotal,
         paymentMethod: paymentMethod || 'COD',
         paymentId: paymentId || null,
         prepaidDiscount: prepaidDiscountAmount,
@@ -171,16 +199,7 @@ export async function POST(request: Request) {
     });
 
     // 4. Create Shopify Draft Order via Admin API
-    const lineItems: any[] = [{
-      title: productTitle || 'Custom Product',
-      price: realPrice.toString(),
-      quantity: parseInt(quantity) || 1
-    }];
-    
-    const parsedVariantId = parseInt(variantId);
-    if (!isNaN(parsedVariantId)) {
-       lineItems[0].variant_id = parsedVariantId;
-    }
+    // lineItems already populated in Step 1b
 
     if (upsellLineItem) {
        lineItems.push(upsellLineItem);

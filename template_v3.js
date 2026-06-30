@@ -1,6 +1,15 @@
 open: async function(options) {
-      const { shop, variantId, quantity, productTitle, productImage, price } = options;
+      const { shop, items, variantId, quantity, productTitle, productImage, price } = options;
       this.trackEvent(shop, 'WIDGET_OPENED');
+
+      // Support old format (single item) or new format (items array)
+      const cartItems = items || [{
+         variantId: variantId,
+         quantity: quantity || 1,
+         title: productTitle || 'Product',
+         price: price || 0,
+         image: productImage || ''
+      }];
 
       const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
       let widgetConfig = { 
@@ -34,17 +43,12 @@ open: async function(options) {
       sheet.id = 'checkoutflow-sheet';
       sheet.style.cssText = 'width:100%; max-width:400px; height:88vh; background:#f5f3ff; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.2);';
 
-      let currentQuantity = quantity;
-      let basePrice = price;
-      let total = basePrice * currentQuantity;
+      let totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+      let subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      let total = subtotalBase;
+      
       let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
       let customerData = null;
-
-      let finalProductImage = productImage;
-      if (!finalProductImage) {
-        const ogImage = document.querySelector('meta[property="og:image"]');
-        if (ogImage && ogImage.content) finalProductImage = ogImage.content;
-      }
 
       const phosphorScript = document.createElement('script');
       phosphorScript.src = 'https://unpkg.com/@phosphor-icons/web';
@@ -99,7 +103,7 @@ open: async function(options) {
           <!-- NEW ORDER SUMMARY BAR -->
             <div class="os-bar" id="osBarTop" style="margin-bottom: 16px;">
                <div class="os-top" id="sumHdr" style="border-bottom:none;">
-                 <div>Order summary (<span id="osItemCount">${currentQuantity} Item</span>)</div>
+                 <div>Order summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>)</div>
                  <div class="os-prices">
                     <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
                     <span class="os-final" id="osFinalPrice">₹${total.toLocaleString('en-IN')}</span>
@@ -213,17 +217,21 @@ open: async function(options) {
                    <svg viewBox="0 0 24 24" onclick="document.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </div>
                 <div class="card" style="padding:16px;">
-                   <div class="oi" id="oi1" style="padding-top:0;">
-                     <div class="oi-thumb">${finalProductImage ? `<img src="${finalProductImage}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
-                     <div class="oi-info">
-                       <div class="oi-name">${productTitle || 'Product'}</div>
-                       <div class="oi-ctrls">
-                         <div class="qty-btn" id="qty-minus">−</div>
-                         <span class="qty-n" id="q1">${currentQuantity}</span>
-                         <div class="qty-btn" id="qty-plus">+</div>
+                   <div id="cart-items-container">
+                     ${cartItems.map((item, index) => `
+                     <div class="oi" id="oi${index}" style="${index === 0 ? 'padding-top:0;' : ''}">
+                       <div class="oi-thumb">${item.image ? `<img src="${item.image}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
+                       <div class="oi-info">
+                         <div class="oi-name">${item.title || 'Product'}</div>
+                         <div class="oi-ctrls">
+                           <div class="qty-btn" id="qty-minus-${index}" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>−</div>
+                           <span class="qty-n" id="q${index}">${item.quantity}</span>
+                           <div class="qty-btn" id="qty-plus-${index}" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>+</div>
+                         </div>
                        </div>
+                       <div class="oi-price"><div class="pr" id="p${index}">₹${(item.price * item.quantity).toLocaleString('en-IN')}</div></div>
                      </div>
-                     <div class="oi-price"><div class="pr" id="p1">₹${total.toLocaleString('en-IN')}</div></div>
+                     `).join('')}
                    </div>
                 </div>
                 <div style="font-size:16px; font-weight:700; margin:20px 0 12px;">Bill summary</div>
@@ -368,18 +376,18 @@ open: async function(options) {
       loadUpsell();
 
       const autoApplyCoupon = () => {
-         const subtotal = basePrice * currentQuantity;
+         const subtotal = subtotalBase;
          
          // 1. Check if currently applied coupon is still valid
          if (appliedCoupon) {
-             if (currentQuantity < appliedCoupon.minItems || subtotal < appliedCoupon.minCartValue) {
+             if (totalQuantity < appliedCoupon.minItems || subtotal < appliedCoupon.minCartValue) {
                  appliedCoupon = null; // Clear it if invalid
              }
          }
          
          // 2. Try to find a valid auto-apply coupon if none applied
          if (!appliedCoupon) {
-             const validAuto = availableCoupons.filter(c => c.isAuto && currentQuantity >= c.minItems && subtotal >= c.minCartValue);
+             const validAuto = availableCoupons.filter(c => c.isAuto && totalQuantity >= c.minItems && subtotal >= c.minCartValue);
              if(validAuto.length > 0) {
                 // Sort by value (descending) to apply the best one
                 validAuto.sort((a,b) => {
@@ -396,50 +404,46 @@ open: async function(options) {
       };
 
       const renderCoupons = () => {
-         const subtotal = basePrice * currentQuantity;
+         const subtotal = subtotalBase;
          const container = document.getElementById('cpn-list-container');
          let html = '<div style="font-weight:600; font-size:15px; margin-bottom:8px;">Applicable coupons</div>';
          
-         const applicable = availableCoupons.filter(c => currentQuantity >= c.minItems && subtotal >= c.minCartValue);
-         const unlockable = availableCoupons.filter(c => currentQuantity < c.minItems || subtotal < c.minCartValue);
+         const applicable = availableCoupons.filter(c => totalQuantity >= c.minItems && subtotal >= c.minCartValue);
+         const unlockable = availableCoupons.filter(c => totalQuantity < c.minItems || subtotal < c.minCartValue);
 
          if(applicable.length === 0 && unlockable.length === 0) {
-            container.innerHTML = '<div style="color:var(--text3); font-size:13px;">No coupons available right now.</div>';
-            return;
-         }
-
-         applicable.forEach(c => {
-            const isActive = appliedCoupon && appliedCoupon.id === c.id;
-            const cls = isActive ? 'active' : '';
-            const valTxt = c.type === 'percentage' ? `${c.value}% OFF` : `₹${c.value} OFF`;
-            const actTxt = isActive ? '<span class="cpn-applied-txt">Applied</span>' : `<span class="cpn-action" onclick="window.cfApplyCoupon('${c.id}')">Apply</span>`;
-            
-            html += `
-               <div class="cpn-item ${cls}">
-                 <div class="cpn-item-header">
-                    <div class="cpn-code">${isActive ? '<svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>' : '<svg viewBox="0 0 24 24" style="stroke:var(--text3);fill:none;stroke-width:2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>'} ${c.code}</div>
-                    ${actTxt}
-                 </div>
-                 <div class="cpn-save-box">${valTxt}</div>
-                 ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
-               </div>
-            `;
-         });
-
-         if(unlockable.length > 0) {
-            html += '<div style="font-weight:600; font-size:15px; margin:20px 0 8px;">Unlock Coupons</div>';
-            unlockable.forEach(c => {
+            html += '<div style="font-size:13px; color:var(--text3);">No coupons available at the moment.</div>';
+         } else {
+            applicable.forEach(c => {
+               const isActive = appliedCoupon && appliedCoupon.id === c.id;
+               const actTxt = isActive ? '<span class="cpn-applied-txt">Applied</span>' : `<span class="cpn-action" onclick="window.cfApplyCoupon('${c.id}')">Apply</span>`;
                html += `
-                  <div class="cpn-item disabled">
-                    <div class="cpn-item-header">
-                       <div class="cpn-code" style="color:var(--text3)"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> ${c.code}</div>
-                       <span style="color:var(--text3); font-size:13px; font-weight:600;">Apply</span>
-                    </div>
-                    <div class="cpn-err">Applicable only on ${c.minCartValue > 0 ? `₹${c.minCartValue} orders` : `${c.minItems} or more items`}.</div>
-                    ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
+                  <div class="cpn-card ${isActive ? 'cpn-active' : ''}">
+                     <div class="cpn-header">
+                        <div class="cpn-code">${c.code}</div>
+                        ${actTxt}
+                     </div>
+                     <div class="cpn-title">${c.type === 'percentage' ? c.value+'% OFF' : '₹'+c.value+' OFF'}</div>
+                     ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
                   </div>
                `;
             });
+
+            if(unlockable.length > 0) {
+               html += '<div style="font-weight:600; font-size:15px; margin:16px 0 8px;">More offers</div>';
+               unlockable.forEach(c => {
+                  html += `
+                     <div class="cpn-card" style="opacity:0.6; pointer-events:none;">
+                        <div class="cpn-header">
+                           <div class="cpn-code">${c.code}</div>
+                           <span style="color:var(--text3); font-size:13px; font-weight:600;">Apply</span>
+                        </div>
+                        <div class="cpn-err">Applicable only on ${c.minCartValue > 0 ? `₹${c.minCartValue} orders` : `${c.minItems} or more items`}.</div>
+                        ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
+                     </div>
+                  `;
+               });
+            }
          }
          container.innerHTML = html;
       };
@@ -457,13 +461,13 @@ open: async function(options) {
          const code = document.getElementById('cpn-manual-input').value.trim().toUpperCase();
          const err = document.getElementById('cpn-manual-err');
          if(!code) return;
-         const subtotal = basePrice * currentQuantity;
+         const subtotal = subtotalBase;
          const c = availableCoupons.find(x => x.code.toUpperCase() === code);
          
          if(!c) {
             err.style.display = 'block'; err.innerText = 'Invalid coupon code.'; return;
          }
-         if(currentQuantity < c.minItems || subtotal < c.minCartValue) {
+         if(totalQuantity < c.minItems || subtotal < c.minCartValue) {
             err.style.display = 'block'; err.innerText = 'Requirements not met for this coupon.'; return;
          }
          
@@ -487,7 +491,7 @@ open: async function(options) {
 
         if (method) currentPaymentMethod = method;
         
-        const subtotal = basePrice * currentQuantity;
+        const subtotal = subtotalBase;
         let couponDiscount = 0;
         
         if (appliedCoupon) {
@@ -652,9 +656,23 @@ open: async function(options) {
       }
     };
 
-      document.getElementById('qty-plus').onclick = () => { currentQuantity++; updatePricing(); };
-      document.getElementById('qty-minus').onclick = () => { if(currentQuantity > 1) { currentQuantity--; updatePricing(); } };
-
+      window.cfUpdateQty = (index, delta) => {
+         if (cartItems[index]) {
+            const newQty = cartItems[index].quantity + delta;
+            if (newQty >= 1) {
+               cartItems[index].quantity = newQty;
+               document.getElementById(`q${index}`).innerText = newQty;
+               document.getElementById(`p${index}`).innerText = `₹${(cartItems[index].price * newQty).toLocaleString('en-IN')}`;
+               
+               // Recalculate totals
+               totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+               subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+               document.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity > 1 ? 's' : ''}`;
+               
+               updatePricing();
+            }
+         }
+      };
       // --- PHONE LOGIC ---
       let otpStepActive = false;
       const phoneIn = document.getElementById('cf-phone-in');
@@ -850,7 +868,7 @@ open: async function(options) {
          let prepaidDiscount = 0;
          let shippingFee = 0;
          let codFee = 0;
-         const subtotal = basePrice * currentQuantity;
+         const subtotal = subtotalBase;
          
          if (widgetConfig.isShippingFeeEnabled) {
              const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
@@ -868,7 +886,7 @@ open: async function(options) {
          }
 
          const payload = {
-            shop, variantId, quantity: currentQuantity, productTitle, price,
+            shop, items: cartItems,
             customerName: document.getElementById('cf-addr-name').value,
             customerPhone: verifiedPhone,
             customerEmail: document.getElementById('cf-addr-email').value,

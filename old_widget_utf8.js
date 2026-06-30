@@ -1,4 +1,4 @@
-﻿(function() {
+(function() {
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
       try {
@@ -767,60 +767,137 @@
     },
 
     autoInject: function() {
-      window.addEventListener('DOMContentLoaded', () => {
-        const cartForms = document.querySelectorAll('form[action="/cart/add"]');
-        cartForms.forEach(form => {
-          const fastCheckoutBtn = document.createElement('button');
-          fastCheckoutBtn.type = 'button';
-          fastCheckoutBtn.innerText = 'Buy Now (CheckoutFlow)';
-          fastCheckoutBtn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer;';
+      const injectButtons = () => {
+        // 1. Inject on Product Page
+        const productForms = document.querySelectorAll('form[action="/cart/add"], form[action^="/cart/add"]');
+        productForms.forEach(form => {
+          if (form.querySelector('.checkoutflow-btn')) return;
           
-          fastCheckoutBtn.onclick = (e) => {
-            e.preventDefault();
-            let variantId = 'unknown';
-            const variantInput = form.querySelector('input[name="id"], select[name="id"]');
-            if (variantInput) variantId = variantInput.value;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'checkoutflow-btn';
+          btn.innerText = 'Buy Now (CheckoutFlow)';
+          btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
+          
+          btn.onmouseover = () => btn.style.transform = 'scale(0.98)';
+          btn.onmouseout = () => btn.style.transform = 'scale(1)';
+          
+          btn.onclick = (e) => {
+             e.preventDefault();
+             let variantId = 'unknown';
+             const variantInput = form.querySelector('input[name="id"], select[name="id"]');
+             if (variantInput) variantId = variantInput.value;
 
-            let quantity = 1;
-            const qtyInput = form.querySelector('input[name="quantity"]');
-            if (qtyInput) quantity = parseInt(qtyInput.value) || 1;
+             let quantity = 1;
+             const qtyInput = form.querySelector('input[name="quantity"]');
+             if (qtyInput) quantity = parseInt(qtyInput.value) || 1;
 
-            const shopDomain = window.Shopify ? window.Shopify.shop : 'test.myshopify.com';
-            const titleEl = document.querySelector('h1');
-            const productTitle = titleEl ? titleEl.innerText : 'Product';
-            
-            let price = 0;
-            let productImage = null;
-            if (window.meta && window.meta.product && window.meta.product.variants && window.meta.product.variants.length > 0) {
-              price = window.meta.product.variants[0].price / 100;
-              if (window.meta.product.variants[0].featured_image) {
-                productImage = window.meta.product.variants[0].featured_image.src;
-              }
-            } else {
-              const priceEl = document.querySelector('.price-item--regular, .price, .product__price, [data-product-price]');
-              if (priceEl) {
-                let text = priceEl.innerText.replace(/,/g, '');
-                let match = text.match(/[\d]+(\.[\d]+)?/);
-                if (match) price = parseFloat(match[0]);
-              }
-            }
-            if (!productImage) {
-              const imgEl = document.querySelector('img.product-single__photo, img.product__image, img[data-product-featured-image]');
-              if (imgEl) productImage = imgEl.src;
-            }
+             const shopDomain = window.Shopify ? window.Shopify.shop : 'test.myshopify.com';
+             const titleEl = document.querySelector('h1');
+             const productTitle = titleEl ? titleEl.innerText : 'Product';
+             
+             let price = 0;
+             let productImage = null;
+             if (window.meta && window.meta.product && window.meta.product.variants && window.meta.product.variants.length > 0) {
+               price = window.meta.product.variants[0].price / 100;
+               if (window.meta.product.variants[0].featured_image) {
+                 productImage = window.meta.product.variants[0].featured_image.src;
+               }
+             } else {
+               const priceEl = document.querySelector('.price-item--regular, .price, .product__price, [data-product-price]');
+               if (priceEl) {
+                 let text = priceEl.innerText.replace(/,/g, '');
+                 let match = text.match(/[\d]+(\.[\d]+)?/);
+                 if (match) price = parseFloat(match[0]);
+               }
+             }
+             if (!productImage) {
+               const imgEl = document.querySelector('img.product-single__photo, img.product__image, img[data-product-featured-image]');
+               if (imgEl) productImage = imgEl.src;
+             }
 
-            window.CheckoutFlow.open({
-              shop: shopDomain,
-              variantId: variantId,
-              quantity: quantity,
-              productTitle: productTitle,
-              productImage: productImage,
-              price: price
-            });
+             window.CheckoutFlow.open({
+               shop: shopDomain,
+               items: [{
+                 variantId: variantId,
+                 quantity: quantity,
+                 title: productTitle,
+                 price: price,
+                 image: productImage
+               }]
+             });
           };
-          form.appendChild(fastCheckoutBtn);
+
+          const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button[name="add"], .shopify-payment-button');
+          if (submitBtn && submitBtn.parentNode) {
+             const dynamicCheckout = form.querySelector('.shopify-payment-button');
+             if (dynamicCheckout && dynamicCheckout.parentNode) {
+                dynamicCheckout.parentNode.insertBefore(btn, dynamicCheckout.nextSibling);
+             } else {
+                submitBtn.parentNode.insertBefore(btn, submitBtn.nextSibling);
+             }
+          } else {
+             form.appendChild(btn);
+          }
         });
-      });
+
+        // 2. Inject on Cart Page / Drawer
+        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout');
+        cartCheckoutElements.forEach(checkoutBtn => {
+          if (checkoutBtn.name !== 'checkout' && checkoutBtn.type !== 'submit' && !checkoutBtn.classList.contains('cart__checkout') && !checkoutBtn.classList.contains('cart-checkout')) return;
+          const container = checkoutBtn.parentNode;
+          if (container && !container.querySelector('.checkoutflow-cart-btn')) {
+             const btn = document.createElement('button');
+             btn.type = 'button';
+             btn.className = 'checkoutflow-cart-btn';
+             btn.innerText = 'Checkout via CheckoutFlow';
+             btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
+             
+             btn.onmouseover = () => btn.style.transform = 'scale(0.98)';
+             btn.onmouseout = () => btn.style.transform = 'scale(1)';
+             
+             btn.onclick = async (e) => {
+               e.preventDefault();
+               const originalText = btn.innerText;
+               btn.innerText = 'Loading...';
+               try {
+                 const res = await fetch('/cart.js');
+                 const cart = await res.json();
+                 if (cart.items && cart.items.length > 0) {
+                   const shopDomain = window.Shopify ? window.Shopify.shop : 'test.myshopify.com';
+                   const items = cart.items.map(item => ({
+                      variantId: item.variant_id.toString(),
+                      quantity: item.quantity,
+                      title: item.title,
+                      price: item.price / 100,
+                      image: item.image || null
+                   }));
+                   window.CheckoutFlow.open({ shop: shopDomain, items: items });
+                 } else {
+                   alert('Cart is empty');
+                 }
+               } catch(err) {
+                 alert('Error fetching cart');
+               } finally {
+                 btn.innerText = originalText;
+               }
+             };
+             container.insertBefore(btn, checkoutBtn.nextSibling);
+          }
+        });
+      };
+
+      const observeAndInject = () => {
+         injectButtons();
+         const observer = new MutationObserver(() => injectButtons());
+         observer.observe(document.body, { childList: true, subtree: true });
+      };
+
+      if (document.readyState === 'loading') {
+         document.addEventListener('DOMContentLoaded', observeAndInject);
+      } else {
+         observeAndInject();
+      }
     }
   };
 
