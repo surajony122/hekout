@@ -340,9 +340,9 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                        <div class="oi-info">
                          <div class="oi-name">${item.title || 'Product'}</div>
                          <div class="oi-ctrls">
-                           <div class="qty-btn" id="qty-minus-${index}" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>−</div>
+                           <div class="qty-btn" onclick="window.cfUpdateQty(${index}, -1)" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>−</div>
                            <span class="qty-n" id="q${index}">${item.quantity}</span>
-                           <div class="qty-btn" id="qty-plus-${index}" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>+</div>
+                           <div class="qty-btn" onclick="window.cfUpdateQty(${index}, 1)" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>+</div>
                          </div>
                        </div>
                        <div class="oi-price"><div class="pr" id="p${index}">₹${(item.price * item.quantity).toLocaleString('en-IN')}</div></div>
