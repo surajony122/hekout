@@ -739,7 +739,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               barEl.style.width = `${pct}%`;
            }
         }
-      };
+      }
+    };
 
       document.getElementById('qty-plus').onclick = () => { currentQuantity++; updatePricing(); };
       document.getElementById('qty-minus').onclick = () => { if(currentQuantity > 1) { currentQuantity--; updatePricing(); } };

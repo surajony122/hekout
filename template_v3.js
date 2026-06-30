@@ -623,7 +623,8 @@ open: async function(options) {
               barEl.style.width = `${pct}%`;
            }
         }
-      };
+      }
+    };
 
       document.getElementById('qty-plus').onclick = () => { currentQuantity++; updatePricing(); };
       document.getElementById('qty-minus').onclick = () => { if(currentQuantity > 1) { currentQuantity--; updatePricing(); } };
