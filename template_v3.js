@@ -830,9 +830,19 @@ open: async function(options) {
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
          
          let prepaidDiscount = 0;
+         let shippingFee = 0;
+         let codFee = 0;
          const subtotal = basePrice * currentQuantity;
-         if (widgetConfig.isPrepaidDiscountEnabled && method !== 'COD') {
-            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
+         
+         const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
+         if (threshold === 0 || subtotal < threshold) {
+             shippingFee = widgetConfig.shippingFeeAmount || 0;
+         }
+         
+         if (method === 'COD') {
+            codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
+         } else if (widgetConfig.isPrepaidDiscountEnabled) {
+            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - currentCouponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
          }
 
          const payload = {
@@ -846,6 +856,8 @@ open: async function(options) {
             pincode: document.getElementById('cf-addr-pin').value,
             paymentMethod: method,
             prepaidDiscount,
+            shippingFee,
+            codFee,
             appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(currentCouponDiscount) } : undefined
          };
 
@@ -880,7 +892,7 @@ open: async function(options) {
 
          if (method !== 'COD') {
            try {
-             const rzpAmount = Math.max(0, subtotal - prepaidDiscount);
+             const rzpAmount = Math.max(0, subtotal - currentCouponDiscount - prepaidDiscount) + shippingFee;
              const rzpOrderRes = await fetch(`${apiBaseUrl}/api/checkout/create-razorpay-order`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },

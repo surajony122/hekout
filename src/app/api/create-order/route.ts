@@ -112,22 +112,6 @@ export async function POST(request: Request) {
     let discountTitles = [];
     if (upsellDiscountAmount > 0) discountTitles.push('Upsell Offer');
 
-    // Fetch Payment Settings for Prepaid Discount
-    const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
-    const methodUpper = (paymentMethod || 'COD').toUpperCase();
-    const isCod = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
-
-    // Calculate Prepaid Discount securely
-    if (!isCod && paymentSettings?.isPrepaidDiscountEnabled) {
-      if (paymentSettings.prepaidDiscountType === 'percentage') {
-        prepaidDiscountAmount = total * (paymentSettings.prepaidDiscountValue / 100);
-      } else {
-        prepaidDiscountAmount = paymentSettings.prepaidDiscountValue;
-      }
-      totalDiscount += prepaidDiscountAmount;
-      if (prepaidDiscountAmount > 0) discountTitles.push('Prepaid Discount');
-    }
-
     // Calculate Coupon Discount securely
     if (appliedCoupon && appliedCoupon.code) {
       const dbCoupon = await prisma.discount.findFirst({
@@ -147,8 +131,25 @@ export async function POST(request: Request) {
         if (couponDiscountAmount > 0) discountTitles.push(dbCoupon.code);
       }
     }
+
+    // Fetch Payment Settings for Prepaid Discount
+    const paymentSettings = await prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id } });
+    const methodUpper = (paymentMethod || 'COD').toUpperCase();
+    const isCod = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
+
+    // Calculate Prepaid Discount securely (after coupon)
+    if (!isCod && paymentSettings?.isPrepaidDiscountEnabled) {
+      const amountAfterCoupon = Math.max(0, total - couponDiscountAmount);
+      if (paymentSettings.prepaidDiscountType === 'percentage') {
+        prepaidDiscountAmount = amountAfterCoupon * (paymentSettings.prepaidDiscountValue / 100);
+      } else {
+        prepaidDiscountAmount = paymentSettings.prepaidDiscountValue;
+      }
+      totalDiscount += prepaidDiscountAmount;
+      if (prepaidDiscountAmount > 0) discountTitles.push('Prepaid Discount');
+    }
     
-    const finalTotal = Math.max(0, total - totalDiscount);
+    const finalTotal = Math.max(0, total - totalDiscount) + shippingFeePayload + codFeePayload;
 
     // 3. Create Local Order (Pending)
     const order = await prisma.order.create({
@@ -183,16 +184,18 @@ export async function POST(request: Request) {
        lineItems.push(upsellLineItem);
     }
 
-    // Calculate Shipping / COD Fee
-    let shippingTitle = "Standard Shipping";
+    const shippingFeePayload = body.shippingFee || 0;
+    const codFeePayload = body.codFee || 0;
+
+    let shippingTitle = "Shipping & Handling";
     let shippingPrice = "0.00";
 
-    const isCodForShipping = methodUpper === 'COD' || methodUpper === 'PARTIAL COD';
-    if (isCodForShipping) {
-       if (paymentSettings?.codFeeAmount) {
-          shippingTitle = "Cash on Delivery Fee";
-          shippingPrice = paymentSettings.codFeeAmount.toString();
-       }
+    if (shippingFeePayload > 0) {
+        shippingTitle = "Shipping Fee";
+        shippingPrice = shippingFeePayload.toString();
+    } else if (codFeePayload > 0) {
+        shippingTitle = "Cash on Delivery Fee";
+        shippingPrice = codFeePayload.toString();
     }
 
     const draftPayload = {
