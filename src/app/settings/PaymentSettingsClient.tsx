@@ -14,7 +14,9 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
     prepaidDiscountValue: initialSettings.prepaidDiscountValue || 0,
     isPartialCodEnabled: initialSettings.isPartialCodEnabled || false,
     partialCodAmount: initialSettings.partialCodAmount || 0,
+    isCodFeeEnabled: initialSettings.isCodFeeEnabled !== false, // default true
     codFeeAmount: initialSettings.codFeeAmount !== undefined ? initialSettings.codFeeAmount : 69,
+    isShippingFeeEnabled: initialSettings.isShippingFeeEnabled || false,
     shippingFeeAmount: initialSettings.shippingFeeAmount !== undefined ? initialSettings.shippingFeeAmount : 0,
     freeShippingThreshold: initialSettings.freeShippingThreshold !== undefined ? initialSettings.freeShippingThreshold : 999,
   });
