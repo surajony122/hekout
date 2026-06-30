@@ -181,7 +181,6 @@ open: async function(options) {
                   <div id="cf-shipping-bar" style="height:100%; width:0%; background:var(--green); transition:width 0.4s ease;"></div>
                </div>
             </div>
-            </div>
 
             <!-- PAYMENT METHODS -->
             <div style="margin-top:20px;">
@@ -498,8 +497,8 @@ open: async function(options) {
         let codFee = 0;
         let shippingFee = 0;
         
-        const threshold = widgetConfig.freeShippingThreshold || 999;
-        if (subtotal < threshold) {
+        const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
+        if (threshold === 0 || subtotal < threshold) {
             shippingFee = widgetConfig.shippingFeeAmount || 0;
         }
         
@@ -601,9 +600,14 @@ open: async function(options) {
         const msgEl = document.getElementById('cf-shipping-msg');
         const statEl = document.getElementById('cf-shipping-status');
         const barEl = document.getElementById('cf-shipping-bar');
+        const boxEl = document.getElementById('cf-shipping-tier-box');
         
-        if (msgEl && statEl && barEl) {
-           if (subtotal >= threshold) {
+        if (msgEl && statEl && barEl && boxEl) {
+           if (threshold === 0) {
+              boxEl.style.display = 'none';
+           } else {
+              boxEl.style.display = 'block';
+              if (subtotal >= threshold) {
               msgEl.innerText = "You've unlocked Free Shipping! 🚚";
               msgEl.style.color = "var(--green)";
               statEl.innerText = "FREE";
