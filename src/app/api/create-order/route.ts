@@ -4,7 +4,9 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon, upsellVariantId, notes, utmSource, utmMedium, utmCampaign } = data;
+    const { shop, productTitle, variantId, quantity, customerName, customerPhone, customerEmail, address, city, state, pincode, paymentMethod, paymentId, appliedCoupon, upsellVariantId, notes, utmSource, utmMedium, utmCampaign, shippingFee, codFee } = data;
+    const shippingFeePayload = shippingFee || 0;
+    const codFeePayload = codFee || 0;
 
     // 1. Validate Merchant & Real Access Token
     const merchant = await prisma.merchant.findUnique({
@@ -183,9 +185,6 @@ export async function POST(request: Request) {
     if (upsellLineItem) {
        lineItems.push(upsellLineItem);
     }
-
-    const shippingFeePayload = body.shippingFee || 0;
-    const codFeePayload = body.codFee || 0;
 
     let shippingTitle = "Shipping & Handling";
     let shippingPrice = "0.00";
