@@ -1,13 +1,37 @@
 (function() {
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
+      const apiUrl = 'https://checkoutflow-app.onrender.com/api/widget/track';
+      const eventPayload = { shop, sessionId: 'anon', eventName, timestamp: Date.now() };
+      
+      let queue = [];
       try {
-        await fetch('https://checkoutflow-app.onrender.com/api/widget/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop, sessionId: 'anon', eventName })
-        });
-      } catch (err) {}
+        const stored = localStorage.getItem('checkoutflow_event_queue');
+        if (stored) queue = JSON.parse(stored);
+      } catch(e) {}
+      
+      queue.push(eventPayload);
+      
+      const newQueue = [];
+      for (const ev of queue) {
+        try {
+          await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ev)
+          });
+        } catch (err) {
+          newQueue.push(ev);
+        }
+      }
+      
+      try {
+        if (newQueue.length > 0) {
+          localStorage.setItem('checkoutflow_event_queue', JSON.stringify(newQueue.slice(0, 50)));
+        } else {
+          localStorage.removeItem('checkoutflow_event_queue');
+        }
+      } catch(e) {}
     },
 
     open: async function(options) {

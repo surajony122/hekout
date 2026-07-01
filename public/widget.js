@@ -1,13 +1,37 @@
 (function() {
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
+      const apiUrl = 'https://checkoutflow-app.onrender.com/api/widget/track';
+      const eventPayload = { shop, sessionId: 'anon', eventName, timestamp: Date.now() };
+      
+      let queue = [];
       try {
-        await fetch('https://checkoutflow-app.onrender.com/api/widget/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop, sessionId: 'anon', eventName })
-        });
-      } catch (err) {}
+        const stored = localStorage.getItem('checkoutflow_event_queue');
+        if (stored) queue = JSON.parse(stored);
+      } catch(e) {}
+      
+      queue.push(eventPayload);
+      
+      const newQueue = [];
+      for (const ev of queue) {
+        try {
+          await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ev)
+          });
+        } catch (err) {
+          newQueue.push(ev);
+        }
+      }
+      
+      try {
+        if (newQueue.length > 0) {
+          localStorage.setItem('checkoutflow_event_queue', JSON.stringify(newQueue.slice(0, 50)));
+        } else {
+          localStorage.removeItem('checkoutflow_event_queue');
+        }
+      } catch(e) {}
     },
 
     open: async function(options) {
@@ -42,10 +66,13 @@
       const primaryColor = widgetConfig.primaryColor || '#7c3aed';
 
       // Remove any existing widget instances to prevent duplicate ID bugs
-      const existingOverlay = document.getElementById('checkoutflow-overlay');
-      if (existingOverlay) existingOverlay.remove();
-      const existingSheet = document.getElementById('checkoutflow-sheet');
-      if (existingSheet) existingSheet.remove();
+      const existingHost = document.getElementById('checkoutflow-host');
+      if (existingHost) existingHost.remove();
+
+      const host = document.createElement('div');
+      host.id = 'checkoutflow-host';
+      host.style.cssText = 'all: initial; position: relative; z-index: 2147483647;';
+      const widgetRoot = host.attachShadow({ mode: 'open' });
 
       const overlay = document.createElement('div');
       overlay.id = 'checkoutflow-overlay';
@@ -330,7 +357,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Order Summary</div>
-                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                   <svg viewBox="0 0 24 24" onclick="widgetRoot.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </div>
                 <div class="card" style="padding:16px;">
                    <div id="cart-items-container">
@@ -367,7 +394,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
-                   <svg viewBox="0 0 24 24" onclick="document.getElementById('drwCoupon').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                   <svg viewBox="0 0 24 24" onclick="widgetRoot.getElementById('drwCoupon').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </div>
                 <div class="cpn-input-row">
                    <svg viewBox="0 0 24 24" style="width:20px; height:20px; stroke:var(--green); fill:none; stroke-width:2; margin:8px 0 0 8px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
@@ -392,7 +419,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       `;
 
       overlay.appendChild(sheet);
-      document.body.appendChild(overlay);
+      widgetRoot.appendChild(overlay);
+      document.body.appendChild(host);
       document.body.style.overflow = 'hidden';
 
       setTimeout(() => { sheet.style.transform = 'translateY(0)'; }, 10);
@@ -401,12 +429,12 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         sheet.style.transform = 'translateY(100%)';
         setTimeout(() => { overlay.remove(); document.body.style.overflow = ''; }, 400);
       };
-      document.getElementById('cf-close-btn').onclick = closeWidget;
+      widgetRoot.getElementById('cf-close-btn').onclick = closeWidget;
 
       // Confetti Logic
       
       window.launchConfetti = () => {
-         const canvas = document.getElementById('confetti-canvas');
+         const canvas = widgetRoot.getElementById('confetti-canvas');
          if (!canvas || !window.confetti) return;
          const myConfetti = window.confetti.create(canvas, { resize: true, useWorker: true });
          myConfetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
@@ -414,15 +442,15 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
 
       // --- STATE MANAGEMENT ---
-      const statePhone = document.getElementById('state-phone');
-      const stateAddress = document.getElementById('state-address');
-      const stateCheckout = document.getElementById('state-checkout');
-      const sumHdr = document.getElementById('sumHdr');
+      const statePhone = widgetRoot.getElementById('state-phone');
+      const stateAddress = widgetRoot.getElementById('state-address');
+      const stateCheckout = widgetRoot.getElementById('state-checkout');
+      const sumHdr = widgetRoot.getElementById('sumHdr');
             
       
       // Open Drawers
-      document.getElementById('sumHdr').onclick = () => { document.getElementById('drwBill').style.display='flex'; };
-      document.getElementById('osCpnLink').onclick = () => { document.getElementById('drwCoupon').style.display='flex'; };
+      widgetRoot.getElementById('sumHdr').onclick = () => { widgetRoot.getElementById('drwBill').style.display='flex'; };
+      widgetRoot.getElementById('osCpnLink').onclick = () => { widgetRoot.getElementById('drwCoupon').style.display='flex'; };
 
       let availableCoupons = [];
       let appliedCoupon = null;
@@ -461,7 +489,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                activeUpsell = data.offer;
                
                // Inject UI above payment methods
-               const payContainer = document.getElementById('pay-methods-container');
+               const payContainer = widgetRoot.getElementById('pay-methods-container');
                const upsellBox = document.createElement('div');
                upsellBox.innerHTML = `
                   <div style="background:var(--bg); border:1px solid var(--green); border-radius:12px; padding:12px; margin-bottom:20px; display:flex; gap:12px; align-items:center;">
@@ -482,7 +510,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                `;
                payContainer.parentNode.insertBefore(upsellBox, payContainer);
                
-               document.getElementById('cf-upsell-check').addEventListener('change', (e) => {
+               widgetRoot.getElementById('cf-upsell-check').addEventListener('change', (e) => {
                   upsellAccepted = e.target.checked;
                   updateTotals();
                });
@@ -521,7 +549,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
       const renderCoupons = () => {
          const subtotal = subtotalBase;
-         const container = document.getElementById('cpn-list-container');
+         const container = widgetRoot.getElementById('cpn-list-container');
          let html = '<div style="font-weight:600; font-size:15px; margin-bottom:8px;">Applicable coupons</div>';
          
          const applicable = availableCoupons.filter(c => totalQuantity >= c.minItems && subtotal >= c.minCartValue);
@@ -567,15 +595,15 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       window.cfApplyCoupon = (id) => {
          appliedCoupon = availableCoupons.find(c => c.id === id);
          if(window.launchConfetti) window.launchConfetti();
-         document.getElementById('drwCoupon').style.display = 'none';
+         widgetRoot.getElementById('drwCoupon').style.display = 'none';
          updatePricing();
          renderCoupons();
       };
 
       // Handle manual input
-      document.getElementById('cpn-manual-btn').onclick = () => {
-         const code = document.getElementById('cpn-manual-input').value.trim().toUpperCase();
-         const err = document.getElementById('cpn-manual-err');
+      widgetRoot.getElementById('cpn-manual-btn').onclick = () => {
+         const code = widgetRoot.getElementById('cpn-manual-input').value.trim().toUpperCase();
+         const err = widgetRoot.getElementById('cpn-manual-err');
          if(!code) return;
          const subtotal = subtotalBase;
          const c = availableCoupons.find(x => x.code.toUpperCase() === code);
@@ -590,8 +618,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          err.style.display = 'none';
          appliedCoupon = c;
          if(window.launchConfetti) window.launchConfetti();
-         document.getElementById('cpn-manual-input').value = '';
-         document.getElementById('drwCoupon').style.display = 'none';
+         widgetRoot.getElementById('cpn-manual-input').value = '';
+         widgetRoot.getElementById('drwCoupon').style.display = 'none';
          updatePricing();
          renderCoupons();
       };
@@ -642,69 +670,69 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         const totalDiscount = couponDiscount + prepaidDiscount;
         const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee + shippingFee;
 
-        document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
+        widgetRoot.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        widgetRoot.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
         
         // Original price in header
         if(totalDiscount > 0) {
-           document.getElementById('osOrigPrice').style.display = 'inline';
-           document.getElementById('osOrigPrice').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+           widgetRoot.getElementById('osOrigPrice').style.display = 'inline';
+           widgetRoot.getElementById('osOrigPrice').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
         } else {
-           document.getElementById('osOrigPrice').style.display = 'none';
+           widgetRoot.getElementById('osOrigPrice').style.display = 'none';
         }
 
         // Green Save Banner
         if(couponDiscount > 0) {
-           document.getElementById('osSaveBanner').style.display = 'block';
-           document.getElementById('osSaveAmt').innerText = `₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
+           widgetRoot.getElementById('osSaveBanner').style.display = 'block';
+           widgetRoot.getElementById('osSaveAmt').innerText = `₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
         } else {
-           document.getElementById('osSaveBanner').style.display = 'none';
+           widgetRoot.getElementById('osSaveBanner').style.display = 'none';
         }
 
         // Coupon Box in Order Summary Bar
         if(appliedCoupon) {
-           document.getElementById('osCpnEmpty').style.display = 'none';
-           document.getElementById('osCpnActive').style.display = 'inline-flex';
-           document.getElementById('osCpnCode').innerText = appliedCoupon.code;
-           document.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
-           document.getElementById('osCpnLink').innerText = 'Change >';
+           widgetRoot.getElementById('osCpnEmpty').style.display = 'none';
+           widgetRoot.getElementById('osCpnActive').style.display = 'inline-flex';
+           widgetRoot.getElementById('osCpnCode').innerText = appliedCoupon.code;
+           widgetRoot.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
+           widgetRoot.getElementById('osCpnLink').innerText = 'Change >';
         } else {
-           document.getElementById('osCpnEmpty').style.display = 'block';
-           document.getElementById('osCpnActive').style.display = 'none';
-           document.getElementById('osCpnLink').innerText = 'Enter a Coupon >';
+           widgetRoot.getElementById('osCpnEmpty').style.display = 'block';
+           widgetRoot.getElementById('osCpnActive').style.display = 'none';
+           widgetRoot.getElementById('osCpnLink').innerText = 'Enter a Coupon >';
         }
 
         // Drawer values
-        document.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
-        document.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        widgetRoot.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+        widgetRoot.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
 
-        const discRow = document.getElementById('trDisc');
+        const discRow = widgetRoot.getElementById('trDisc');
         if (totalDiscount > 0) {
            discRow.style.display = 'flex';
-           document.getElementById('tDisc').innerText = `-₹${Math.round(totalDiscount).toLocaleString('en-IN')}`;
+           widgetRoot.getElementById('tDisc').innerText = `-₹${Math.round(totalDiscount).toLocaleString('en-IN')}`;
         } else {
            discRow.style.display = 'none';
         }
 
-        const shipRow = document.getElementById('trShip');
+        const shipRow = widgetRoot.getElementById('trShip');
         if (shippingFee > 0) {
            shipRow.style.display = 'flex';
-           document.getElementById('tShipFee').innerText = `₹${shippingFee.toLocaleString('en-IN')}`;
+           widgetRoot.getElementById('tShipFee').innerText = `₹${shippingFee.toLocaleString('en-IN')}`;
         } else {
            shipRow.style.display = 'none';
         }
 
-        const codRow = document.getElementById('trCod');
+        const codRow = widgetRoot.getElementById('trCod');
         if (codFee > 0) {
            codRow.style.display = 'flex';
-           document.getElementById('tCodFee').innerText = `₹${codFee.toLocaleString('en-IN')}`;
+           widgetRoot.getElementById('tCodFee').innerText = `₹${codFee.toLocaleString('en-IN')}`;
         } else {
            codRow.style.display = 'none';
         }
 
         ['UPI','Card','Wallet','Netbanking'].forEach(m => {
-           const el = document.getElementById(`pp${m}`);
+           const el = widgetRoot.getElementById(`pp${m}`);
            if(el) {
               let mDisc = couponDiscount;
               if (widgetConfig.isPrepaidDiscountEnabled) {
@@ -714,19 +742,19 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
               el.innerText = `₹${Number.isInteger(finalVal) ? finalVal : finalVal.toFixed(2)}`;
            }
         });
-        const elCod = document.getElementById('ppCOD');
+        const elCod = widgetRoot.getElementById('ppCOD');
         if(elCod) {
            const finalCod = Math.max(0, subtotal - couponDiscount) + shippingFee + codFee;
            elCod.innerText = `₹${Number.isInteger(finalCod) ? finalCod : finalCod.toFixed(2)}`;
         }
 
-        const elCodBtn = document.getElementById('cod-confirm-btn');
+        const elCodBtn = widgetRoot.getElementById('cod-confirm-btn');
         if(elCodBtn) {
            const finalCodBtn = Math.max(0, subtotal - couponDiscount) + shippingFee + codFee;
            elCodBtn.innerText = `Confirm COD (₹${Number.isInteger(finalCodBtn) ? finalCodBtn : finalCodBtn.toFixed(2)})`;
         }
 
-        const elOnlineBtn = document.getElementById('cod-save-btn');
+        const elOnlineBtn = widgetRoot.getElementById('cod-save-btn');
         if(elOnlineBtn) {
             let mDisc = 0;
             if (widgetConfig.isPrepaidDiscountEnabled) {
@@ -740,10 +768,10 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         }
 
         // --- SHIPPING TIER LOGIC ---
-        const msgEl = document.getElementById('cf-shipping-msg');
-        const statEl = document.getElementById('cf-shipping-status');
-        const barEl = document.getElementById('cf-shipping-bar');
-        const boxEl = document.getElementById('cf-shipping-tier-box');
+        const msgEl = widgetRoot.getElementById('cf-shipping-msg');
+        const statEl = widgetRoot.getElementById('cf-shipping-status');
+        const barEl = widgetRoot.getElementById('cf-shipping-bar');
+        const boxEl = widgetRoot.getElementById('cf-shipping-tier-box');
         
         if (msgEl && statEl && barEl && boxEl) {
            const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
@@ -775,13 +803,13 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             const newQty = cartItems[index].quantity + delta;
             if (newQty >= 1) {
                cartItems[index].quantity = newQty;
-               document.getElementById(`q${index}`).innerText = newQty;
-               document.getElementById(`p${index}`).innerText = `₹${(cartItems[index].price * newQty).toLocaleString('en-IN')}`;
+               widgetRoot.getElementById(`q${index}`).innerText = newQty;
+               widgetRoot.getElementById(`p${index}`).innerText = `₹${(cartItems[index].price * newQty).toLocaleString('en-IN')}`;
                
                // Recalculate totals
                totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
                subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-               document.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity > 1 ? 's' : ''}`;
+               widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity > 1 ? 's' : ''}`;
                
                updatePricing();
             }
@@ -789,9 +817,9 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       };
       // --- PHONE LOGIC ---
       let otpStepActive = false;
-      const phoneIn = document.getElementById('cf-phone-in');
-      const otpIn = document.getElementById('cf-otp-in');
-      const phoneBtn = document.getElementById('cf-phone-btn');
+      const phoneIn = widgetRoot.getElementById('cf-phone-in');
+      const otpIn = widgetRoot.getElementById('cf-otp-in');
+      const phoneBtn = widgetRoot.getElementById('cf-phone-btn');
       
       phoneBtn.onclick = async () => {
         if (!otpStepActive) {
@@ -806,7 +834,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             const data = await res.json();
             if (data.success) {
               verifiedPhone = phone;
-              document.getElementById('cf-otp-box').style.display = 'block';
+              widgetRoot.getElementById('cf-otp-box').style.display = 'block';
               otpStepActive = true;
               phoneBtn.innerText = 'Verify & Continue';
             } else {
@@ -840,17 +868,17 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
           const data = await res.json();
           if (data.success && data.customer) {
             customerData = data.customer;
-            document.getElementById('disp-name').innerText = customerData.name;
-            document.getElementById('disp-addr').innerText = `${customerData.address}, ${customerData.city}`;
-            document.getElementById('disp-phone').innerText = verifiedPhone;
-            document.getElementById('disp-email').innerText = customerData.email || '';
+            widgetRoot.getElementById('disp-name').innerText = customerData.name;
+            widgetRoot.getElementById('disp-addr').innerText = `${customerData.address}, ${customerData.city}`;
+            widgetRoot.getElementById('disp-phone').innerText = verifiedPhone;
+            widgetRoot.getElementById('disp-email').innerText = customerData.email || '';
             
-            document.getElementById('cf-addr-name').value = customerData.name || '';
-            document.getElementById('cf-addr-email').value = customerData.email || '';
-            document.getElementById('cf-addr-street').value = customerData.address || '';
-            document.getElementById('cf-addr-city').value = customerData.city || '';
-            document.getElementById('cf-addr-state').value = customerData.state || '';
-            document.getElementById('cf-addr-pin').value = customerData.pincode || '';
+            widgetRoot.getElementById('cf-addr-name').value = customerData.name || '';
+            widgetRoot.getElementById('cf-addr-email').value = customerData.email || '';
+            widgetRoot.getElementById('cf-addr-street').value = customerData.address || '';
+            widgetRoot.getElementById('cf-addr-city').value = customerData.city || '';
+            widgetRoot.getElementById('cf-addr-state').value = customerData.state || '';
+            widgetRoot.getElementById('cf-addr-pin').value = customerData.pincode || '';
 
             renderPaymentMethods();
             stateCheckout.style.display = 'block';
@@ -861,7 +889,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       };
 
       
-      document.getElementById('cf-addr-pin').addEventListener('keyup', async (e) => {
+      widgetRoot.getElementById('cf-addr-pin').addEventListener('keyup', async (e) => {
          const val = e.target.value.trim();
          if(val.length === 6) {
             try {
@@ -869,31 +897,31 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                const data = await res.json();
                if(data && data[0] && data[0].Status === 'Success') {
                   const postOffice = data[0].PostOffice[0];
-                  document.getElementById('cf-addr-city').value = postOffice.District;
-                  document.getElementById('cf-addr-state').value = postOffice.State;
+                  widgetRoot.getElementById('cf-addr-city').value = postOffice.District;
+                  widgetRoot.getElementById('cf-addr-state').value = postOffice.State;
                }
             } catch(err) {}
          }
       });
 
-      document.getElementById('cf-addr-btn').onclick = () => {
-        const name = document.getElementById('cf-addr-name').value;
-        const email = document.getElementById('cf-addr-email').value;
-        const addr = document.getElementById('cf-addr-street').value;
-        const city = document.getElementById('cf-addr-city').value;
+      widgetRoot.getElementById('cf-addr-btn').onclick = () => {
+        const name = widgetRoot.getElementById('cf-addr-name').value;
+        const email = widgetRoot.getElementById('cf-addr-email').value;
+        const addr = widgetRoot.getElementById('cf-addr-street').value;
+        const city = widgetRoot.getElementById('cf-addr-city').value;
         if(!name || !addr || !city) return;
         
-        document.getElementById('disp-name').innerText = name;
-        document.getElementById('disp-addr').innerText = `${addr}, ${city}`;
-        document.getElementById('disp-phone').innerText = verifiedPhone;
-        document.getElementById('disp-email').innerText = email;
+        widgetRoot.getElementById('disp-name').innerText = name;
+        widgetRoot.getElementById('disp-addr').innerText = `${addr}, ${city}`;
+        widgetRoot.getElementById('disp-phone').innerText = verifiedPhone;
+        widgetRoot.getElementById('disp-email').innerText = email;
         
         stateAddress.style.display = 'none';
         renderPaymentMethods();
         stateCheckout.style.display = 'block';
       };
 
-      document.getElementById('cf-edit-addr').onclick = () => {
+      widgetRoot.getElementById('cf-edit-addr').onclick = () => {
         stateCheckout.style.display = 'none';
         stateAddress.style.display = 'block';
       };
@@ -904,8 +932,8 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
       // --- PAYMENT DRAWERS & METHODS ---
       const renderPaymentMethods = () => {
-         const container = document.getElementById('pay-methods-container');
-         const dContainer = document.getElementById('drawers-container');
+         const container = widgetRoot.getElementById('pay-methods-container');
+         const dContainer = widgetRoot.getElementById('drawers-container');
          let html = '';
          let dHtml = '';
 
@@ -928,7 +956,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                   <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                      <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                      <div style="display:flex; flex-direction:column; gap:10px;">
-                        <button class="cf-btn" onclick="document.getElementById('drw${m.id}').style.display='none'; window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
+                        <button class="cf-btn" onclick="widgetRoot.getElementById('drw${m.id}').style.display='none'; window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
                         <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="cod-confirm-btn" style="background:var(--surface); color:var(--text1); border:1.5px solid var(--border2); box-shadow:none;">Confirm COD</button>
                      </div>
                   </div>
@@ -946,7 +974,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
             }
 
             const clickAction = m.id === 'COD' 
-                ? `window.cfUpdatePricing('${m.id}'); document.getElementById('drw${m.id}').style.display='flex'`
+                ? `window.cfUpdatePricing('${m.id}'); widgetRoot.getElementById('drw${m.id}').style.display='flex'`
                 : `window.cfUpdatePricing('${m.id}'); window.cfExecutePayment('${m.id}')`;
 
             html += `
@@ -966,7 +994,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          
          container.innerHTML = html;
          
-         let dynD = document.getElementById('dynamic-drawers');
+         let dynD = widgetRoot.getElementById('dynamic-drawers');
          if(!dynD) { dynD = document.createElement('div'); dynD.id = 'dynamic-drawers'; dContainer.appendChild(dynD); }
          dynD.innerHTML = dHtml;
 
@@ -976,7 +1004,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
       // --- PAYMENT EXECUTION ---
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
-         const btn = document.getElementById(`paybtn-${method}`) || document.getElementById('cod-save-btn');
+         const btn = widgetRoot.getElementById(`paybtn-${method}`) || widgetRoot.getElementById('cod-save-btn');
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
          
          let prepaidDiscount = 0;
@@ -1001,13 +1029,13 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
          const payload = {
             shop, items: cartItems,
-            customerName: document.getElementById('cf-addr-name').value,
+            customerName: widgetRoot.getElementById('cf-addr-name').value,
             customerPhone: verifiedPhone,
-            customerEmail: document.getElementById('cf-addr-email').value,
-            address: document.getElementById('cf-addr-street').value,
-            city: document.getElementById('cf-addr-city').value,
-            state: document.getElementById('cf-addr-state').value,
-            pincode: document.getElementById('cf-addr-pin').value,
+            customerEmail: widgetRoot.getElementById('cf-addr-email').value,
+            address: widgetRoot.getElementById('cf-addr-street').value,
+            city: widgetRoot.getElementById('cf-addr-city').value,
+            state: widgetRoot.getElementById('cf-addr-state').value,
+            pincode: widgetRoot.getElementById('cf-addr-pin').value,
             paymentMethod: method,
             prepaidDiscount,
             shippingFee,
@@ -1027,10 +1055,10 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
                    if (data.orderStatusUrl) {
                        window.location.href = data.orderStatusUrl;
                    } else {
-                       const drw = document.getElementById(`drw${method}`);
+                       const drw = widgetRoot.getElementById(`drw${method}`);
                        if (drw) drw.style.display = 'none';
-                       document.getElementById('state-checkout').style.display='none';
-                       document.getElementById('successScr').style.display='flex';
+                       widgetRoot.getElementById('state-checkout').style.display='none';
+                       widgetRoot.getElementById('successScr').style.display='flex';
                        if(window.launchConfetti) window.launchConfetti();
                        setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                    }
@@ -1111,7 +1139,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
          }
       };
 
-      document.getElementById('close-success-btn').onclick = closeWidget;
+      widgetRoot.getElementById('close-success-btn').onclick = closeWidget;
 
     },
 
