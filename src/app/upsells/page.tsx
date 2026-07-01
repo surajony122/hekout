@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import ProductSelector, { SelectedProduct } from "@/components/ProductSelector";
 
+import { toast } from 'sonner';
+
+import DashboardSkeleton from "@/components/DashboardSkeleton";
+
 export default function UpsellsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [funnels, setFunnels] = useState<any[]>([]);
@@ -38,6 +42,7 @@ export default function UpsellsPage() {
       setFunnels(data.funnels || []);
     } catch (e) {
       console.error(e);
+      toast.error('Failed to load funnels');
     } finally {
       setLoading(false);
     }
@@ -51,7 +56,7 @@ export default function UpsellsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (offerType === 'product' && !selectedOfferProduct) {
-      alert("Please select an offer product.");
+      toast.error("Please select an offer product.");
       return;
     }
 
@@ -73,8 +78,10 @@ export default function UpsellsPage() {
       setSelectedOfferProduct(null);
       setOfferType('product');
       fetchFunnels();
+      toast.success('Upsell created successfully!');
     } catch (error) {
       console.error(error);
+      toast.error('Failed to create upsell');
     }
   };
 
@@ -95,6 +102,7 @@ export default function UpsellsPage() {
       body: JSON.stringify({ id })
     });
     fetchFunnels();
+    toast.success('Upsell deleted');
   };
 
   const totalRevenue = funnels.reduce((acc, f) => acc + (f.revenue || 0), 0);
@@ -102,7 +110,7 @@ export default function UpsellsPage() {
   const totalConversions = funnels.reduce((acc, f) => acc + (f.conversions || 0), 0);
   const avgConversion = totalImpressions > 0 ? ((totalConversions / totalImpressions) * 100).toFixed(1) : '0.0';
 
-  if (loading) return <div className="p-8 text-center text-slate-500">Loading upsells...</div>;
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">

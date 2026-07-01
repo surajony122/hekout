@@ -1,8 +1,12 @@
 'use client';
 
+import { toast } from 'sonner';
+
 export default function TestWidgetButton() {
   const handleClick = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof window !== 'undefined' && (window as any).CheckoutFlow) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).CheckoutFlow.open({
         shop: 'demo.myshopify.com',
         variantId: '123',
@@ -11,7 +15,7 @@ export default function TestWidgetButton() {
         price: '2999'
       });
     } else {
-      alert('Widget script not loaded yet!');
+      toast.error('Widget script not loaded yet!');
     }
   };
 

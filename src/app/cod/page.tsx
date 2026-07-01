@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ShieldAlert, MapPin, AlertTriangle, Filter } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
+import DashboardSkeleton from "@/components/DashboardSkeleton";
+
 export default function CodIntelligencePage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -14,21 +16,17 @@ export default function CodIntelligencePage() {
   useEffect(() => {
     fetch('/api/dashboard/cod-intel')
       .then(res => res.json())
-      .then(res => {
-        setData(res.metrics || {});
+      .then(d => {
+        if (d.success) setData(d.metrics || {});
         setLoading(false);
       })
-      .catch(err => {
-        console.error(err);
+      .catch(e => {
+        console.error(e);
         setLoading(false);
       });
   }, []);
 
-  if (loading || !data) return (
-    <div className="flex items-center justify-center h-96">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-    </div>
-  );
+  if (loading || !data) return <DashboardSkeleton />;
 
   const codOrders = data.totalCodOrders || 0;
   const highRiskBlocked = data.highRiskBlocked || 0;

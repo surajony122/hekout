@@ -8,6 +8,8 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 import { ArrowUpRight, ArrowDownRight, MoreHorizontal, Download, ArrowUp, Users, RefreshCw, Activity, CreditCard } from 'lucide-react';
 
 
+import DashboardSkeleton from "@/components/DashboardSkeleton";
+
 export default function DashboardClient() {
   const [data, setData] = useState<any>(null);
 
@@ -17,11 +19,7 @@ export default function DashboardClient() {
       .then(data => setData(data));
   }, []);
 
-  if (!data) return (
-    <div className="flex items-center justify-center h-96">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-    </div>
-  );
+  if (!data) return <DashboardSkeleton />;
 
   const metrics = data.metrics || {};
 

@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Link from 'next/link';
 import { GeistSans } from 'geist/font/sans';
 import { 
-  LayoutDashboard, ShoppingCart, Users, Settings, 
-  Activity, ArrowDownToLine, RefreshCw, CreditCard,
-  PackagePlus, BarChart3, Search, Bell, ChevronDown, Tag 
+  Search, Bell, ChevronDown 
 } from 'lucide-react';
+import { Toaster } from 'sonner';
 
 import Sidebar from '@/components/Sidebar';
+import MobileNav from '@/components/MobileNav';
 
 export const metadata: Metadata = {
   title: 'CheckoutFlow Dashboard',
@@ -24,26 +23,30 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${GeistSans.className} bg-slate-50 text-slate-900 antialiased flex h-screen overflow-hidden`}>
         
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Sidebar (Hidden on mobile) */}
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50">
           
           {/* Top Navbar */}
-          <header className="h-16 flex items-center px-8 justify-between border-b border-slate-200 bg-white z-10">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-md bg-white cursor-pointer hover:bg-slate-50 transition-colors text-sm font-medium">
-                <div className="w-5 h-5 rounded-sm bg-slate-100 flex items-center justify-center text-xs">🛍️</div>
-                <span>My Shopify Store</span>
+          <header className="h-16 flex items-center px-4 md:px-8 justify-between border-b border-slate-200 bg-white z-10">
+            <div className="flex items-center gap-2 md:gap-4">
+              <MobileNav />
+              <div className="flex items-center gap-2 px-2 py-1.5 md:px-3 md:py-1.5 border border-slate-200 rounded-md bg-white cursor-pointer hover:bg-slate-50 transition-colors text-xs md:text-sm font-medium">
+                <div className="w-4 h-4 md:w-5 md:h-5 rounded-sm bg-slate-100 flex items-center justify-center text-[10px] md:text-xs">🛍️</div>
+                <span className="hidden sm:inline">My Shopify Store</span>
+                <span className="sm:hidden">Store</span>
                 <ChevronDown size={14} className="text-slate-400 ml-1" />
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="relative">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="relative hidden sm:block">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" placeholder="Search..." className="pl-9 pr-4 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900/10 w-64 bg-slate-50" />
+                <input type="text" placeholder="Search..." className="pl-9 pr-4 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900/10 w-48 md:w-64 bg-slate-50" />
               </div>
               <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
                 <Bell size={18} />
@@ -56,11 +59,12 @@ export default function RootLayout({
           </header>
           
           {/* Page Content */}
-          <div className="flex-1 overflow-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex-1 overflow-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>
         </main>
-
+        
+        <Toaster richColors position="bottom-right" />
       </body>
     </html>
   );
