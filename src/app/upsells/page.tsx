@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUpRight, PlusCircle, Activity, Trash2, Power } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import ProductSelector, { SelectedProduct } from "@/components/ProductSelector";
 
 export default function UpsellsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +26,11 @@ export default function UpsellsPage() {
     discountValue: '',
     triggerVariantId: ''
   });
+
+  const [triggerType, setTriggerType] = useState('all'); // all, product, collection
+  const [selectedTriggerProduct, setSelectedTriggerProduct] = useState<SelectedProduct | null>(null);
+  const [selectedOfferProduct, setSelectedOfferProduct] = useState<SelectedProduct | null>(null);
+  const [selectedCollection, setSelectedCollection] = useState('summer-collection');
 
   const fetchFunnels = async () => {
     try {
@@ -45,14 +51,30 @@ export default function UpsellsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedOfferProduct) {
+      alert("Please select an offer product.");
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      offerVariantId: selectedOfferProduct.variantId,
+      offerPrice: selectedOfferProduct.price,
+      triggerVariantId: triggerType === 'product' && selectedTriggerProduct ? selectedTriggerProduct.variantId : '',
+      // Add logic for collection if supported in backend later
+    };
+
     try {
       await fetch('/api/dashboard/upsells', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       setIsModalOpen(false);
       setFormData({ name: '', offerTitle: '', offerVariantId: '', offerPrice: '', discountType: 'percentage', discountValue: '', triggerVariantId: '' });
+      setSelectedOfferProduct(null);
+      setSelectedTriggerProduct(null);
+      setTriggerType('all');
       fetchFunnels();
     } catch (error) {
       console.error(error);
@@ -94,56 +116,96 @@ export default function UpsellsPage() {
           <p className="text-slate-500 text-sm mt-1">Increase AOV by offering one-click upsells inside the checkout flow.</p>
         </div>
         
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="bg-slate-900 text-white hover:bg-slate-800">
+        <Sheet open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <SheetTrigger asChild>
+            <Button size="sm" className="bg-slate-900 text-white hover:bg-slate-800 shadow-md">
               <PlusCircle size={14} className="mr-2" /> Create Funnel
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New Upsell Offer</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4 mt-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-600 uppercase">Internal Name</label>
-                <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Summer Sale AirPods" className="mt-1" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-600 uppercase">Offer Display Title</label>
-                <Input required value={formData.offerTitle} onChange={e => setFormData({...formData, offerTitle: e.target.value})} placeholder="e.g. AirPods Pro Case" className="mt-1" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          </SheetTrigger>
+          <SheetContent className="sm:max-w-[540px] overflow-y-auto">
+            <SheetHeader className="mb-6">
+              <SheetTitle className="text-xl">Create Upsell Funnel</SheetTitle>
+              <SheetDescription>Design a post-purchase offer that converts.</SheetDescription>
+            </SheetHeader>
+            <form onSubmit={handleCreate} className="space-y-8">
+              
+              {/* Funnel Details */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">1. Funnel Details</h3>
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 uppercase">Offer Variant ID</label>
-                  <Input required value={formData.offerVariantId} onChange={e => setFormData({...formData, offerVariantId: e.target.value})} placeholder="439281928" className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 uppercase">Original Price (₹)</label>
-                  <Input required type="number" value={formData.offerPrice} onChange={e => setFormData({...formData, offerPrice: e.target.value})} placeholder="999" className="mt-1" />
+                  <label className="text-xs font-semibold text-slate-600 uppercase">Internal Name</label>
+                  <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Summer Sale AirPods" className="mt-1.5 focus-visible:ring-indigo-500" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Trigger */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">2. Trigger Rules</h3>
+                <p className="text-xs text-slate-500">When should this offer be shown?</p>
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 uppercase">Discount Type</label>
-                  <select className="w-full mt-1 border border-slate-200 rounded-md h-10 px-3 text-sm" value={formData.discountType} onChange={e => setFormData({...formData, discountType: e.target.value})}>
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="flat">Flat Amount (₹)</option>
+                  <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Trigger Type</label>
+                  <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={triggerType} onChange={e => setTriggerType(e.target.value)}>
+                    <option value="all">All Orders (Show every time)</option>
+                    <option value="product">Specific Product in Cart</option>
+                    <option value="collection">Specific Collection in Cart</option>
                   </select>
                 </div>
+                
+                {triggerType === 'product' && (
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Trigger Product</label>
+                    <ProductSelector value={selectedTriggerProduct} onChange={setSelectedTriggerProduct} label="Choose product..." />
+                  </div>
+                )}
+
+                {triggerType === 'collection' && (
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Trigger Collection</label>
+                    <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value={selectedCollection} onChange={e => setSelectedCollection(e.target.value)}>
+                      <option value="summer-collection">Summer Collection 2024</option>
+                      <option value="bestsellers">Bestsellers</option>
+                      <option value="accessories">Accessories</option>
+                    </select>
+                    <p className="text-xs text-slate-400 mt-1.5">Note: Real collection fetching is mocked for this phase.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Offer */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">3. The Offer</h3>
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 uppercase">Discount Value</label>
-                  <Input required type="number" value={formData.discountValue} onChange={e => setFormData({...formData, discountValue: e.target.value})} placeholder="e.g. 50" className="mt-1" />
+                  <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Upsell Product</label>
+                  <ProductSelector value={selectedOfferProduct} onChange={setSelectedOfferProduct} label="Choose product to upsell..." />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Offer Display Title</label>
+                  <Input required value={formData.offerTitle} onChange={e => setFormData({...formData, offerTitle: e.target.value})} placeholder="e.g. Add the matching case!" className="focus-visible:ring-indigo-500" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Discount Type</label>
+                    <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" value={formData.discountType} onChange={e => setFormData({...formData, discountType: e.target.value})}>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="flat">Flat Amount (₹)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Discount Value</label>
+                    <Input required type="number" value={formData.discountValue} onChange={e => setFormData({...formData, discountValue: e.target.value})} placeholder="e.g. 50" className="bg-white focus-visible:ring-indigo-500" />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-600 uppercase">Trigger Variant ID (Optional)</label>
-                <Input value={formData.triggerVariantId} onChange={e => setFormData({...formData, triggerVariantId: e.target.value})} placeholder="Leave blank to show on all products" className="mt-1" />
-              </div>
-              <Button type="submit" className="w-full bg-slate-900 text-white mt-4">Create Upsell</Button>
+
+              <SheetFooter className="mt-8 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="submit" className="bg-indigo-600 text-white hover:bg-indigo-700">Save & Publish</Button>
+              </SheetFooter>
             </form>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
