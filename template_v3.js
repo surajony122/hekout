@@ -151,10 +151,10 @@ open: async function(options) {
              </div>
 
              <!-- Apply Coupon -->
-             <div class="design-card solid-border" id="osCpnLink" style="margin-bottom: 24px;">
+             <div class="design-card solid-border" id="osCpnLink" style="margin-bottom: 24px;" onclick="widgetRoot.getElementById('drwCoupon').style.display='flex'">
                <div class="icon-box orange"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></div>
                <div class="card-content">
-                  <div class="card-title" style="color: #f97316;">Apply Coupon</div>
+                  <div class="card-title" style="color: #f97316;" id="osCpnLinkText">Apply Coupon</div>
                   <div class="card-subtitle">Unlock extra savings on your order</div>
                </div>
                <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
@@ -300,8 +300,8 @@ open: async function(options) {
             
       
       // Open Drawers
-      widgetRoot.getElementById('sumHdr').onclick = () => { widgetRoot.getElementById('drwBill').style.display='flex'; };
-      widgetRoot.getElementById('osCpnLink').onclick = () => { widgetRoot.getElementById('drwCoupon').style.display='flex'; };
+      const sumHdr = widgetRoot.getElementById('sumHdr'); if (sumHdr) sumHdr.onclick = () => { widgetRoot.getElementById('drwBill').style.display='flex'; };
+      const cpnL = widgetRoot.getElementById('osCpnLink'); if(cpnL) cpnL.onclick = () => { widgetRoot.getElementById('drwCoupon').style.display='flex'; };
 
       let availableCoupons = [];
       let appliedCoupon = null;
@@ -547,11 +547,11 @@ open: async function(options) {
            widgetRoot.getElementById('osCpnActive').style.display = 'inline-flex';
            widgetRoot.getElementById('osCpnCode').innerText = appliedCoupon.code;
            widgetRoot.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
-           widgetRoot.getElementById('osCpnLink').innerText = 'Change >';
+           const _t = widgetRoot.getElementById('osCpnLinkText'); if(_t) _t.innerText = 'Change >';
         } else {
            widgetRoot.getElementById('osCpnEmpty').style.display = 'block';
            widgetRoot.getElementById('osCpnActive').style.display = 'none';
-           widgetRoot.getElementById('osCpnLink').innerText = 'Enter a Coupon >';
+           const _t2 = widgetRoot.getElementById('osCpnLinkText'); if(_t2) _t2.innerText = 'Enter a Coupon >';
         }
 
         // Drawer values
