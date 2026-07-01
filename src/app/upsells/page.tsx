@@ -27,10 +27,9 @@ export default function UpsellsPage() {
     triggerVariantId: ''
   });
 
-  const [triggerType, setTriggerType] = useState('all'); // all, product, collection
-  const [selectedTriggerProduct, setSelectedTriggerProduct] = useState<SelectedProduct | null>(null);
+  const [offerType, setOfferType] = useState('product'); // product, collection
   const [selectedOfferProduct, setSelectedOfferProduct] = useState<SelectedProduct | null>(null);
-  const [selectedCollection, setSelectedCollection] = useState('summer-collection');
+  const [selectedOfferCollection, setSelectedOfferCollection] = useState('summer-collection');
 
   const fetchFunnels = async () => {
     try {
@@ -51,17 +50,16 @@ export default function UpsellsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOfferProduct) {
+    if (offerType === 'product' && !selectedOfferProduct) {
       alert("Please select an offer product.");
       return;
     }
 
     const payload = {
       ...formData,
-      offerVariantId: selectedOfferProduct.variantId,
-      offerPrice: selectedOfferProduct.price,
-      triggerVariantId: triggerType === 'product' && selectedTriggerProduct ? selectedTriggerProduct.variantId : '',
-      // Add logic for collection if supported in backend later
+      offerVariantId: offerType === 'product' && selectedOfferProduct ? selectedOfferProduct.variantId : 'collection_mock_id',
+      offerPrice: offerType === 'product' && selectedOfferProduct ? selectedOfferProduct.price : formData.offerPrice || '0',
+      triggerVariantId: '', // Always trigger on all products
     };
 
     try {
@@ -73,8 +71,7 @@ export default function UpsellsPage() {
       setIsModalOpen(false);
       setFormData({ name: '', offerTitle: '', offerVariantId: '', offerPrice: '', discountType: 'percentage', discountValue: '', triggerVariantId: '' });
       setSelectedOfferProduct(null);
-      setSelectedTriggerProduct(null);
-      setTriggerType('all');
+      setOfferType('product');
       fetchFunnels();
     } catch (error) {
       console.error(error);
@@ -124,44 +121,41 @@ export default function UpsellsPage() {
           </SheetTrigger>
           <SheetContent className="sm:max-w-[540px] overflow-y-auto">
             <SheetHeader className="mb-6">
-              <SheetTitle className="text-xl">Create Upsell Funnel</SheetTitle>
-              <SheetDescription>Design a post-purchase offer that converts.</SheetDescription>
+              <SheetTitle className="text-xl">Create Upsell Offer</SheetTitle>
+              <SheetDescription>Design an offer that will be shown during checkout.</SheetDescription>
             </SheetHeader>
             <form onSubmit={handleCreate} className="space-y-8">
               
               {/* Funnel Details */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">1. Funnel Details</h3>
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">1. Offer Details</h3>
                 <div>
                   <label className="text-xs font-semibold text-slate-600 uppercase">Internal Name</label>
-                  <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Summer Sale AirPods" className="mt-1.5 focus-visible:ring-indigo-500" />
+                  <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Summer Sale Offer" className="mt-1.5 focus-visible:ring-indigo-500" />
                 </div>
               </div>
 
-              {/* Trigger */}
+              {/* Offer */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">2. Trigger Rules</h3>
-                <p className="text-xs text-slate-500">When should this offer be shown?</p>
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">2. What to Offer</h3>
+                
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Trigger Type</label>
-                  <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={triggerType} onChange={e => setTriggerType(e.target.value)}>
-                    <option value="all">All Orders (Show every time)</option>
-                    <option value="product">Specific Product in Cart</option>
-                    <option value="collection">Specific Collection in Cart</option>
+                  <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Offer Type</label>
+                  <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={offerType} onChange={e => setOfferType(e.target.value)}>
+                    <option value="product">Dedicated Product</option>
+                    <option value="collection">A Full Collection</option>
                   </select>
                 </div>
                 
-                {triggerType === 'product' && (
+                {offerType === 'product' ? (
                   <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Trigger Product</label>
-                    <ProductSelector value={selectedTriggerProduct} onChange={setSelectedTriggerProduct} label="Choose product..." />
+                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Product</label>
+                    <ProductSelector value={selectedOfferProduct} onChange={setSelectedOfferProduct} label="Choose product to upsell..." />
                   </div>
-                )}
-
-                {triggerType === 'collection' && (
+                ) : (
                   <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Trigger Collection</label>
-                    <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value={selectedCollection} onChange={e => setSelectedCollection(e.target.value)}>
+                    <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Collection</label>
+                    <select className="w-full border border-slate-200 rounded-md h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value={selectedOfferCollection} onChange={e => setSelectedOfferCollection(e.target.value)}>
                       <option value="summer-collection">Summer Collection 2024</option>
                       <option value="bestsellers">Bestsellers</option>
                       <option value="accessories">Accessories</option>
@@ -169,15 +163,6 @@ export default function UpsellsPage() {
                     <p className="text-xs text-slate-400 mt-1.5">Note: Real collection fetching is mocked for this phase.</p>
                   </div>
                 )}
-              </div>
-
-              {/* Offer */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">3. The Offer</h3>
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Select Upsell Product</label>
-                  <ProductSelector value={selectedOfferProduct} onChange={setSelectedOfferProduct} label="Choose product to upsell..." />
-                </div>
                 
                 <div>
                   <label className="text-xs font-semibold text-slate-600 uppercase mb-1.5 block">Offer Display Title</label>
