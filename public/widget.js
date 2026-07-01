@@ -644,7 +644,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('osItemCount').innerText = `${currentQuantity} item${currentQuantity>1?'s':''}`;
+        document.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
         
         // Original price in header
         if(totalDiscount > 0) {
@@ -678,8 +678,6 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         // Drawer values
         document.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
         document.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('q1').innerText = currentQuantity;
-        document.getElementById('p1').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
 
         const discRow = document.getElementById('trDisc');
         if (totalDiscount > 0) {
@@ -1123,6 +1121,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         const productForms = document.querySelectorAll('form[action="/cart/add"], form[action^="/cart/add"]');
         productForms.forEach(form => {
           if (form.querySelector('.checkoutflow-btn')) return;
+          if (form.id.includes('installment') || form.className.includes('installment')) return;
           
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -1195,7 +1194,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
         });
 
         // 2. Inject on Cart Page / Drawer
-        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout, button[name="checkout"], [data-checkout-button]');
+        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout, button[name="checkout"], [data-checkout-button], #CartDrawer-Checkout, .checkout-button, .btn--checkout');
         cartCheckoutElements.forEach(checkoutBtn => {
           const container = checkoutBtn.parentNode;
           if (container && !container.querySelector('.checkoutflow-cart-btn')) {

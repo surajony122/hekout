@@ -772,6 +772,7 @@
         const productForms = document.querySelectorAll('form[action="/cart/add"], form[action^="/cart/add"]');
         productForms.forEach(form => {
           if (form.querySelector('.checkoutflow-btn')) return;
+          if (form.id.includes('installment') || form.className.includes('installment')) return;
           
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -844,7 +845,7 @@
         });
 
         // 2. Inject on Cart Page / Drawer
-        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout, button[name="checkout"], [data-checkout-button]');
+        const cartCheckoutElements = document.querySelectorAll('form[action="/cart"] [name="checkout"], form[action="/cart"] button[type="submit"], .cart__checkout, .cart-checkout, button[name="checkout"], [data-checkout-button], #CartDrawer-Checkout, .checkout-button, .btn--checkout');
         cartCheckoutElements.forEach(checkoutBtn => {
           const container = checkoutBtn.parentNode;
           if (container && !container.querySelector('.checkoutflow-cart-btn')) {

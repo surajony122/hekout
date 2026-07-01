@@ -528,7 +528,7 @@ open: async function(options) {
 
         document.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         document.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('osItemCount').innerText = `${currentQuantity} item${currentQuantity>1?'s':''}`;
+        document.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
         
         // Original price in header
         if(totalDiscount > 0) {
@@ -562,8 +562,6 @@ open: async function(options) {
         // Drawer values
         document.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
         document.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        document.getElementById('q1').innerText = currentQuantity;
-        document.getElementById('p1').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
 
         const discRow = document.getElementById('trDisc');
         if (totalDiscount > 0) {
