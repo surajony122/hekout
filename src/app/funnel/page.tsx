@@ -59,7 +59,13 @@ export default function FunnelPage() {
               <CardTitle className="text-sm font-medium text-slate-600">Funnel Conversion Chart</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[350px] w-full mt-4">
+              <div className="h-[350px] w-full mt-4 relative">
+                {enrichedFunnel.every((s: any) => s.users === 0) ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10">
+                    <Filter className="h-8 w-8 text-slate-300 mb-2" />
+                    <p className="text-slate-500 text-sm">No funnel events recorded yet.</p>
+                  </div>
+                ) : null}
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart data={enrichedFunnel} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

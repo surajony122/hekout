@@ -48,7 +48,13 @@ export default function AnalyticsPage() {
           <CardTitle className="text-sm font-medium text-slate-600 pb-4">Revenue Trend (Last 7 Days)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="w-full">
+          <div className="w-full relative">
+            {data.totalRevenue === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10">
+                <Package className="h-8 w-8 text-slate-300 mb-2" />
+                <p className="text-slate-500 text-sm">No revenue data yet.</p>
+              </div>
+            ) : null}
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={revenueTrend} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                 <defs>
