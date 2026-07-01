@@ -2,7 +2,7 @@
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
       try {
-        await fetch('https://checkoutflow-app.onrender.com/api/analytics/track', {
+        await fetch('https://checkoutflow-app.onrender.com/api/widget/track', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ shop, sessionId: 'anon', eventName })
