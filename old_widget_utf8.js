@@ -772,7 +772,9 @@
         const productForms = document.querySelectorAll('form[action="/cart/add"], form[action^="/cart/add"]');
         productForms.forEach(form => {
           if (form.querySelector('.checkoutflow-btn')) return;
-          if (form.id.includes('installment') || form.className.includes('installment')) return;
+          const formId = form.getAttribute('id') || '';
+          const formClass = form.getAttribute('class') || '';
+          if (formId.includes('installment') || formClass.includes('installment')) return;
           
           const btn = document.createElement('button');
           btn.type = 'button';
