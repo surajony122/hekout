@@ -8,6 +8,8 @@ import {
   PackagePlus, BarChart3, Search, Bell, ChevronDown, Tag 
 } from 'lucide-react';
 
+import Sidebar from '@/components/Sidebar';
+
 export const metadata: Metadata = {
   title: 'CheckoutFlow Dashboard',
   description: 'Shopify Checkout Optimization Platform',
@@ -23,61 +25,7 @@ export default function RootLayout({
       <body className={`${GeistSans.className} bg-slate-50 text-slate-900 antialiased flex h-screen overflow-hidden`}>
         
         {/* Sidebar */}
-        <aside className="w-64 bg-white flex flex-col h-full border-r border-slate-200 relative z-10 shadow-sm">
-          <div className="p-6 pb-2 border-b border-slate-100 flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-md flex items-center justify-center">
-              <span className="text-white font-bold text-lg leading-none">C</span>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">CheckoutFlow</h1>
-          </div>
-          
-          <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-            <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <LayoutDashboard size={18} />
-              Overview
-            </Link>
-            <Link href="/funnel" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <Activity size={18} />
-              Checkout Funnel
-            </Link>
-            <Link href="/orders" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <ShoppingCart size={18} />
-              Orders
-            </Link>
-            <Link href="/customers" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <Users size={18} />
-              Customers
-            </Link>
-            <Link href="/recovery" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <RefreshCw size={18} />
-              Recovery
-            </Link>
-            <Link href="/payments" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <CreditCard size={18} />
-              Payments
-            </Link>
-            <Link href="/cod" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <ArrowDownToLine size={18} />
-              COD Intelligence
-            </Link>
-            <Link href="/upsells" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <PackagePlus size={18} />
-              Upsells
-            </Link>
-
-            <Link href="/analytics" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <BarChart3 size={18} />
-              Analytics
-            </Link>
-          </nav>
-
-          <div className="p-3 border-t border-slate-200">
-            <Link href="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-              <Settings size={18} />
-              Settings
-            </Link>
-          </div>
-        </aside>
+        <Sidebar />
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50">
