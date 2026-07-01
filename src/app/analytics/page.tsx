@@ -25,6 +25,24 @@ export default function AnalyticsPage() {
   const topProducts = data.topProducts || [];
   const revenueTrend = data.revenueTrend || [];
 
+  const handleExport = () => {
+    if (!topProducts.length && !revenueTrend.length) return;
+    
+    let csv = '--- Revenue Trend ---\nDate,Revenue\n';
+    csv += revenueTrend.map((t: any) => `"${t.date}","${t.revenue}"`).join('\n');
+    
+    csv += '\n\n--- Top Products ---\nProduct Name,Earnings,Percent\n';
+    csv += topProducts.map((p: any) => `"${p.name}","${p.earnings}","${p.percent}%"`).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       
@@ -37,7 +55,7 @@ export default function AnalyticsPage() {
           <Button variant="outline" size="sm" className="bg-white">
             <Filter size={14} className="mr-2" /> Filter
           </Button>
-          <Button variant="outline" size="sm" className="bg-white">
+          <Button variant="outline" size="sm" className="bg-white" onClick={handleExport}>
             <Download size={14} className="mr-2" /> Export
           </Button>
         </div>

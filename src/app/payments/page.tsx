@@ -24,6 +24,19 @@ export default function PaymentsPage() {
   const paymentSplit = data.paymentSplit || [];
   const COLORS = ['#f59e0b', '#10b981']; // COD = Amber, Prepaid = Emerald
 
+  const handleExport = () => {
+    if (!paymentSplit.length) return;
+    const headers = 'Payment Method,Count\n';
+    const csv = paymentSplit.map((p: any) => `"${p.name}","${p.value}"`).join('\n');
+    const blob = new Blob([headers + csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       
@@ -33,7 +46,7 @@ export default function PaymentsPage() {
           <p className="text-slate-500 text-sm mt-1">Monitor payment methods and prepaid conversion.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="bg-white">
+          <Button variant="outline" size="sm" className="bg-white" onClick={handleExport}>
             Download Report
           </Button>
         </div>

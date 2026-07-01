@@ -34,6 +34,21 @@ export default function FunnelPage() {
     };
   });
 
+  const handleExport = () => {
+    if (!enrichedFunnel.length) return;
+    const headers = 'Step,Users,Dropoff %,Total Conversion %\n';
+    const csv = enrichedFunnel.map((s: any) => 
+      `"${s.step}","${s.users}","${s.dropoff || 0}%","${s.conversionRate}%"`
+    ).join('\n');
+    const blob = new Blob([headers + csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `funnel_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       
@@ -46,7 +61,7 @@ export default function FunnelPage() {
           <Button variant="outline" size="sm" className="bg-white">
             <Filter size={14} className="mr-2" /> Filter
           </Button>
-          <Button variant="outline" size="sm" className="bg-white">
+          <Button variant="outline" size="sm" className="bg-white" onClick={handleExport}>
             <Download size={14} className="mr-2" /> Export
           </Button>
         </div>

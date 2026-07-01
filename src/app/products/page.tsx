@@ -6,6 +6,7 @@ import { Search, ChevronDown, Plus, Download, MoreHorizontal, Package, CheckCirc
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/shopify/products')
@@ -22,10 +23,45 @@ export default function ProductsPage() {
       });
   }, []);
 
-  const totalProducts = products.length;
-  const activeProducts = products.filter(p => p.status?.toLowerCase() === 'active').length;
-  // Fallback stock to random if we can't get it from Shopify for demo purposes
-  const lowStocks = products.filter(p => (parseInt(p.variants?.[0]?.inventory_quantity) || Math.floor(Math.random() * 200)) < 50).length;
+  const filteredProducts = products.filter(p => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = (p.title || '').toLowerCase().includes(q);
+      const sku = (p.variants?.edges?.[0]?.node?.sku || p.variants?.[0]?.sku || '').toLowerCase();
+      return matchTitle || sku.includes(q);
+    }
+    return true;
+  });
+
+  const totalProducts = filteredProducts.length;
+  const activeProducts = filteredProducts.filter(p => p.status?.toLowerCase() === 'active').length;
+  // If we can't get inventory from Shopify, we show 0 instead of mocking
+  const getStock = (p: any) => {
+    const v = p.variants?.edges?.[0]?.node || p.variants?.[0];
+    return parseInt(v?.inventoryQuantity || v?.inventory_quantity) || 0;
+  };
+  const lowStocks = filteredProducts.filter(p => getStock(p) < 50 && getStock(p) > 0).length;
+
+  const handleExport = () => {
+    if (!filteredProducts.length) return;
+    const headers = 'Product Name,Code,Subcategory,Price,Stock,Status,Added Date\n';
+    const csv = filteredProducts.map(p => {
+      const variant = p.variants?.edges?.[0]?.node || p.variants?.[0];
+      const sku = variant?.sku || '';
+      const price = variant?.price || 0;
+      const stock = getStock(p);
+      const date = new Date(p.createdAt || new Date()).toLocaleDateString('en-GB');
+      const status = p.status || 'Active';
+      return `"${p.title || ''}","${sku}","${p.productType || 'General'}","${price}","${stock}","${status}","${date}"`;
+    }).join('\n');
+    const blob = new Blob([headers + csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="bg-[#f4f7fe] min-h-screen p-4 md:p-8 font-sans text-slate-800">
@@ -41,7 +77,7 @@ export default function ProductsPage() {
             <Plus size={16} />
             <span>Add New</span>
           </button>
-          <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
+          <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm" onClick={handleExport}>
             <Download size={16} className="text-slate-500" />
             <span>Export Report</span>
           </button>
@@ -55,7 +91,7 @@ export default function ProductsPage() {
             <span className="text-sm font-medium text-slate-500">Total Products</span>
             <div className="text-slate-400"><Package size={20} /></div>
           </div>
-          <h3 className="text-3xl font-bold text-slate-900">{totalProducts || 2300}</h3>
+          <h3 className="text-3xl font-bold text-slate-900">{totalProducts}</h3>
         </div>
         
         <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col justify-between">
@@ -63,7 +99,7 @@ export default function ProductsPage() {
             <span className="text-sm font-medium text-slate-500">Active Products</span>
             <div className="text-emerald-500"><CheckCircle2 size={20} /></div>
           </div>
-          <h3 className="text-3xl font-bold text-slate-900">{activeProducts || 2300}</h3>
+          <h3 className="text-3xl font-bold text-slate-900">{activeProducts}</h3>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col justify-between border border-rose-100">
@@ -71,7 +107,7 @@ export default function ProductsPage() {
             <span className="text-sm font-medium text-slate-500">Low Stocks</span>
             <div className="text-rose-500"><AlertTriangle size={20} /></div>
           </div>
-          <h3 className="text-3xl font-bold text-slate-900">{lowStocks || 120}</h3>
+          <h3 className="text-3xl font-bold text-slate-900">{lowStocks}</h3>
         </div>
       </div>
 
@@ -80,7 +116,13 @@ export default function ProductsPage() {
         <div className="flex justify-between items-center mb-6">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="Search products..." className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:border-indigo-500" />
+            <input 
+              type="text" 
+              placeholder="Search products..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:border-indigo-500" 
+            />
           </div>
           <div className="flex gap-3">
             <button className="flex items-center gap-2 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
@@ -112,19 +154,17 @@ export default function ProductsPage() {
           <tbody>
             {loading ? (
               <tr><td colSpan={9} className="py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div></td></tr>
-            ) : products.length > 0 ? (
-              products.map((p, i) => {
-                const isSale = i % 3 === 0; // Mocking a sale state for UI representation
-                const isInactive = i % 4 === 0;
+            ) : filteredProducts.length > 0 ? (
+              filteredProducts.map((p, i) => {
                 
-                // Get image
                 const imgUrl = p.images?.edges?.[0]?.node?.url || p.image?.src || null;
-                // Get variant
                 const variant = p.variants?.edges?.[0]?.node || p.variants?.[0];
                 const price = variant?.price || 0;
                 const comparePrice = variant?.compareAtPrice || null;
-                const sku = variant?.sku || `PRD-${1000+i}`;
-                const stock = parseInt(variant?.inventoryQuantity) || Math.floor(Math.random() * 150) + 10;
+                const sku = variant?.sku || '-';
+                const stock = getStock(p);
+                const status = (p.status || 'Active').toLowerCase();
+                const isInactive = status !== 'active';
                 
                 return (
                   <tr key={i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
@@ -137,13 +177,12 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="text-sm font-medium text-slate-900">{p.title}</div>
-                      {isSale && <div className="text-[10px] font-bold text-rose-500 bg-rose-50 inline-block px-2 py-0.5 rounded mt-1">Sale</div>}
                     </td>
                     <td className="py-4 px-4 text-sm text-slate-600">{sku}</td>
                     <td className="py-4 px-4 text-sm text-slate-600">{p.productType || 'General'}</td>
                     <td className="py-4 px-4 text-sm">
                       <div className="font-medium text-slate-900">₹{price}</div>
-                      {isSale && comparePrice && <div className="text-xs text-rose-500 line-through">₹{comparePrice}</div>}
+                      {comparePrice && comparePrice > price && <div className="text-xs text-rose-500 line-through">₹{comparePrice}</div>}
                     </td>
                     <td className="py-4 px-4 text-sm text-slate-600">{stock}</td>
                     <td className="py-4 px-4 text-sm text-slate-600">

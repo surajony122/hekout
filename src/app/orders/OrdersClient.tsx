@@ -5,11 +5,44 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Download, MoreHorizontal, ArrowUpRight, Search, Eye } from 'lucide-react';
 
 export default function OrdersClient({ orders, shopDomain }: { orders: any[], shopDomain: string }) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterTab, setFilterTab] = useState('all');
+
+  const filteredOrders = orders.filter(order => {
+    // Tab filter
+    if (filterTab === 'unfulfilled' && order.orderStatus === 'Synced') return false;
+    if (filterTab === 'unpaid' && order.paymentMethod !== 'COD') return false;
+    // Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchName = (order.customerName || '').toLowerCase().includes(q);
+      const matchPhone = (order.customerPhone || '').toLowerCase().includes(q);
+      const matchId = (order.shopifyOrderId || '').toLowerCase().includes(q);
+      return matchName || matchPhone || matchId;
+    }
+    return true;
+  });
+
+  const handleExport = () => {
+    if (!filteredOrders.length) return;
+    const headers = 'Order ID,Customer Name,Customer Phone,Customer Email,Status,Payment Method,Total\n';
+    const csv = filteredOrders.map(o => 
+      `"${o.shopifyOrderId || ''}","${o.customerName || ''}","${o.customerPhone || ''}","${o.customerEmail || ''}","${o.orderStatus || ''}","${o.paymentMethod || ''}","${o.total || 0}"`
+    ).join('\n');
+    const blob = new Blob([headers + csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -17,13 +50,13 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-xl font-medium text-slate-900">Recent Orders</h1>
-          <p className="text-slate-500 text-sm mt-1">{orders.length} orders</p>
+          <p className="text-slate-500 text-sm mt-1">{filteredOrders.length} orders</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" className="h-8 w-8 bg-white shadow-sm">
             <ArrowUpRight size={14} className="text-slate-500" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 bg-white shadow-sm">
+          <Button variant="outline" size="icon" className="h-8 w-8 bg-white shadow-sm" onClick={handleExport}>
             <Download size={14} className="text-slate-500" />
           </Button>
           <Button variant="outline" size="icon" className="h-8 w-8 bg-white shadow-sm">
@@ -33,8 +66,8 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
       </div>
 
       <Card className="shadow-sm border-slate-200 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
-          <Tabs defaultValue="all" className="w-[400px]">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white flex-wrap gap-4">
+          <Tabs value={filterTab} onValueChange={setFilterTab} className="w-auto">
             <TabsList className="bg-slate-100/50 p-1">
               <TabsTrigger value="all" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">All</TabsTrigger>
               <TabsTrigger value="needs-action" className="text-xs">Needs action</TabsTrigger>
@@ -43,6 +76,16 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
               <TabsTrigger value="returns" className="text-xs">Returns</TabsTrigger>
             </TabsList>
           </Tabs>
+          
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Search orders..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-slate-50 border-slate-200 h-9 text-sm"
+            />
+          </div>
         </div>
 
         <Table>
@@ -58,14 +101,14 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.length === 0 ? (
+            {filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-slate-500">
                   No orders found.
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((order) => {
+              filteredOrders.map((order) => {
                 const isCompleted = order.orderStatus === 'Synced';
                 
                 return (
@@ -114,7 +157,7 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
         </Table>
         
         <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white">
-          <div>Viewing {Math.min(10, orders.length)} out of {orders.length} orders</div>
+          <div>Viewing {Math.min(10, filteredOrders.length)} out of {filteredOrders.length} orders</div>
           <div className="flex gap-1">
             <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-500" disabled>Previous</Button>
             <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-xs bg-slate-900 text-white border-transparent">1</Button>
