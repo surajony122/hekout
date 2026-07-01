@@ -26,5 +26,8 @@ export default async function CustomersPage() {
     orderBy: { lastOrderAt: 'desc' }
   });
 
-  return <CustomersClient customers={customers} />;
+  // Serialize Date objects to avoid Next.js Error: "Only plain objects can be passed to Client Components from Server Components"
+  const serializedCustomers = JSON.parse(JSON.stringify(customers));
+
+  return <CustomersClient customers={serializedCustomers} />;
 }

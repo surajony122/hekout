@@ -24,5 +24,7 @@ export default async function OrdersPage() {
     }
   } catch (err) {}
 
-  return <OrdersClient orders={orders} shopDomain={shopDomain} />;
+  const serializedOrders = JSON.parse(JSON.stringify(orders));
+
+  return <OrdersClient orders={serializedOrders} shopDomain={shopDomain} />;
 }
