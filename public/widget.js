@@ -108,7 +108,7 @@
 
       sheet.innerHTML = `
         <style>
-          :root {
+          :host {
   --p1: #4c1d95; /* Deep Indigo */
   --p2: #8b5cf6; /* Vivid Purple */
   --bg: #f5f3ff; /* Light Lavender Background */
@@ -124,9 +124,12 @@
   --radius-sm: 10px;
   --font: 'Poppins', sans-serif;
   --grad: linear-gradient(90deg, #a855f7, #ec4899);
+  
+  font-family: 'Poppins', sans-serif;
+  color: var(--text1);
+  -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
-body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antialiased; }
 .top-header { background: var(--surface); border-bottom: 1px solid var(--border); }
 .header-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; }
 .back-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 50%; cursor: pointer; }
@@ -213,7 +216,7 @@ body { background: var(--bg); color: var(--text1); -webkit-font-smoothing: antia
 
 @keyframes cf-spin { 100% { transform: rotate(360deg); } }
 
-          :root { --p1: ${primaryColor}; }
+          :host { --p1: ${primaryColor}; }
           
           /* Custom form styles */
           .cf-input { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font); color: var(--text1); outline: none; transition: border-color 0.2s; margin-bottom: 12px; }

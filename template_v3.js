@@ -73,7 +73,7 @@ open: async function(options) {
       sheet.innerHTML = `
         <style>
           /*__CSS__*/
-          :root { --p1: ${primaryColor}; }
+          :host { --p1: ${primaryColor}; }
           
           /* Custom form styles */
           .cf-input { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font); color: var(--text1); outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
