@@ -82,61 +82,34 @@ open: async function(options) {
           .cf-btn:active { transform: scale(0.98); }
         </style>
         
+        
         <canvas id="confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000;"></canvas>
 
         <div class="top-header">
-          <div class="header-row">
-            <div class="back-btn" id="cf-close-btn">
-              <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            </div>
-            <div class="brand-center">
-              ${widgetConfig.brandLogoUrl ? `<img src="${widgetConfig.brandLogoUrl}" alt="Logo" style="max-height:28px; object-fit:contain;"/>` : `<div class="brand-logo">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,18).toUpperCase()}</div>`}
-            </div>
-            <div class="header-price">
-              <div class="final" id="hFinal">₹${total.toLocaleString('en-IN')}</div>
-              <div class="orig" id="hOrig" style="display:none;"></div>
-            </div>
+          <div class="back-btn" id="cf-close-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           </div>
-          <div class="upi-strip" id="dynamic-banner" style="background:${widgetConfig.preLoginBannerBg}; color:${widgetConfig.preLoginBannerColor}; padding:8px; text-align:center; font-size:11px; font-weight:600; letter-spacing:0.5px; border-bottom:1px solid var(--border);">
-            ${widgetConfig.preLoginBannerText}
+          <div class="brand-center">
+            ${widgetConfig.brandLogoUrl ? `<img src="${widgetConfig.brandLogoUrl}" alt="Logo" style="max-height:28px; object-fit:contain;"/>` : `<div class="brand-title">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,18)}</div>`}
+            <div class="brand-subtitle"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Secure Checkout</div>
           </div>
         </div>
 
-        <div class="scroll-body" style="overflow-y:auto; flex:1;">
-          <!-- NEW ORDER SUMMARY BAR -->
-            <div class="os-bar" id="osBarTop" style="margin-bottom: 16px;">
-               <div class="os-top" id="sumHdr" style="border-bottom:none;">
-                 <div>Order summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>)</div>
-                 <div class="os-prices">
-                    <span class="os-orig" id="osOrigPrice" style="display:none;"></span>
-                    <span class="os-final" id="osFinalPrice">₹${total.toLocaleString('en-IN')}</span>
-                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M9 18l6-6-6-6"/></svg>
-                 </div>
-               </div>
-               <div class="os-save-banner" id="osSaveBanner" style="display:none;">Yay! You've saved <span id="osSaveAmt"></span> so far 🥳</div>
-               <div class="os-bottom">
-                  <div class="os-cpn-applied" id="osCpnActive" style="display:none;">
-                     <div class="os-cpn-tag">
-                        <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                        <span id="osCpnCode"></span>
-                     </div>
-                     <span class="os-cpn-save" id="osCpnSave"></span>
-                  </div>
-                  <div id="osCpnEmpty" style="font-size:13px; color:var(--text3); font-weight:500;">No coupon applied</div>
-                  <div class="os-cpn-link" id="osCpnLink">Enter a Coupon ></div>
-               </div>
-            </div>
+        <div class="scroll-body">
+          <div class="promo-banner" id="dynamic-banner">
+            <svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="16.5" cy="18.5" r="2.5"/></svg>
+            <span class="promo-text">${widgetConfig.preLoginBannerText || '<strong>FREE SHIPPING</strong> on all orders today! 🎉'}</span>
+          </div>
 
-          
           <!-- STATE 1: PHONE -->
-          <div id="state-phone" style="padding: 20px 10px;">
-             <h3 style="margin-bottom:16px; color:var(--text1); font-size:16px; font-weight:600;">Enter mobile number</h3>
-             <div class="card" style="padding:16px; margin-bottom:16px;">
+          <div id="state-phone" style="padding: 10px 0;">
+             <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Enter mobile number</h3>
+             <div class="design-card solid-border" style="flex-direction:column; align-items:stretch; padding:16px; margin-bottom:16px; cursor:default;">
                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
                  <span style="font-size:20px;">🇮🇳</span> <span style="font-weight:500;">+91</span>
-                 <input type="tel" id="cf-phone-in" class="cf-input" style="margin-bottom:0; border:none; border-left:1.5px solid var(--border2); border-radius:0; padding-left:12px;" placeholder="Mobile Number" maxlength="10" />
+                 <input type="tel" id="cf-phone-in" class="cf-input" style="margin-bottom:0; border:none; border-left:1.5px solid var(--border); border-radius:0; padding-left:12px;" placeholder="Mobile Number" maxlength="10" />
                </div>
-               <div id="cf-otp-box" style="display:none; margin-top:16px; padding-top:16px; border-top:1.5px dashed var(--border2);">
+               <div id="cf-otp-box" style="display:none; margin-top:16px; padding-top:16px; border-top:1.5px dashed var(--border);">
                  <input type="text" id="cf-otp-in" class="cf-input" placeholder="Enter 4-digit OTP" style="text-align:center; letter-spacing:8px; font-weight:500;" maxlength="4" />
                  <div id="cf-otp-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none;"></div>
                </div>
@@ -146,9 +119,9 @@ open: async function(options) {
           </div>
 
           <!-- STATE 2: ADDRESS -->
-          <div id="state-address" style="display:none; padding: 20px 10px;">
-             <h3 style="margin-bottom:16px; color:var(--text1); font-size:16px; font-weight:600;">Add shipping address</h3>
-             <div class="card" style="padding:16px;">
+          <div id="state-address" style="display:none; padding: 10px 0;">
+             <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Add shipping address</h3>
+             <div class="design-card solid-border" style="flex-direction:column; align-items:stretch; cursor:default;">
                 <input type="text" id="cf-addr-name" class="cf-input" placeholder="Full Name" />
                 <input type="email" id="cf-addr-email" class="cf-input" placeholder="Email Address" />
                 <input type="text" id="cf-addr-street" class="cf-input" placeholder="Street Address" />
@@ -162,53 +135,71 @@ open: async function(options) {
           </div>
 
           <!-- STATE 3: CHECKOUT (GOKWIK UI) -->
-          <div id="state-checkout" style="display:none; padding-bottom:60px;">
+          <div id="state-checkout" style="display:none;">
             
-                        <!-- DELIVER TO -->
-            <div class="card">
-              <div class="deliver-inner">
-                <div class="deliver-top">
-                  <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  <span class="deliver-top-t">Deliver to</span>
-                  <span class="tag">Home</span>
-                  <span class="edit-lnk" id="cf-edit-addr">Edit &gt;</span>
-                </div>
-                <div class="addr-box">
-                  <span class="aname" id="disp-name">Name</span>, <span id="disp-addr">Address</span><br>
-                  <div class="addr-contact">
-                    <span><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 12 19.79 19.79 0 01.14 3.18 2 2 0 012.11 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l.45-.45a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> <span id="disp-phone"></span></span>
-                    <span><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span id="disp-email">support@store.com</span></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            
-            <!-- DYNAMIC SHIPPING TIER BAR -->
-            <div class="card" style="padding:16px; margin-top:16px;" id="cf-shipping-tier-box">
-               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div style="font-size:13px; font-weight:600; color:var(--text1);" id="cf-shipping-msg">Calculating shipping...</div>
-                  <div style="font-size:13px; font-weight:700; color:var(--text1);" id="cf-shipping-status"></div>
+             <!-- Order Summary -->
+             <div class="design-card solid-border" onclick="widgetRoot.getElementById('drwBill').style.display='flex'">
+               <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg></div>
+               <div class="card-content">
+                  <div class="card-title">Order Summary (<span id="osItemCount">${totalQuantity}</span> Item) <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+                  <div class="card-subtitle">Total Amount</div>
                </div>
-               <div style="width:100%; height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
-                  <div id="cf-shipping-bar" style="height:100%; width:0%; background:var(--green); transition:width 0.4s ease;"></div>
+               <div class="card-price-col">
+                  <div class="card-price" id="hFinal">₹${total.toLocaleString('en-IN')}</div>
+                  <div class="card-price-sub" id="osFinalPrice">₹${total.toLocaleString('en-IN')}</div>
                </div>
-            </div>
+             </div>
 
-            <!-- PAYMENT METHODS -->
-            <div style="margin-top:20px;">
-              <div class="sec-lbl">Payment methods</div>
-              <div class="card" style="padding:0" id="pay-methods-container">
-                <!-- Injected dynamically based on config -->
-              </div>
-            </div>
-            
-            <div class="pow-row" style="margin-top:24px;">
-              Secured by <span class="pow-chip">CheckoutFlow</span>
-            </div>
+             <!-- Apply Coupon -->
+             <div class="design-card solid-border" id="osCpnLink" style="margin-bottom: 24px;">
+               <div class="icon-box orange"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></div>
+               <div class="card-content">
+                  <div class="card-title" style="color: #f97316;">Apply Coupon</div>
+                  <div class="card-subtitle">Unlock extra savings on your order</div>
+               </div>
+               <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+             </div>
+
+             <!-- Delivered To -->
+             <div class="design-card solid-border">
+               <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+               <div class="card-content">
+                  <div class="card-title" style="font-size:12px; font-weight:500; color:var(--text-main);">Delivered To</div>
+                  <div class="card-title" style="margin-top:4px;"><span id="disp-name">Name</span> <span class="home-tag">Home</span></div>
+                  <div class="card-subtitle" id="disp-addr">Address</div>
+               </div>
+               <div class="change-link" id="cf-edit-addr">Change <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+             </div>
+
+             <div class="sec-lbl">PAYMENT METHODS</div>
+             <div id="pay-methods-container">
+               <!-- Injected -->
+             </div>
+
+             <div class="trust-footer">
+               <div class="trust-item">
+                 <div class="trust-icon purple"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                 <div class="trust-title">100% Secure</div>
+                 <div class="trust-sub">SSL Encrypted</div>
+               </div>
+               <div class="trust-item">
+                 <div class="trust-icon green"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                 <div class="trust-title">RBI Compliant</div>
+                 <div class="trust-sub">Trusted Gateways</div>
+               </div>
+               <div class="trust-item">
+                 <div class="trust-icon blue"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></div>
+                 <div class="trust-title">Easy Returns</div>
+                 <div class="trust-sub">Hassle Free</div>
+               </div>
+               <div class="trust-item">
+                 <div class="trust-icon orange"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></div>
+                 <div class="trust-title">4.8/5 Rating</div>
+                 <div class="trust-sub">18,000+ Customers</div>
+               </div>
+             </div>
           </div>
         </div>
-        
         <!-- DRAWERS WRAPPER -->
         <div id="drawers-container">
 
@@ -798,12 +789,13 @@ open: async function(options) {
          let dHtml = '';
 
                   
+         
          const methods = [
-            { id: 'UPI', name: 'Pay via UPI', sub: 'GPay · PhonePe · Paytm', icon: '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" style="height:14px;"/>' },
-            { id: 'Card', name: 'Debit / Credit cards', sub: 'Visa · Mastercard · RuPay', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p2);fill:none;stroke-width:2;"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>' },
-            { id: 'Wallet', name: 'Wallets', sub: 'Paytm · PhonePe', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p2);fill:none;stroke-width:2;"><path d="M20 12V22H4V12"/><path d="M12 22V7M12 7a5 5 0 01-5-5 5 5 0 005 5z"/></svg>' },
-            { id: 'Netbanking', name: 'Net banking', sub: 'All Indian banks', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:var(--p1);fill:none;stroke-width:2;"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>' },
-            { id: 'COD', name: 'Cash on Delivery', sub: (widgetConfig.isCodFeeEnabled !== false && (widgetConfig.codFeeAmount || 0) > 0) ? `Pay at doorstep · ₹${widgetConfig.codFeeAmount} fee` : 'Pay at doorstep', icon: '<svg viewBox="0 0 24 24" style="height:18px;stroke:#d97706;fill:none;stroke-width:2;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>' }
+            { id: 'UPI', name: 'Pay via UPI', sub: 'GPay · PhonePe · Paytm · BHIM', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:none;fill:var(--p1);"><path d="M16 11.5v-3h-3v3h-2v-5h7v5h-2zM5.5 13.5h3v-2h-3v2zm0-4h3v-2h-3v2zm9 4h3v-2h-3v2zm-4 0h3v-2h-3v2zm-5 4h5v-2h-5v2zm9 0h3v-2h-3v2zM22 2H2v20h20V2zm-2 18H4V4h16v16z"/></svg>' },
+            { id: 'Card', name: 'Debit / Credit Cards', sub: 'Visa · Mastercard · RuPay', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:var(--p1);fill:none;stroke-width:2;"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>' },
+            { id: 'Wallet', name: 'Wallets', sub: 'Paytm · PhonePe · Amazon Pay', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:var(--p1);fill:none;stroke-width:2;"><path d="M20 12V22H4V12"/><path d="M12 22V7M12 7a5 5 0 01-5-5 5 5 0 005 5z"/></svg>' },
+            { id: 'Netbanking', name: 'Net Banking', sub: 'All Indian Banks', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:var(--p1);fill:none;stroke-width:2;"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>' },
+            { id: 'COD', name: 'Cash on Delivery', sub: (widgetConfig.isCodFeeEnabled !== false && (widgetConfig.codFeeAmount || 0) > 0) ? `Pay ₹${widgetConfig.codFeeAmount} fee` : 'Pay at doorstep', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:#ea580c;fill:none;stroke-width:2;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>' }
          ];
 
          methods.forEach(m => {
@@ -817,7 +809,7 @@ open: async function(options) {
                      <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                      <div style="display:flex; flex-direction:column; gap:10px;">
                         <button class="cf-btn" onclick="widgetRoot.getElementById('drw${m.id}').style.display='none'; window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
-                        <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="cod-confirm-btn" style="background:var(--surface); color:var(--text1); border:1.5px solid var(--border2); box-shadow:none;">Confirm COD</button>
+                        <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="cod-confirm-btn" style="background:var(--surface); color:var(--text-main); border:1.5px solid var(--border); box-shadow:none;">Confirm COD</button>
                      </div>
                   </div>
                 </div>
@@ -829,8 +821,8 @@ open: async function(options) {
             if (m.id !== 'COD' && widgetConfig.isPrepaidDiscountEnabled && widgetConfig.prepaidDiscountValue > 0) {
                 const discountText = widgetConfig.prepaidDiscountType === 'percentage' 
                     ? `Extra ${widgetConfig.prepaidDiscountValue}% OFF` 
-                    : `Save ₹${widgetConfig.prepaidDiscountValue}`;
-                offerTxt = `<div style="font-size:11px; font-weight:500; color:var(--green); margin-top:4px;">${discountText}</div>`;
+                    : `You save ₹${widgetConfig.prepaidDiscountValue}`;
+                offerTxt = discountText;
             }
 
             const clickAction = m.id === 'COD' 
@@ -838,20 +830,25 @@ open: async function(options) {
                 : `window.cfUpdatePricing('${m.id}'); window.cfExecutePayment('${m.id}')`;
 
             html += `
-              <div class="pay-row" onclick="${clickAction}" style="display:flex; align-items:center; gap:12px; padding:14px; border-top:1px solid var(--border); cursor:pointer;">
-                <div style="width:40px; height:40px; border-radius:10px; border:1px solid var(--border2); display:flex; align-items:center; justify-content:center;">
+              <div class="pay-card ${m.id==='UPI' ? 'active' : ''}" onclick="${clickAction}">
+                ${m.id==='UPI' ? '<div class="recommended-tag"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Recommended</div>' : ''}
+                <div class="pay-icon-box">
                   ${m.icon}
                 </div>
-                <div style="flex:1;">
-                  <div style="font-size:14px; font-weight:500;">${m.name}</div>
-                  <div style="font-size:11px; color:var(--text3);">${m.sub}</div>
-                  ${offerTxt}
+                <div class="pay-content">
+                  <div class="pay-title">${m.name}</div>
+                  <div class="pay-subtitle">${m.sub}</div>
+                  ${offerTxt ? `<div class="pay-savings">${offerTxt}</div>` : ''}
                 </div>
-                <div style="font-weight:600; font-size:15px;" id="pp${m.id}"></div>
+                <div class="pay-right">
+                  <div class="pay-price ${m.id==='COD' ? 'red' : ''}" id="pp${m.id}"></div>
+                  <div class="arrow-circle">
+                    <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </div>
               </div>
             `;
          });
-         
          container.innerHTML = html;
          
          let dynD = widgetRoot.getElementById('dynamic-drawers');
