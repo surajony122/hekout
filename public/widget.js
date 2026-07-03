@@ -910,8 +910,8 @@
             customerData = data.customer;
             widgetRoot.getElementById('disp-name').innerText = customerData.name;
             widgetRoot.getElementById('disp-addr').innerText = `${customerData.address}, ${customerData.city}`;
-            widgetRoot.getElementById('disp-phone').innerText = verifiedPhone;
-            widgetRoot.getElementById('disp-email').innerText = customerData.email || '';
+            const dP = widgetRoot.getElementById('disp-phone'); if(dP) dP.innerText = verifiedPhone;
+            const dE = widgetRoot.getElementById('disp-email'); if(dE) dE.innerText = customerData.email || '';
             
             widgetRoot.getElementById('cf-addr-name').value = customerData.name || '';
             widgetRoot.getElementById('cf-addr-email').value = customerData.email || '';
@@ -953,8 +953,8 @@
         
         widgetRoot.getElementById('disp-name').innerText = name;
         widgetRoot.getElementById('disp-addr').innerText = `${addr}, ${city}`;
-        widgetRoot.getElementById('disp-phone').innerText = verifiedPhone;
-        widgetRoot.getElementById('disp-email').innerText = email;
+        const dP2 = widgetRoot.getElementById('disp-phone'); if(dP2) dP2.innerText = verifiedPhone;
+        const dE2 = widgetRoot.getElementById('disp-email'); if(dE2) dE2.innerText = email;
         
         stateAddress.style.display = 'none';
         renderPaymentMethods();
