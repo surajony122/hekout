@@ -748,27 +748,36 @@
         widgetRoot.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
 
         const discRow = widgetRoot.getElementById('trDisc');
-        if (totalDiscount > 0) {
-           discRow.style.display = 'flex';
-           widgetRoot.getElementById('tDisc').innerText = `-₹${Math.round(totalDiscount).toLocaleString('en-IN')}`;
-        } else {
-           discRow.style.display = 'none';
+        if (discRow) {
+           if (totalDiscount > 0) {
+              discRow.style.display = 'flex';
+              const tDisc = widgetRoot.getElementById('tDisc');
+              if (tDisc) tDisc.innerText = `-₹${Math.round(totalDiscount).toLocaleString('en-IN')}`;
+           } else {
+              discRow.style.display = 'none';
+           }
         }
 
         const shipRow = widgetRoot.getElementById('trShip');
-        if (shippingFee > 0) {
-           shipRow.style.display = 'flex';
-           widgetRoot.getElementById('tShipFee').innerText = `₹${shippingFee.toLocaleString('en-IN')}`;
-        } else {
-           shipRow.style.display = 'none';
+        if (shipRow) {
+           if (shippingFee > 0) {
+              shipRow.style.display = 'flex';
+              const tShip = widgetRoot.getElementById('tShipFee');
+              if (tShip) tShip.innerText = `₹${shippingFee.toLocaleString('en-IN')}`;
+           } else {
+              shipRow.style.display = 'none';
+           }
         }
 
         const codRow = widgetRoot.getElementById('trCod');
-        if (codFee > 0) {
-           codRow.style.display = 'flex';
-           widgetRoot.getElementById('tCodFee').innerText = `₹${codFee.toLocaleString('en-IN')}`;
-        } else {
-           codRow.style.display = 'none';
+        if (codRow) {
+           if (codFee > 0) {
+              codRow.style.display = 'flex';
+              const tCod = widgetRoot.getElementById('tCodFee');
+              if (tCod) tCod.innerText = `₹${codFee.toLocaleString('en-IN')}`;
+           } else {
+              codRow.style.display = 'none';
+           }
         }
 
         ['UPI','Card','Wallet','Netbanking'].forEach(m => {
