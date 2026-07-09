@@ -86,7 +86,7 @@
       let subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       let total = subtotalBase;
       
-      let verifiedPhone = localStorage.getItem('checkoutflow_verified_phone') || '';
+      let verifiedPhone = '';
       let customerData = null;
 
       const phosphorScript = document.createElement('script');
