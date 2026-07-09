@@ -341,10 +341,10 @@
           <div id="state-checkout" style="display:none;">
             
              <!-- Order Summary -->
-             <div class="design-card solid-border" onclick="widgetRoot.getElementById('drwBill').style.display='flex'">
+             <div class="design-card solid-border" onclick="window.cfToggleDrawer('drwBill', true)">
                <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg></div>
                <div class="card-content">
-                  <div class="card-title">Order Summary (<span id="osItemCount">${totalQuantity}</span> Item) <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+                  <div class="card-title">Order Summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>) <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
                   <div class="card-subtitle">Total Amount</div>
                </div>
                <div class="card-price-col">
@@ -354,7 +354,7 @@
              </div>
 
              <!-- Apply Coupon -->
-             <div class="design-card solid-border" id="osCpnLink" style="margin-bottom: 24px;" onclick="widgetRoot.getElementById('drwCoupon').style.display='flex'">
+             <div class="design-card solid-border" id="osCpnLink" style="margin-bottom: 24px;" onclick="window.cfToggleDrawer('drwCoupon', true)">
                <div class="icon-box orange"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></div>
                <div class="card-content">
                   <div class="card-title" style="color: #f97316;" id="osCpnLinkText">Apply Coupon</div>
@@ -411,7 +411,7 @@
               <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Order Summary</div>
-                   <svg viewBox="0 0 24 24" onclick="widgetRoot.getElementById('drwBill').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                   <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwBill', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </div>
                 <div class="card" style="padding:16px;">
                    <div id="cart-items-container">
@@ -448,15 +448,14 @@
               <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
-                   <svg viewBox="0 0 24 24" onclick="widgetRoot.getElementById('drwCoupon').style.display='none'" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                   <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwCoupon', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </div>
-                <div class="cpn-input-row">
-                   <svg viewBox="0 0 24 24" style="width:20px; height:20px; stroke:var(--green); fill:none; stroke-width:2; margin:8px 0 0 8px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                   <input type="text" class="cpn-input" id="cpn-manual-input" placeholder="Enter coupon code" style="text-transform:uppercase;" />
-                   <button class="cpn-apply-btn" id="cpn-manual-btn">Apply</button>
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                   <input type="text" id="cpn-manual-input" class="cf-input" placeholder="Enter coupon code" style="margin-bottom:0; flex:1; text-transform:uppercase; font-weight:500;" />
+                   <button class="cf-btn" id="cpn-manual-btn" style="width:auto; padding:0 24px; font-size:14px;">Apply</button>
                 </div>
-                <div id="cpn-manual-err" class="cpn-err" style="display:none;"></div>
-                <div id="cpn-list-container" class="cpn-list">Loading coupons...</div>
+                <div id="cpn-manual-err" style="color:var(--red); font-size:12px; font-weight:600; display:none; margin-bottom:16px;"></div>
+                <div id="cpn-list-container" style="display:flex; flex-direction:column; gap:12px;">Loading coupons...</div>
               </div>
             </div>
          
@@ -604,7 +603,7 @@
       const renderCoupons = () => {
          const subtotal = subtotalBase;
          const container = widgetRoot.getElementById('cpn-list-container');
-         let html = '<div style="font-weight:600; font-size:15px; margin-bottom:8px;">Applicable coupons</div>';
+         let html = '';
          
          const applicable = availableCoupons.filter(c => totalQuantity >= c.minItems && subtotal >= c.minCartValue);
          const unlockable = availableCoupons.filter(c => totalQuantity < c.minItems || subtotal < c.minCartValue);
@@ -612,38 +611,39 @@
          if(applicable.length === 0 && unlockable.length === 0) {
             html += '<div style="font-size:13px; color:var(--text3);">No coupons available at the moment.</div>';
          } else {
+            if(applicable.length > 0) {
+               html += '<div style="font-size:14px; font-weight:600; color:var(--text2); margin-bottom:4px;">Applicable coupons</div>';
+            }
             applicable.forEach(c => {
                const isActive = appliedCoupon && appliedCoupon.id === c.id;
-               const actTxt = isActive ? '<span class="cpn-applied-txt">Applied</span>' : `<span class="cpn-action" onclick="window.cfApplyCoupon('${c.id}')">Apply</span>`;
+               const actTxt = isActive ? '<span style="color:var(--green); font-weight:600; font-size:14px;">Applied</span>' : `<span onclick="window.cfApplyCoupon('${c.id}')" style="color:var(--primary); font-weight:600; font-size:14px; cursor:pointer;">Apply</span>`;
                html += `
-                  <div class="cpn-card ${isActive ? 'cpn-active' : ''}">
-                     <div class="cpn-header">
-                        <div class="cpn-code">${c.code}</div>
+                  <div style="border:1.5px solid ${isActive ? 'var(--green)' : 'var(--border)'}; border-radius:12px; padding:16px; background:${isActive ? 'rgba(34,197,94,0.05)' : 'var(--surface)'};">
+                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="border:1.5px dashed ${isActive ? 'var(--green)' : 'var(--border)'}; padding:4px 12px; border-radius:8px; font-weight:600; font-size:14px; color:${isActive ? 'var(--green)' : 'var(--text-main)'}; text-transform:uppercase;">${c.code}</div>
                         ${actTxt}
                      </div>
-                     <div class="cpn-title">${c.type === 'percentage' ? c.value+'% OFF' : '₹'+c.value+' OFF'}</div>
-                     ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
+                     <div style="font-weight:600; font-size:15px; color:var(--text-main); margin-bottom:4px;">${c.type === 'percentage' ? c.value+'% OFF' : '₹'+c.value+' OFF'}</div>
+                     ${c.description ? `<div style="font-size:13px; color:var(--text3);">${c.description}</div>` : ''}
                   </div>
                `;
             });
 
             if(unlockable.length > 0) {
-               html += '<div style="font-weight:600; font-size:15px; margin:16px 0 8px;">More offers</div>';
+               html += '<div style="font-size:14px; font-weight:600; color:var(--text2); margin:12px 0 4px;">More offers</div>';
                unlockable.forEach(c => {
                   html += `
-                     <div class="cpn-card" style="opacity:0.6; pointer-events:none;">
-                        <div class="cpn-header">
-                           <div class="cpn-code">${c.code}</div>
-                           <span style="color:var(--text3); font-size:13px; font-weight:600;">Apply</span>
+                     <div style="border:1.5px solid var(--border); border-radius:12px; padding:16px; opacity:0.6; background:var(--bg);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                           <div style="border:1.5px dashed var(--border); padding:4px 12px; border-radius:8px; font-weight:600; font-size:14px; color:var(--text-main); text-transform:uppercase;">${c.code}</div>
                         </div>
-                        <div class="cpn-err">Applicable only on ${c.minCartValue > 0 ? `₹${c.minCartValue} orders` : `${c.minItems} or more items`}.</div>
-                        ${c.description ? `<div class="cpn-desc">${c.description}</div>` : ''}
+                        <div style="font-size:13px; color:var(--text3); font-weight:500;">Applicable only on ${c.minCartValue > 0 ? `₹${c.minCartValue} orders` : `${c.minItems} or more items`}.</div>
                      </div>
                   `;
                });
             }
          }
-         container.innerHTML = html;
+         if(container) container.innerHTML = html;
       };
 
       window.cfApplyCoupon = (id) => {
@@ -872,6 +872,11 @@
       }
     };
 
+      window.cfToggleDrawer = (id, show) => {
+         const el = widgetRoot.getElementById(id);
+         if (el) el.style.display = show ? 'flex' : 'none';
+      };
+
       window.cfUpdateQty = (index, delta) => {
          if (cartItems[index]) {
             const newQty = cartItems[index].quantity + delta;
@@ -1031,7 +1036,7 @@
                   <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                      <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                      <div style="display:flex; flex-direction:column; gap:10px;">
-                        <button class="cf-btn" onclick="widgetRoot.getElementById('drw${m.id}').style.display='none'; window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
+                        <button class="cf-btn" onclick="window.cfToggleDrawer('drw${m.id}', false); window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
                         <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="cod-confirm-btn" style="background:var(--surface); color:var(--text-main); border:1.5px solid var(--border); box-shadow:none;">Confirm COD</button>
                      </div>
                   </div>
@@ -1049,7 +1054,7 @@
             }
 
             const clickAction = m.id === 'COD' 
-                ? `window.cfUpdatePricing('${m.id}'); widgetRoot.getElementById('drw${m.id}').style.display='flex'`
+                ? `window.cfUpdatePricing('${m.id}'); window.cfToggleDrawer('drw${m.id}', true)`
                 : `window.cfUpdatePricing('${m.id}'); window.cfExecutePayment('${m.id}')`;
 
             html += `
