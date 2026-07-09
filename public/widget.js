@@ -345,7 +345,10 @@
                <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg></div>
                <div class="card-content">
                   <div class="card-title">Order Summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>) <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
-                  <div class="card-subtitle">Total Amount</div>
+                  <div class="card-subtitle" style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                     <span>Total Amount</span>
+                     <span id="osShippingText" style="color:var(--green); font-weight:600; font-size:12px;">+ Free Shipping</span>
+                  </div>
                </div>
                <div class="card-price-col">
                   <div class="card-price" id="hFinal">₹${total.toLocaleString('en-IN')}</div>
@@ -413,31 +416,31 @@
                    <div style="font-size:18px; font-weight:600;">Order Summary</div>
                    <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwBill', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </div>
-                <div class="card" style="padding:16px;">
+                <div class="card" style="padding:16px; border:1.5px solid var(--border); border-radius:12px; background:var(--bg);">
                    <div id="cart-items-container">
                      ${cartItems.map((item, index) => `
-                     <div class="oi" id="oi${index}" style="${index === 0 ? 'padding-top:0;' : ''}">
-                       <div class="oi-thumb">${item.image ? `<img src="${item.image}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : '🛍️'}</div>
-                       <div class="oi-info">
-                         <div class="oi-name">${item.title || 'Product'}</div>
-                         <div class="oi-ctrls">
-                           <div class="qty-btn" onclick="window.cfUpdateQty(${index}, -1)" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>−</div>
-                           <span class="qty-n" id="q${index}">${item.quantity}</span>
-                           <div class="qty-btn" onclick="window.cfUpdateQty(${index}, 1)" ${cartItems.length > 1 ? 'style="display:none;"' : ''}>+</div>
+                     <div id="oi${index}" style="display:flex; align-items:center; gap:12px; padding:12px 0; ${index > 0 ? 'border-top:1.5px dashed var(--border);' : ''} ${index === 0 ? 'padding-top:0;' : ''} ${index === cartItems.length-1 ? 'padding-bottom:0;' : ''}">
+                       <div style="width:50px; height:50px; border-radius:8px; border:1px solid var(--border); overflow:hidden; background:var(--surface); display:flex; align-items:center; justify-content:center; flex-shrink:0;">${item.image ? `<img src="${item.image}" style="width:100%;height:100%;object-fit:cover;"/>` : '🛍️'}</div>
+                       <div style="flex:1;">
+                         <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:6px;">${item.title || 'Product'}</div>
+                         <div style="display:flex; align-items:center; gap:10px;">
+                           <div onclick="window.cfUpdateQty(${index}, -1)" style="width:24px; height:24px; border:1.5px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:600; color:var(--text-main); ${cartItems.length > 1 ? 'display:none;' : ''}">−</div>
+                           <span id="q${index}" style="font-size:13px; font-weight:600; color:var(--text-main); min-width:12px; text-align:center;">${item.quantity}</span>
+                           <div onclick="window.cfUpdateQty(${index}, 1)" style="width:24px; height:24px; border:1.5px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:600; color:var(--text-main); ${cartItems.length > 1 ? 'display:none;' : ''}">+</div>
                          </div>
                        </div>
-                       <div class="oi-price"><div class="pr" id="p${index}">₹${(item.price * item.quantity).toLocaleString('en-IN')}</div></div>
+                       <div style="font-weight:700; color:var(--text-main); font-size:15px; margin-left:12px;" id="p${index}">₹${(item.price * item.quantity).toLocaleString('en-IN')}</div>
                      </div>
                      `).join('')}
                    </div>
                 </div>
-                <div style="font-size:16px; font-weight:700; margin:20px 0 12px;">Bill summary</div>
-                <div class="tr"><span class="l">Sub total</span><span class="v" id="tSub">₹${total.toLocaleString('en-IN')}</span></div>
-                <div class="tr discount" id="trDisc" style="display:none;"><span class="l">Discount on MRP</span><span class="v" id="tDisc">-₹0</span></div>
-                <div class="tr" id="trShip" style="display:none;"><span class="l">Shipping Fee</span><span class="v" id="tShipFee">₹0</span></div>
-                <div class="tr" id="trCod" style="display:none;"><span class="l">COD Fee</span><span class="v" id="tCodFee">₹${widgetConfig.codFeeAmount}</span></div>
-                <hr class="tr-div">
-                <div class="tr grand" style="font-size:16px;"><span class="l">Total amount</span><span class="v" id="tGrand">₹${total.toLocaleString('en-IN')}</span></div>
+                <div style="font-size:16px; font-weight:700; margin:20px 0 12px; color:var(--text-main);">Bill summary</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Sub total</span><span id="tSub" style="color:var(--text-main); font-weight:600;">₹${total.toLocaleString('en-IN')}</span></div>
+                <div id="trDisc" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Discount on MRP</span><span id="tDisc" style="color:var(--green); font-weight:600;">-₹0</span></div>
+                <div id="trShip" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Shipping Fee</span><span id="tShipFee" style="color:var(--text-main); font-weight:600;">₹0</span></div>
+                <div id="trCod" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">COD Fee</span><span id="tCodFee" style="color:var(--text-main); font-weight:600;">₹${widgetConfig.codFeeAmount}</span></div>
+                <hr style="border:none; border-top:1.5px dashed var(--border); margin:12px 0;">
+                <div style="display:flex; justify-content:space-between; font-size:16px; align-items:center;"><span style="color:var(--text1); font-weight:700;">Total amount</span><span id="tGrand" style="color:var(--text-main); font-weight:700; font-size:18px;">₹${total.toLocaleString('en-IN')}</span></div>
               </div>
             </div>
          
@@ -727,6 +730,17 @@
         widgetRoot.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         widgetRoot.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
         widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
+        
+        const osShipTxt = widgetRoot.getElementById('osShippingText');
+        if (osShipTxt) {
+           if (shippingFee > 0) {
+              osShipTxt.innerText = `+ ₹${shippingFee} Shipping`;
+              osShipTxt.style.color = "var(--text3)";
+           } else {
+              osShipTxt.innerText = "+ Free Shipping";
+              osShipTxt.style.color = "var(--green)";
+           }
+        }
         
         // Original price in header
         const osOrigPrice = widgetRoot.getElementById('osOrigPrice');
