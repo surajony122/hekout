@@ -151,3 +151,126 @@
 
 /* Overlays */
 .cf-payment-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; }
+
+/* Floating Label Inputs */
+.cf-float-group {
+  position: relative;
+  margin-bottom: 12px;
+}
+.cf-float-input {
+  width: 100%;
+  padding: 18px 12px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+  background: var(--surface);
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.cf-float-input:focus {
+  border-color: var(--p1);
+}
+.cf-float-input:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+.cf-float-label {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  font-size: 14px;
+  color: var(--text2);
+  transition: 0.2s ease all;
+  pointer-events: none;
+  background: var(--surface);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+/* When disabled, ensure label bg matches input bg */
+.cf-float-input:disabled ~ .cf-float-label {
+  background: transparent;
+}
+/* Float up when focused or not empty (placeholder-shown) */
+.cf-float-input:focus ~ .cf-float-label,
+.cf-float-input:not(:placeholder-shown) ~ .cf-float-label {
+  top: -8px;
+  font-size: 11px;
+  color: var(--p1);
+  background: var(--surface);
+}
+.cf-float-input:disabled:not(:placeholder-shown) ~ .cf-float-label {
+  color: #6b7280;
+  background: linear-gradient(180deg, var(--surface) 50%, #f3f4f6 50%);
+}
+
+/* Radio Buttons */
+.cf-radio-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+.cf-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cf-radio-label input[type="radio"] {
+  accent-color: #ea580c;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Saved Address Card */
+.cf-address-card {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface);
+}
+.cf-address-card.selected {
+  border-color: var(--p1);
+  background: var(--p1-light);
+}
+.cf-address-card-info {
+  flex: 1;
+}
+.cf-address-card-name {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cf-address-card-type {
+  font-size: 10px;
+  font-weight: 700;
+  background: #e5e7eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.cf-address-card.selected .cf-address-card-type {
+  background: #ddd6fe;
+  color: var(--p1);
+}
+.cf-address-card-details {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}

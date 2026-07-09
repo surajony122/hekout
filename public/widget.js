@@ -273,6 +273,129 @@
 /* Overlays */
 .cf-payment-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; }
 
+/* Floating Label Inputs */
+.cf-float-group {
+  position: relative;
+  margin-bottom: 12px;
+}
+.cf-float-input {
+  width: 100%;
+  padding: 18px 12px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+  background: var(--surface);
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.cf-float-input:focus {
+  border-color: var(--p1);
+}
+.cf-float-input:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+.cf-float-label {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  font-size: 14px;
+  color: var(--text2);
+  transition: 0.2s ease all;
+  pointer-events: none;
+  background: var(--surface);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+/* When disabled, ensure label bg matches input bg */
+.cf-float-input:disabled ~ .cf-float-label {
+  background: transparent;
+}
+/* Float up when focused or not empty (placeholder-shown) */
+.cf-float-input:focus ~ .cf-float-label,
+.cf-float-input:not(:placeholder-shown) ~ .cf-float-label {
+  top: -8px;
+  font-size: 11px;
+  color: var(--p1);
+  background: var(--surface);
+}
+.cf-float-input:disabled:not(:placeholder-shown) ~ .cf-float-label {
+  color: #6b7280;
+  background: linear-gradient(180deg, var(--surface) 50%, #f3f4f6 50%);
+}
+
+/* Radio Buttons */
+.cf-radio-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+.cf-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cf-radio-label input[type="radio"] {
+  accent-color: #ea580c;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Saved Address Card */
+.cf-address-card {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface);
+}
+.cf-address-card.selected {
+  border-color: var(--p1);
+  background: var(--p1-light);
+}
+.cf-address-card-info {
+  flex: 1;
+}
+.cf-address-card-name {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cf-address-card-type {
+  font-size: 10px;
+  font-weight: 700;
+  background: #e5e7eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.cf-address-card.selected .cf-address-card-type {
+  background: #ddd6fe;
+  color: var(--p1);
+}
+.cf-address-card-details {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
           :host { --p1: ${primaryColor}; }
           
           /* Custom form styles */
@@ -321,20 +444,85 @@
              <div id="cf-phone-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; margin-top:10px; display:none;"></div>
           </div>
 
-          <!-- STATE 2: ADDRESS -->
+          <!-- STATE 1.5: ADDRESS LIST -->
+          <div id="state-address-list" style="display:none; padding: 10px 0;">
+             <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Select Delivery Address</h3>
+             <div id="cf-address-cards" style="margin-bottom:16px;"></div>
+             <button id="cf-addr-new-btn" class="cf-btn" style="background:var(--surface); color:var(--p1); border:1.5px solid var(--p1); margin-bottom:16px;">+ Add New Address</button>
+             <button id="cf-addr-sel-btn" class="cf-btn">Continue</button>
+          </div>
+
+          <!-- STATE 2: ADDRESS FORM -->
           <div id="state-address" style="display:none; padding: 10px 0;">
-             <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Add shipping address</h3>
-             <div class="design-card solid-border" style="flex-direction:column; align-items:stretch; cursor:default;">
-                <input type="text" id="cf-addr-name" class="cf-input" placeholder="Full Name" />
-                <input type="email" id="cf-addr-email" class="cf-input" placeholder="Email Address" />
-                <input type="text" id="cf-addr-street" class="cf-input" placeholder="Street Address" />
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                  <input type="text" id="cf-addr-city" class="cf-input" placeholder="City" />
-                  <input type="text" id="cf-addr-state" class="cf-input" placeholder="State" />
-                </div>
-                <input type="text" id="cf-addr-pin" class="cf-input" placeholder="Pincode" />
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+               <h3 style="color:var(--text-main); font-size:16px; font-weight:600; margin:0;">Add new address</h3>
+               <div id="cf-addr-back" style="font-size:14px; font-weight:600; color:var(--p1); cursor:pointer; display:none;">Cancel</div>
              </div>
-             <button id="cf-addr-btn" class="cf-btn" style="margin-top:16px;">Save Address</button>
+             
+             <div class="cf-float-group">
+                <input type="text" id="cf-addr-pin" class="cf-float-input" placeholder=" " maxlength="6" />
+                <label class="cf-float-label">Pincode<span style="color:var(--red);">*</span></label>
+             </div>
+             
+             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+               <div class="cf-float-group">
+                  <input type="text" id="cf-addr-fname" class="cf-float-input" placeholder=" " />
+                  <label class="cf-float-label">First name<span style="color:var(--red);">*</span></label>
+               </div>
+               <div class="cf-float-group">
+                  <input type="text" id="cf-addr-lname" class="cf-float-input" placeholder=" " />
+                  <label class="cf-float-label">Last name<span style="color:var(--red);">*</span></label>
+               </div>
+             </div>
+             
+             <div class="cf-float-group">
+                <input type="text" id="cf-addr-street" class="cf-float-input" placeholder=" " />
+                <label class="cf-float-label">Flat, house number, floor, building<span style="color:var(--red);">*</span></label>
+             </div>
+             
+             <div class="cf-float-group">
+                <input type="text" id="cf-addr-area" class="cf-float-input" placeholder=" " />
+                <label class="cf-float-label">Area, street, sector, village<span style="color:var(--red);">*</span></label>
+             </div>
+             
+             <div class="cf-float-group">
+                <input type="text" id="cf-addr-landmark" class="cf-float-input" placeholder=" " />
+                <label class="cf-float-label">Landmark area</label>
+             </div>
+             
+             <div class="cf-float-group" style="margin-bottom:20px;">
+                <input type="text" id="cf-addr-phone" class="cf-float-input" placeholder=" " disabled />
+                <label class="cf-float-label">Receiver's number<span style="color:var(--red);">*</span></label>
+                <div style="font-size:11px; font-weight:600; font-style:italic; color:var(--text2); margin-top:4px;">We'll contact you on this number during delivery</div>
+             </div>
+             
+             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+               <div class="cf-float-group">
+                  <input type="text" id="cf-addr-city" class="cf-float-input" placeholder=" " disabled />
+                  <label class="cf-float-label">City<span style="color:var(--red);">*</span></label>
+               </div>
+               <div class="cf-float-group">
+                  <input type="text" id="cf-addr-state" class="cf-float-input" placeholder=" " disabled />
+                  <label class="cf-float-label">State<span style="color:var(--red);">*</span></label>
+               </div>
+             </div>
+             
+             <div class="cf-float-group" style="margin-bottom:20px;">
+                <input type="email" id="cf-addr-email" class="cf-float-input" placeholder=" " />
+                <label class="cf-float-label">E-mail</label>
+                <div style="font-size:11px; font-weight:600; font-style:italic; color:var(--text2); margin-top:4px;">Order delivery details will be sent here</div>
+             </div>
+             
+             <div style="margin-bottom:24px;">
+               <div style="font-size:13px; font-weight:700; color:var(--text-main);">Address type</div>
+               <div class="cf-radio-group">
+                 <label class="cf-radio-label"><input type="radio" name="cf-addr-type" value="Home" checked /> Home</label>
+                 <label class="cf-radio-label"><input type="radio" name="cf-addr-type" value="Office" /> Office</label>
+                 <label class="cf-radio-label"><input type="radio" name="cf-addr-type" value="Others" /> Others</label>
+               </div>
+             </div>
+             
+             <button id="cf-addr-btn" class="cf-btn">Save Address</button>
           </div>
 
           <!-- STATE 3: CHECKOUT (GOKWIK UI) -->
@@ -954,35 +1142,159 @@
         }
       };
 
+      let selectedAddressIndex = 0;
+      const renderSavedAddresses = (addrs) => {
+         const container = widgetRoot.getElementById('cf-address-cards');
+         container.innerHTML = addrs.map((a, i) => `
+            <div class="cf-address-card ${i === selectedAddressIndex ? 'selected' : ''}" onclick="window.cfSelectAddress(${i})">
+               <div style="padding-top:2px;">
+                  <input type="radio" name="addr-sel" ${i === selectedAddressIndex ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--p1);pointer-events:none;" />
+               </div>
+               <div class="cf-address-card-info">
+                  <div class="cf-address-card-name">
+                     ${a.fname || ''} ${a.lname || ''} <span class="cf-address-card-type">${a.type || 'HOME'}</span>
+                  </div>
+                  <div class="cf-address-card-details">
+                     ${a.street || ''}${a.area ? ', '+a.area : ''}<br/>
+                     ${a.city || ''}, ${a.state || ''} ${a.pincode || ''}<br/>
+                     +91 ${a.phone || verifiedPhone}
+                  </div>
+               </div>
+            </div>
+         `).join('');
+      };
+      
+      window.cfSelectAddress = (idx) => {
+         selectedAddressIndex = idx;
+         try {
+            const stored = JSON.parse(localStorage.getItem('cf_addrs_' + verifiedPhone) || '[]');
+            customerData = stored[idx];
+            renderSavedAddresses(stored);
+         } catch(e){}
+      };
+      
+      const populateCheckoutFromCustomerData = () => {
+         widgetRoot.getElementById('state-address-list').style.display = 'none';
+         widgetRoot.getElementById('state-address').style.display = 'none';
+         widgetRoot.getElementById('disp-name').innerText = `${customerData.fname || customerData.name || ''} ${customerData.lname || ''}`.trim();
+         widgetRoot.getElementById('disp-addr').innerText = `${customerData.street || customerData.address || ''}${customerData.area ? ', '+customerData.area : ''}, ${customerData.city || ''}`;
+         const dP = widgetRoot.getElementById('disp-phone'); if(dP) dP.innerText = verifiedPhone;
+         const dE = widgetRoot.getElementById('disp-email'); if(dE) dE.innerText = customerData.email || '';
+         
+         widgetRoot.getElementById('cf-addr-city').value = customerData.city || '';
+         widgetRoot.getElementById('cf-addr-state').value = customerData.state || '';
+         widgetRoot.getElementById('cf-addr-pin').value = customerData.pincode || '';
+         
+         renderPaymentMethods();
+         stateCheckout.style.display = 'block';
+      };
+
       const checkCustomer = async () => {
         statePhone.style.display = 'none';
         try {
           const res = await fetch(`${apiBaseUrl}/api/customer/lookup?shop=${shop}&phone=${verifiedPhone}`);
           const data = await res.json();
-          if (data.success && data.customer) {
-            customerData = data.customer;
-            widgetRoot.getElementById('disp-name').innerText = customerData.name;
-            widgetRoot.getElementById('disp-addr').innerText = `${customerData.address}, ${customerData.city}`;
-            const dP = widgetRoot.getElementById('disp-phone'); if(dP) dP.innerText = verifiedPhone;
-            const dE = widgetRoot.getElementById('disp-email'); if(dE) dE.innerText = customerData.email || '';
-            
-            widgetRoot.getElementById('cf-addr-name').value = customerData.name || '';
-            widgetRoot.getElementById('cf-addr-email').value = customerData.email || '';
-            widgetRoot.getElementById('cf-addr-street').value = customerData.address || '';
-            widgetRoot.getElementById('cf-addr-city').value = customerData.city || '';
-            widgetRoot.getElementById('cf-addr-state').value = customerData.state || '';
-            widgetRoot.getElementById('cf-addr-pin').value = customerData.pincode || '';
-
-            renderPaymentMethods();
-            stateCheckout.style.display = 'block';
-          } else {
-            stateAddress.style.display = 'block';
+          let serverCustomer = null;
+          if (data.success && data.customer) serverCustomer = data.customer;
+          
+          let savedAddresses = [];
+          try {
+             const stored = localStorage.getItem('cf_addrs_' + verifiedPhone);
+             if (stored) savedAddresses = JSON.parse(stored);
+          } catch(e) {}
+          
+          if (serverCustomer && !savedAddresses.some(a => (a.street === serverCustomer.address || a.pincode === serverCustomer.pincode) && a.city === serverCustomer.city)) {
+             savedAddresses.push({
+                fname: serverCustomer.name?.split(' ')[0] || '',
+                lname: serverCustomer.name?.split(' ').slice(1).join(' ') || '',
+                phone: verifiedPhone,
+                street: serverCustomer.address || '',
+                area: '', landmark: '',
+                city: serverCustomer.city || '',
+                state: serverCustomer.state || '',
+                pincode: serverCustomer.pincode || '',
+                email: serverCustomer.email || '',
+                type: 'Home'
+             });
+             localStorage.setItem('cf_addrs_' + verifiedPhone, JSON.stringify(savedAddresses));
           }
-        } catch(e) { stateAddress.style.display = 'block'; }
+          
+          if (savedAddresses.length > 0) {
+             customerData = savedAddresses[0];
+             selectedAddressIndex = 0;
+             renderSavedAddresses(savedAddresses);
+             widgetRoot.getElementById('state-address-list').style.display = 'block';
+          } else {
+             widgetRoot.getElementById('cf-addr-phone').value = verifiedPhone;
+             widgetRoot.getElementById('state-address').style.display = 'block';
+          }
+        } catch(e) {
+           widgetRoot.getElementById('cf-addr-phone').value = verifiedPhone;
+           widgetRoot.getElementById('state-address').style.display = 'block'; 
+        }
       };
 
+      widgetRoot.getElementById('cf-addr-new-btn').onclick = () => {
+         widgetRoot.getElementById('state-address-list').style.display = 'none';
+         widgetRoot.getElementById('cf-addr-phone').value = verifiedPhone;
+         widgetRoot.getElementById('cf-addr-back').style.display = 'block';
+         widgetRoot.getElementById('state-address').style.display = 'block';
+      };
       
-      widgetRoot.getElementById('cf-addr-pin').addEventListener('keyup', async (e) => {
+      widgetRoot.getElementById('cf-addr-back').onclick = () => {
+         widgetRoot.getElementById('state-address').style.display = 'none';
+         widgetRoot.getElementById('state-address-list').style.display = 'block';
+      };
+      
+      widgetRoot.getElementById('cf-addr-sel-btn').onclick = () => {
+         if (!customerData) return;
+         populateCheckoutFromCustomerData();
+      };
+      
+      widgetRoot.getElementById('cf-addr-btn').onclick = () => {
+         const typeEl = widgetRoot.querySelector('input[name="cf-addr-type"]:checked');
+         const newAddr = {
+            fname: widgetRoot.getElementById('cf-addr-fname').value.trim(),
+            lname: widgetRoot.getElementById('cf-addr-lname').value.trim(),
+            phone: verifiedPhone,
+            street: widgetRoot.getElementById('cf-addr-street').value.trim(),
+            area: widgetRoot.getElementById('cf-addr-area').value.trim(),
+            landmark: widgetRoot.getElementById('cf-addr-landmark').value.trim(),
+            city: widgetRoot.getElementById('cf-addr-city').value.trim(),
+            state: widgetRoot.getElementById('cf-addr-state').value.trim(),
+            pincode: widgetRoot.getElementById('cf-addr-pin').value.trim(),
+            email: widgetRoot.getElementById('cf-addr-email').value.trim(),
+            type: typeEl ? typeEl.value : 'Home'
+         };
+         if(!newAddr.fname || !newAddr.street || !newAddr.city || !newAddr.state || !newAddr.pincode) {
+            alert('Please fill all mandatory fields'); return;
+         }
+         let addrs = [];
+         try {
+            const stored = localStorage.getItem('cf_addrs_' + verifiedPhone);
+            if(stored) addrs = JSON.parse(stored);
+         } catch(e){}
+         addrs.unshift(newAddr);
+         localStorage.setItem('cf_addrs_' + verifiedPhone, JSON.stringify(addrs));
+         
+         customerData = newAddr;
+         populateCheckoutFromCustomerData();
+      };
+      
+      widgetRoot.getElementById('cf-edit-addr').onclick = () => {
+        stateCheckout.style.display = 'none';
+        let addrs = [];
+        try { addrs = JSON.parse(localStorage.getItem('cf_addrs_' + verifiedPhone) || '[]'); } catch(e){}
+        if (addrs.length > 0) {
+           renderSavedAddresses(addrs);
+           widgetRoot.getElementById('state-address-list').style.display = 'block';
+        } else {
+           widgetRoot.getElementById('cf-addr-phone').value = verifiedPhone;
+           widgetRoot.getElementById('state-address').style.display = 'block';
+        }
+      };
+
+      widgetRoot.getElementById('cf-addr-pin').addEventListener('input', async (e) => {
          const val = e.target.value.trim();
          if(val.length === 6) {
             try {
@@ -996,28 +1308,6 @@
             } catch(err) {}
          }
       });
-
-      widgetRoot.getElementById('cf-addr-btn').onclick = () => {
-        const name = widgetRoot.getElementById('cf-addr-name').value;
-        const email = widgetRoot.getElementById('cf-addr-email').value;
-        const addr = widgetRoot.getElementById('cf-addr-street').value;
-        const city = widgetRoot.getElementById('cf-addr-city').value;
-        if(!name || !addr || !city) return;
-        
-        widgetRoot.getElementById('disp-name').innerText = name;
-        widgetRoot.getElementById('disp-addr').innerText = `${addr}, ${city}`;
-        const dP2 = widgetRoot.getElementById('disp-phone'); if(dP2) dP2.innerText = verifiedPhone;
-        const dE2 = widgetRoot.getElementById('disp-email'); if(dE2) dE2.innerText = email;
-        
-        stateAddress.style.display = 'none';
-        renderPaymentMethods();
-        stateCheckout.style.display = 'block';
-      };
-
-      widgetRoot.getElementById('cf-edit-addr').onclick = () => {
-        stateCheckout.style.display = 'none';
-        stateAddress.style.display = 'block';
-      };
 
       if (verifiedPhone) {
         checkCustomer();
