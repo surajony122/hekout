@@ -51,6 +51,17 @@ open: async function(options) {
       let total = subtotalBase;
       
       let verifiedPhone = '';
+      try {
+         const stored = localStorage.getItem('checkoutflow_verified');
+         if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Date.now() - parsed.time < 24 * 60 * 60 * 1000) {
+               verifiedPhone = parsed.phone;
+            } else {
+               localStorage.removeItem('checkoutflow_verified');
+            }
+         }
+      } catch (e) {}
       let customerData = null;
 
       const phosphorScript = document.createElement('script');
@@ -104,15 +115,18 @@ open: async function(options) {
           <!-- STATE 1: PHONE -->
           <div id="state-phone" style="padding: 10px 0;">
              <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Enter mobile number</h3>
-             <div class="design-card solid-border" style="flex-direction:column; align-items:stretch; padding:16px; margin-bottom:16px; cursor:default;">
-               <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                 <span style="font-size:20px;">🇮🇳</span> <span style="font-weight:500;">+91</span>
-                 <input type="tel" id="cf-phone-in" class="cf-input" style="margin-bottom:0; border:none; border-left:1.5px solid var(--border); border-radius:0; padding-left:12px;" placeholder="Mobile Number" maxlength="10" />
+             
+             <div style="display:flex; align-items:center; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:4px 12px; margin-bottom:16px;">
+               <div style="display:flex; align-items:center; gap:6px; padding-right:12px; border-right:1.5px solid var(--border); font-weight:600; font-size:15px; color:var(--text-main);">
+                 <span>🇮🇳</span> <span>+91</span>
                </div>
-               <div id="cf-otp-box" style="display:none; margin-top:16px; padding-top:16px; border-top:1.5px dashed var(--border);">
-                 <input type="text" id="cf-otp-in" class="cf-input" placeholder="Enter 4-digit OTP" style="text-align:center; letter-spacing:8px; font-weight:500;" maxlength="4" />
-                 <div id="cf-otp-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none;"></div>
-               </div>
+               <input type="tel" id="cf-phone-in" style="flex:1; border:none; background:transparent; padding:12px; font-size:16px; outline:none; font-weight:600; color:var(--text-main); letter-spacing:1px;" placeholder="Enter number" maxlength="10" />
+             </div>
+             
+             <div id="cf-otp-box" style="display:none; margin-bottom:16px;">
+               <div style="font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; text-align:center;">Enter 4-digit OTP</div>
+               <input type="text" id="cf-otp-in" style="width:100%; border:1.5px solid var(--border); border-radius:12px; padding:14px; font-size:20px; text-align:center; letter-spacing:12px; outline:none; font-weight:600; color:var(--text-main);" placeholder="••••" maxlength="4" />
+               <div id="cf-otp-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none; margin-top:8px;"></div>
              </div>
              <button id="cf-phone-btn" class="cf-btn">Continue</button>
              <div id="cf-phone-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; margin-top:10px; display:none;"></div>
@@ -526,32 +540,43 @@ open: async function(options) {
         widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
         
         // Original price in header
-        if(totalDiscount > 0) {
-           widgetRoot.getElementById('osOrigPrice').style.display = 'inline';
-           widgetRoot.getElementById('osOrigPrice').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
-        } else {
-           widgetRoot.getElementById('osOrigPrice').style.display = 'none';
+        const osOrigPrice = widgetRoot.getElementById('osOrigPrice');
+        if(osOrigPrice) {
+           if(totalDiscount > 0) {
+              osOrigPrice.style.display = 'inline';
+              osOrigPrice.innerText = `₹${subtotal.toLocaleString('en-IN')}`;
+           } else {
+              osOrigPrice.style.display = 'none';
+           }
         }
 
         // Green Save Banner
-        if(couponDiscount > 0) {
-           widgetRoot.getElementById('osSaveBanner').style.display = 'block';
-           widgetRoot.getElementById('osSaveAmt').innerText = `₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
-        } else {
-           widgetRoot.getElementById('osSaveBanner').style.display = 'none';
+        const osSaveBanner = widgetRoot.getElementById('osSaveBanner');
+        const osSaveAmt = widgetRoot.getElementById('osSaveAmt');
+        if(osSaveBanner) {
+           if(couponDiscount > 0) {
+              osSaveBanner.style.display = 'block';
+              if (osSaveAmt) osSaveAmt.innerText = `₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
+           } else {
+              osSaveBanner.style.display = 'none';
+           }
         }
 
         // Coupon Box in Order Summary Bar
-        if(appliedCoupon) {
-           widgetRoot.getElementById('osCpnEmpty').style.display = 'none';
-           widgetRoot.getElementById('osCpnActive').style.display = 'inline-flex';
-           widgetRoot.getElementById('osCpnCode').innerText = appliedCoupon.code;
-           widgetRoot.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
-           const _t = widgetRoot.getElementById('osCpnLinkText'); if(_t) _t.innerText = 'Change >';
-        } else {
-           widgetRoot.getElementById('osCpnEmpty').style.display = 'block';
-           widgetRoot.getElementById('osCpnActive').style.display = 'none';
-           const _t2 = widgetRoot.getElementById('osCpnLinkText'); if(_t2) _t2.innerText = 'Enter a Coupon >';
+        const osCpnEmpty = widgetRoot.getElementById('osCpnEmpty');
+        const osCpnActive = widgetRoot.getElementById('osCpnActive');
+        if (osCpnEmpty && osCpnActive) {
+           if(appliedCoupon) {
+              osCpnEmpty.style.display = 'none';
+              osCpnActive.style.display = 'inline-flex';
+              widgetRoot.getElementById('osCpnCode').innerText = appliedCoupon.code;
+              widgetRoot.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
+              const _t = widgetRoot.getElementById('osCpnLinkText'); if(_t) _t.innerText = 'Change >';
+           } else {
+              osCpnEmpty.style.display = 'block';
+              osCpnActive.style.display = 'none';
+              const _t2 = widgetRoot.getElementById('osCpnLinkText'); if(_t2) _t2.innerText = 'Enter a Coupon >';
+           }
         }
 
         // Drawer values
@@ -711,7 +736,7 @@ open: async function(options) {
             });
             const data = await res.json();
             if (data.success || data.valid) {
-              localStorage.setItem('checkoutflow_verified_phone', verifiedPhone);
+              localStorage.setItem('checkoutflow_verified', JSON.stringify({ phone: verifiedPhone, time: Date.now() }));
               cfTrack('OTP_VERIFIED');
               checkCustomer();
             } else {
