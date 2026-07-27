@@ -1,7 +1,13 @@
 (function() {
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
-      const apiUrl = 'https://checkoutflow-app.onrender.com/api/widget/track';
+      const getBase = () => {
+         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000';
+         const scripts = document.querySelectorAll('script[src*="widget.js"]');
+         for (let i = 0; i < scripts.length; i++) { try { return new URL(scripts[i].src).origin; } catch(e) {} }
+         return 'https://checkoutflow-app.onrender.com';
+      };
+      const apiUrl = getBase() + '/api/widget/track';
       const eventPayload = { shop, sessionId: 'anon', eventName, timestamp: Date.now() };
       
       let queue = [];

@@ -1,7 +1,13 @@
 (function() {
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
-      const apiUrl = 'https://checkoutflow-app.onrender.com/api/widget/track';
+      const getBase = () => {
+         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000';
+         const scripts = document.querySelectorAll('script[src*="widget.js"]');
+         for (let i = 0; i < scripts.length; i++) { try { return new URL(scripts[i].src).origin; } catch(e) {} }
+         return 'https://checkoutflow-app.onrender.com';
+      };
+      const apiUrl = getBase() + '/api/widget/track';
       const eventPayload = { shop, sessionId: 'anon', eventName, timestamp: Date.now() };
       
       let queue = [];
@@ -35,6 +41,9 @@
     },
 
     open: async function(options) {
+      if (window._cfIsOpening || document.getElementById('checkoutflow-host')) return;
+      window._cfIsOpening = true;
+
       const { shop, items, variantId, quantity, productTitle, productImage, price } = options;
       this.trackEvent(shop, 'WIDGET_OPENED');
 
@@ -47,7 +56,20 @@
          image: productImage || ''
       }];
 
-      const apiBaseUrl = 'https://checkoutflow-app.onrender.com';
+      const getApiBaseUrl = () => {
+         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3000';
+         }
+         const scripts = document.querySelectorAll('script[src*="widget.js"]');
+         for (let i = 0; i < scripts.length; i++) {
+            try {
+               const u = new URL(scripts[i].src);
+               return u.origin;
+            } catch(e) {}
+         }
+         return 'https://checkoutflow-app.onrender.com';
+      };
+      const apiBaseUrl = getApiBaseUrl();
       let widgetConfig = { 
         isPrepaidDiscountEnabled: false, prepaidDiscountType: 'percentage', prepaidDiscountValue: 0, 
         isPartialCodEnabled: false, partialCodAmount: 0, codFeeAmount: 69, hasRazorpay: false,
@@ -56,12 +78,6 @@
         preLoginBannerText: '🎉 FREE SHIPPING ON ALL ORDERS TODAY!', preLoginBannerBg: '#000000', preLoginBannerColor: '#ffffff',
         postLoginBannerText: '⚡ EXTRA 2% OFF ON UPI/CARDS', postLoginBannerBg: '#ecfdf5', postLoginBannerColor: '#059669'
       };
-
-      try {
-        const configRes = await fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}&t=${Date.now()}`);
-        const configData = await configRes.json();
-        if (configData.success) { widgetConfig = configData.config; }
-      } catch (e) {}
 
       const primaryColor = widgetConfig.primaryColor || '#7c3aed';
 
@@ -76,11 +92,34 @@
 
       const overlay = document.createElement('div');
       overlay.id = 'checkoutflow-overlay';
-      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:999999; display:flex; align-items:flex-end; justify-content:center;';
+      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:999999; display:flex; align-items:flex-end; justify-content:center; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:all 0.3s ease;';
 
       const sheet = document.createElement('div');
       sheet.id = 'checkoutflow-sheet';
-      sheet.style.cssText = 'width:100%; max-width:400px; height:88vh; background:#f5f3ff; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.2);';
+      sheet.style.cssText = 'width:100%; max-width:400px; height:88vh; background:#f5f3ff; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.25);';
+
+      // Fetch config asynchronously in background without blocking initial drawer UI
+      fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}&t=${Date.now()}`)
+        .then(res => res.json())
+        .then(configData => {
+           if (configData.success && configData.config) {
+              widgetConfig = configData.config;
+              const logoImg = widgetRoot.getElementById('cf-logo-img');
+              const storeNameTxt = widgetRoot.getElementById('cf-store-name-txt');
+              if (logoImg && widgetConfig.brandLogoUrl) { logoImg.src = widgetConfig.brandLogoUrl; logoImg.style.display = 'block'; if (storeNameTxt) storeNameTxt.style.display = 'none'; }
+              else if (storeNameTxt && widgetConfig.storeName) { storeNameTxt.innerText = widgetConfig.storeName.toUpperCase(); }
+              const bannerEl = widgetRoot.getElementById('cf-prelogin-banner');
+              if (bannerEl && widgetConfig.preLoginBannerText) {
+                 bannerEl.style.background = widgetConfig.preLoginBannerBg || '#000000';
+                 bannerEl.style.color = widgetConfig.preLoginBannerColor || '#ffffff';
+                 bannerEl.innerHTML = `<span style="margin-right:6px;">🚚</span> ${widgetConfig.preLoginBannerText}`;
+              }
+              const p1 = widgetConfig.primaryColor || '#7c3aed';
+              const styleEl = widgetRoot.querySelector('style');
+              if (styleEl) styleEl.innerHTML = styleEl.innerHTML.replace(/--p1:\s*#[0-9a-fA-F]+/g, `--p1: ${p1}`);
+              if (typeof updatePricing === 'function') updatePricing();
+           }
+        }).catch(e => console.log('Config fetch fallback to default:', e));
 
       let totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
       let subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -671,9 +710,15 @@
 
       const closeWidget = () => {
         sheet.style.transform = 'translateY(100%)';
-        setTimeout(() => { overlay.remove(); document.body.style.overflow = ''; }, 400);
+        setTimeout(() => { 
+          const h = document.getElementById('checkoutflow-host');
+          if (h) h.remove();
+          document.body.style.overflow = '';
+          window._cfIsOpening = false;
+        }, 400);
       };
       widgetRoot.getElementById('cf-close-btn').onclick = closeWidget;
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeWidget(); });
 
       // Confetti Logic
       
@@ -1118,6 +1163,21 @@
               widgetRoot.getElementById('cf-otp-box').style.display = 'block';
               otpStepActive = true;
               phoneBtn.innerText = 'Verify & Continue';
+              if (data.simulatedCode) {
+                 const otpBox = widgetRoot.getElementById('cf-otp-box');
+                 let testBadge = widgetRoot.getElementById('cf-test-badge');
+                 if (!testBadge) {
+                    testBadge = document.createElement('div');
+                    testBadge.id = 'cf-test-badge';
+                    testBadge.style.cssText = 'margin-top: 10px; padding: 10px 14px; background: rgba(124, 58, 237, 0.12); border: 1px dashed var(--p1); border-radius: 8px; color: var(--p1); font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s ease;';
+                    otpBox.appendChild(testBadge);
+                 }
+                 testBadge.innerHTML = `⚡ <span>Test Mode OTP: <strong style="text-decoration: underline; font-size: 14px;">${data.simulatedCode}</strong> (Tap to Auto-fill)</span>`;
+                 testBadge.onclick = () => {
+                    otpIn.value = data.simulatedCode;
+                    phoneBtn.click();
+                 };
+              }
             } else {
               phoneBtn.innerText = 'Continue';
             }
@@ -1181,9 +1241,16 @@
          const dP = widgetRoot.getElementById('disp-phone'); if(dP) dP.innerText = verifiedPhone;
          const dE = widgetRoot.getElementById('disp-email'); if(dE) dE.innerText = customerData.email || '';
          
-         widgetRoot.getElementById('cf-addr-city').value = customerData.city || '';
-         widgetRoot.getElementById('cf-addr-state').value = customerData.state || '';
-         widgetRoot.getElementById('cf-addr-pin').value = customerData.pincode || '';
+         const setVal = (id, val) => { const el = widgetRoot.getElementById(id); if (el) el.value = val || ''; };
+         setVal('cf-addr-fname', customerData.fname || customerData.name?.split(' ')[0] || '');
+         setVal('cf-addr-lname', customerData.lname || customerData.name?.split(' ').slice(1).join(' ') || '');
+         setVal('cf-addr-email', customerData.email || '');
+         setVal('cf-addr-street', customerData.street || customerData.address || '');
+         setVal('cf-addr-area', customerData.area || '');
+         setVal('cf-addr-landmark', customerData.landmark || '');
+         setVal('cf-addr-city', customerData.city || '');
+         setVal('cf-addr-state', customerData.state || '');
+         setVal('cf-addr-pin', customerData.pincode || '');
          
          renderPaymentMethods();
          stateCheckout.style.display = 'block';
@@ -1418,13 +1485,13 @@
 
          const payload = {
             shop, items: cartItems,
-            customerName: widgetRoot.getElementById('cf-addr-name').value,
+            customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || customerData?.fname || 'Valued Customer',
             customerPhone: verifiedPhone,
-            customerEmail: widgetRoot.getElementById('cf-addr-email').value,
-            address: widgetRoot.getElementById('cf-addr-street').value,
-            city: widgetRoot.getElementById('cf-addr-city').value,
-            state: widgetRoot.getElementById('cf-addr-state').value,
-            pincode: widgetRoot.getElementById('cf-addr-pin').value,
+            customerEmail: widgetRoot.getElementById('cf-addr-email')?.value || customerData?.email || '',
+            address: widgetRoot.getElementById('cf-addr-street')?.value || customerData?.street || customerData?.address || '',
+            city: widgetRoot.getElementById('cf-addr-city')?.value || customerData?.city || '',
+            state: widgetRoot.getElementById('cf-addr-state')?.value || customerData?.state || '',
+            pincode: widgetRoot.getElementById('cf-addr-pin')?.value || customerData?.pincode || '',
             paymentMethod: method,
             prepaidDiscount,
             shippingFee,
@@ -1509,7 +1576,12 @@
                  email: payload.customerEmail,
                  contact: payload.customerPhone
                },
-               theme: { color: primaryColor }
+               theme: { color: primaryColor },
+               modal: {
+                 ondismiss: function() {
+                   if (btn) btn.innerText = `Pay ${method}`;
+                 }
+               }
              };
              
              const rzp = new window.Razorpay(options);
