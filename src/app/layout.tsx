@@ -9,6 +9,8 @@ import { Toaster } from 'sonner';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'CheckoutFlow Dashboard',
   description: 'Shopify Checkout Optimization Platform',
