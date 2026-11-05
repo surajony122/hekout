@@ -9,7 +9,7 @@ services:
     name: checkoutflow-app
     env: node
     plan: free
-    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
@@ -17,8 +17,8 @@ services:
           name: checkoutflow-db
           property: connectionString
       - key: SHOPIFY_CLIENT_ID
-        value: "8bafae2bb6dfd46eed30c47b0fe13555"
+        value: "8e0324d85885c5f335ca3a37e1c0e796"
       - key: SHOPIFY_CLIENT_SECRET
-        value: "9bc2a20b8c52692d94bf6782401306ef"
+        sync: false
       - key: SHOPIFY_REDIRECT_URI
         value: "https://checkoutflow-app.onrender.com/api/auth/callback"
