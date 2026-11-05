@@ -6,6 +6,8 @@ import WidgetSettingsClient from './WidgetSettingsClient';
 import PlanSettingsClient from './PlanSettingsClient';
 import ShippingSettingsClient from './ShippingSettingsClient';
 import IntegrationsClient from './IntegrationsClient';
+import DiscountsClient from './DiscountsClient';
+import ShippingRulesClient from './ShippingRulesClient';
 import { OTP_RULES, smsProviderStatus } from '@/lib/otp-rules';
 import ReconnectAlert from '@/components/ReconnectAlert';
 import { storeNeedsReconnect } from '@/lib/shopify-connection';
@@ -21,6 +23,8 @@ export default async function SettingsPage() {
 
   let paymentSettings = null;
   let widgetSettings = null;
+  let discounts: Awaited<ReturnType<typeof prisma.discount.findMany>> = [];
+  let shippingRules: Awaited<ReturnType<typeof prisma.shippingRule.findMany>> = [];
   let feeTotals = { _count: 0, _sum: { total: 0 as number | null, feeAmount: 0 as number | null } };
 
   // Months follow Indian time, whatever timezone the server runs in.
@@ -48,6 +52,8 @@ export default async function SettingsPage() {
     widgetSettings = await prisma.widgetSettings.findUnique({
       where: { merchantId: merchant.id }
     });
+    discounts = await prisma.discount.findMany({ where: { merchantId: merchant.id }, orderBy: { createdAt: 'desc' } });
+    shippingRules = await prisma.shippingRule.findMany({ where: { merchantId: merchant.id }, orderBy: { createdAt: 'asc' } });
   } catch (error) {
     console.error('Error fetching settings:', error);
   }
@@ -152,22 +158,35 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="discounts" className="space-y-4">
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader>
-              <CardTitle>Discounts</CardTitle>
-              <CardDescription>Your checkout uses the discounts you create in Shopify.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <a
-                href={`https://${merchant.shopDomain}/admin/discounts`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-medium text-slate-900 underline"
-              >
-                Manage discounts in Shopify
-              </a>
-            </CardContent>
-          </Card>
+          <DiscountsClient
+            shopDomain={merchant.shopDomain}
+            initialDiscounts={discounts.map((discount) => ({
+              id: discount.id,
+              code: discount.code,
+              title: discount.title ?? '',
+              description: discount.description ?? '',
+              type: discount.type,
+              value: discount.value,
+              isAuto: discount.isAuto,
+              canCombine: discount.canCombine,
+              minItems: discount.minItems,
+              minCartValue: discount.minCartValue,
+              maxDiscount: discount.maxDiscount,
+              isActive: discount.isActive,
+              slabs: discount.slabs,
+              giftVariantId: discount.giftVariantId,
+              giftTitle: discount.giftTitle,
+              giftQuantity: discount.giftQuantity,
+              collections: discount.collections,
+              paymentMethods: discount.paymentMethods,
+              usageLimit: discount.usageLimit,
+              usageCount: discount.usageCount,
+              perCustomerLimit: discount.perCustomerLimit,
+              startsAt: discount.startsAt ? new Date(discount.startsAt.getTime() + 5.5 * 3600000).toISOString().slice(0, 10) : '',
+              endsAt: discount.endsAt ? new Date(discount.endsAt.getTime() + 5.5 * 3600000).toISOString().slice(0, 10) : '',
+              showInCheckout: discount.showInCheckout,
+            }))}
+          />
         </TabsContent>
 
         <TabsContent value="shipping" className="space-y-4">
@@ -177,6 +196,9 @@ export default async function SettingsPage() {
               shippingFeeAmount: paymentSettings?.shippingFeeAmount ?? 0,
               freeShippingThreshold: paymentSettings?.freeShippingThreshold ?? 999,
             }}
+          />
+          <ShippingRulesClient
+            initialRules={shippingRules.map(({ id, name, fee, minCart, maxCart, states, pincodes, paymentMethods, isActive }) => ({ id, name, fee, minCart, maxCart, states, pincodes, paymentMethods, isActive }))}
           />
         </TabsContent>
 

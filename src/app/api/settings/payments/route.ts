@@ -22,7 +22,26 @@ export async function POST(request: Request) {
       partialCodAmount,
       isCodFeeEnabled,
       codFeeAmount,
+      partialCodType,
+      isPartialDiscountEnabled,
+      partialDiscountType,
+      partialDiscountValue,
+      partialFreeShipping,
+      prepaidFreeShipping,
     } = body;
+
+    const percentageTooBig = (type: unknown, value: unknown) => type === 'percentage' && Number(value) > 100;
+    if (percentageTooBig(partialCodType, partialCodAmount) || percentageTooBig(partialDiscountType, partialDiscountValue)) {
+      return NextResponse.json({ error: "A percentage can't be more than 100." }, { status: 400 });
+    }
+    const paymentOffers = {
+      partialCodType: partialCodType === 'percentage' ? 'percentage' : 'flat',
+      isPartialDiscountEnabled: Boolean(isPartialDiscountEnabled),
+      partialDiscountType: partialDiscountType === 'flat' ? 'flat' : 'percentage',
+      partialDiscountValue: Math.max(0, Number(partialDiscountValue) || 0),
+      partialFreeShipping: Boolean(partialFreeShipping),
+      prepaidFreeShipping: Boolean(prepaidFreeShipping),
+    };
 
     const newSecrets = [razorpayKeySecret, cashfreeSecretKey].some((value) => typeof value === 'string' && value.trim());
     if (newSecrets && !isEncryptionConfigured()) {
@@ -44,6 +63,7 @@ export async function POST(request: Request) {
     await prisma.paymentSettings.upsert({
       where: { merchantId: merchant.id },
       update: {
+        ...paymentOffers,
         razorpayKeyId: keyId,
         ...secretFields,
         cashfreeAppId,
@@ -57,6 +77,7 @@ export async function POST(request: Request) {
       },
       create: {
         merchantId: merchant.id,
+        ...paymentOffers,
         razorpayKeyId: keyId,
         ...secretFields,
         cashfreeAppId,

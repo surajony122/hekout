@@ -20,6 +20,7 @@ const forCustomer = (quote: Quote) => ({
   total: quote.total,
   amountDueNow: quote.amountDueNow,
   amountDueLater: Math.round((quote.total - quote.amountDueNow) * 100) / 100,
+  gifts: quote.gifts,
 });
 
 export async function POST(request: Request) {

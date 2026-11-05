@@ -14,6 +14,12 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
     prepaidDiscountValue: initialSettings.prepaidDiscountValue || 0,
     isPartialCodEnabled: initialSettings.isPartialCodEnabled || false,
     partialCodAmount: initialSettings.partialCodAmount || 0,
+    partialCodType: initialSettings.partialCodType || 'flat',
+    isPartialDiscountEnabled: initialSettings.isPartialDiscountEnabled || false,
+    partialDiscountType: initialSettings.partialDiscountType || 'percentage',
+    partialDiscountValue: initialSettings.partialDiscountValue || 0,
+    partialFreeShipping: initialSettings.partialFreeShipping || false,
+    prepaidFreeShipping: initialSettings.prepaidFreeShipping || false,
     isCodFeeEnabled: initialSettings.isCodFeeEnabled !== false, // default true
     codFeeAmount: initialSettings.codFeeAmount !== undefined ? initialSettings.codFeeAmount : 69,
   });
@@ -155,6 +161,11 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
             )}
           </div>
 
+          <label className="flex items-center gap-3 text-sm font-medium text-slate-800 cursor-pointer border border-slate-100 rounded-xl p-5">
+            <input type="checkbox" className="w-4 h-4 accent-slate-900" name="prepaidFreeShipping" checked={formData.prepaidFreeShipping} onChange={handleChange} />
+            Free shipping on prepaid orders
+          </label>
+
           {/* Partial COD */}
           <div className="border border-slate-100 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -169,9 +180,39 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
             </div>
 
             {formData.isPartialCodEnabled && (
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Upfront Amount (₹)</label>
+              <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+                <div>
+                <label htmlFor="partialCodType" className="block text-sm font-medium text-slate-700 mb-1">Customer pays upfront</label>
+                <select id="partialCodType" name="partialCodType" value={formData.partialCodType} onChange={handleChange} className="w-full md:w-1/2 mb-3 px-4 py-2 border border-slate-200 rounded-lg bg-white">
+                  <option value="flat">A fixed amount (₹)</option>
+                  <option value="percentage">A percentage of the order (%)</option>
+                </select>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{formData.partialCodType === 'percentage' ? 'Upfront Percentage (%)' : 'Upfront Amount (₹)'}</label>
                 <input type="number" name="partialCodAmount" value={formData.partialCodAmount} onChange={handleChange} className="w-full md:w-1/2 px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500" />
+                </div>
+                <label className="flex items-center gap-3 text-sm font-medium text-slate-800 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-slate-900" name="isPartialDiscountEnabled" checked={formData.isPartialDiscountEnabled} onChange={handleChange} />
+                  Give a discount on Partial COD orders
+                </label>
+                {formData.isPartialDiscountEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="partialDiscountType" className="block text-sm font-medium text-slate-700 mb-1">Discount type</label>
+                      <select id="partialDiscountType" name="partialDiscountType" value={formData.partialDiscountType} onChange={handleChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-white">
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="flat">Fixed amount (₹)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="partialDiscountValue" className="block text-sm font-medium text-slate-700 mb-1">Discount value</label>
+                      <input id="partialDiscountValue" type="number" min="0" name="partialDiscountValue" value={formData.partialDiscountValue} onChange={handleChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
+                    </div>
+                  </div>
+                )}
+                <label className="flex items-center gap-3 text-sm font-medium text-slate-800 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-slate-900" name="partialFreeShipping" checked={formData.partialFreeShipping} onChange={handleChange} />
+                  Free shipping on Partial COD orders
+                </label>
               </div>
             )}
           </div>
