@@ -2,48 +2,28 @@ import { NextResponse } from 'next/server';
 import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 import { revealSecret } from '@/lib/secrets';
 
+const LIST_COLLECTIONS = `query ListCollections {
+  collections(first: 100, sortKey: TITLE) { nodes { id title } }
+}`;
+
 export async function GET() {
   try {
     const merchant = await getLoggedInMerchant();
     if (!merchant || !merchant.accessToken) return unauthorized();
 
-    const response = await fetch(`https://${merchant.shopDomain}/admin/api/2024-01/graphql.json`, {
+    const res = await fetch(`https://${merchant.shopDomain}/admin/api/2026-07/graphql.json`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': revealSecret(merchant.accessToken),
-      },
-      body: JSON.stringify({
-        query: `
-          query {
-            collections(first: 50) {
-              edges {
-                node {
-                  id
-                  title
-                }
-              }
-            }
-          }
-        `
-      })
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': revealSecret(merchant.accessToken) },
+      body: JSON.stringify({ query: LIST_COLLECTIONS }),
     });
-
-    const data = await response.json();
-
-    if (data.errors) {
-      console.error('GraphQL Errors:', data.errors);
-      throw new Error('GraphQL Error');
+    const body = await res.json();
+    if (!res.ok || !body?.data) {
+      console.error('List Collections Error:', res.status, JSON.stringify(body?.errors ?? null));
+      return NextResponse.json({ success: false, error: 'Could not load your collections.' }, { status: 502 });
     }
-
-    const collections = data.data.collections.edges.map((edge: any) => ({
-      id: edge.node.id,
-      title: edge.node.title
-    }));
-
-    return NextResponse.json({ success: true, collections });
+    return NextResponse.json({ success: true, collections: body.data.collections.nodes });
   } catch (error) {
-    console.error('Failed to fetch collections:', error);
-    return NextResponse.json({ error: 'Failed to fetch collections' }, { status: 500 });
+    console.error('List Collections Error:', error);
+    return NextResponse.json({ success: false, error: 'Could not load your collections.' }, { status: 500 });
   }
 }

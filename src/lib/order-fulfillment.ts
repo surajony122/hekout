@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revealSecret } from '@/lib/secrets';
 import { createDraftOrder } from '@/lib/checkout-pricing';
 import { calculateFee, planFeePercent } from '@/lib/plans';
+import { recordRedemptions } from '@/lib/checkout-rules';
 
 const SHOPIFY_REST_VERSION = '2024-01';
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
@@ -27,6 +28,7 @@ type PricingForOrder = {
   upsell: { id: string; revenue: number } | null;
   isPartial?: boolean;
   amountDueNow?: number;
+  ruleIds?: string[];
 };
 
 type CustomerForOrder = {
@@ -82,6 +84,7 @@ export function orderDataFromPricing(
           : 'Order via CheckoutFlow',
       },
       upsell: pricing.upsell,
+      ruleIds: pricing.ruleIds ?? [],
     })) as Prisma.InputJsonValue,
     utmSource: utm.source || null,
     utmMedium: utm.medium || null,
@@ -165,7 +168,7 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
   // Partial COD has paid some money, but Shopify must keep the order as not fully paid.
   const hasPaidMoney = Boolean(order.paymentId);
   const isPaid = hasPaidMoney && !isPartial;
-  const saved = order.fulfillmentData as { draftInput: unknown; upsell: { id: string; revenue: number } | null } | null;
+  const saved = order.fulfillmentData as { draftInput: unknown; upsell: { id: string; revenue: number } | null; ruleIds?: string[] } | null;
   let draftId = order.shopifyDraftOrderId;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -206,6 +209,11 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
         where: { id: orderId },
         data: { shopifyOrderId, orderStatusUrl, orderStatus: 'Synced' },
       });
+
+      if (saved?.ruleIds?.length && order.customerPhone) {
+        recordRedemptions(saved.ruleIds, orderId, order.customerPhone)
+          .catch((error) => console.error('Record Discount Use Error:', error));
+      }
 
       if (saved?.upsell) {
         prisma.upsellFunnel.update({

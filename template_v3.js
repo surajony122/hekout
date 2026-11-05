@@ -93,6 +93,32 @@ open: async function(options) {
                  window.fbq('init', widgetConfig.fbPixelId);
                  window.fbq('track', 'InitiateCheckout', { num_items: totalQuantity, currency: 'INR', value: subtotalBase });
               }
+              const offerList = widgetRoot.getElementById('cpn-offers');
+              if (offerList && widgetConfig.offers?.length > 0) {
+                 // Built without HTML, since the text comes from the store's settings.
+                 offerList.replaceChildren(...widgetConfig.offers.map((offer) => {
+                    const row = document.createElement('button');
+                    row.type = 'button';
+                    row.className = 'cf-offer';
+                    row.style.cssText = 'display:block; width:100%; text-align:left; font:inherit; color:inherit; background:var(--surface,#fff); border:1.5px dashed var(--border); border-radius:12px; padding:12px; margin-bottom:8px; cursor:pointer;';
+                    const title = document.createElement('div');
+                    title.style.cssText = 'font-size:14px; font-weight:600;';
+                    title.textContent = `${offer.code} · ${offer.title}`;
+                    row.appendChild(title);
+                    if (offer.description) {
+                       const detail = document.createElement('div');
+                       detail.style.cssText = 'font-size:12px; color:var(--text2); margin-top:2px;';
+                       detail.textContent = offer.description;
+                       row.appendChild(detail);
+                    }
+                    row.onclick = () => {
+                       widgetRoot.getElementById('cpn-manual-input').value = offer.code;
+                       widgetRoot.getElementById('cpn-manual-btn').click();
+                    };
+                    return row;
+                 }));
+                 offerList.style.display = 'block';
+              }
               if (typeof updatePricing === 'function') updatePricing();
               if (widgetConfig.hasRazorpay) {
                  loadScript(RAZORPAY_URL).catch(() => {});
@@ -519,6 +545,7 @@ open: async function(options) {
                 <div style="font-size:16px; font-weight:700; margin:20px 0 12px; color:var(--text-main);">Bill summary</div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Sub total</span><span id="tSub" style="color:var(--text-main); font-weight:600;">₹${total.toLocaleString('en-IN')}</span></div>
                 <div id="trDisc" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Discount on MRP</span><span id="tDisc" style="color:var(--green); font-weight:600;">-₹0</span></div>
+                <div id="trGift" style="display:none; justify-content:space-between; gap:12px; margin-bottom:10px; font-size:14px;"><span id="tGift" style="color:var(--text2); font-weight:500;"></span><span style="color:var(--green); font-weight:600;">FREE</span></div>
                 <div id="trShip" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Shipping Fee</span><span id="tShipFee" style="color:var(--text-main); font-weight:600;">₹0</span></div>
                 <div id="trTax" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Tax</span><span id="tTax" style="color:var(--text-main); font-weight:600;"></span></div>
                 <div id="trPaidNow" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Pay now</span><span id="tPaidNow" style="color:var(--text-main); font-weight:600;"></span></div>
@@ -542,6 +569,7 @@ open: async function(options) {
                    <input type="text" id="cpn-manual-input" class="cf-input" placeholder="Enter coupon code" style="margin-bottom:0; flex:1; text-transform:uppercase; font-weight:500;" />
                    <button class="cf-btn" id="cpn-manual-btn" style="width:auto; padding:0 24px; font-size:14px;">Apply</button>
                 </div>
+                <div id="cpn-offers" style="display:none; margin-bottom:12px;"></div>
                 <div id="cpn-manual-err" style="color:var(--red); font-size:12px; font-weight:600; display:none; margin-bottom:16px;"></div>
                 
               </div>
@@ -878,6 +906,13 @@ open: async function(options) {
            } else {
               discRow.style.display = 'none';
            }
+        }
+
+        const giftRow = widgetRoot.getElementById('trGift');
+        if (giftRow) {
+           const gifts = quote?.gifts || [];
+           giftRow.style.display = gifts.length > 0 ? 'flex' : 'none';
+           widgetRoot.getElementById('tGift').textContent = gifts.map((gift) => `Free gift: ${gift.title}${gift.quantity > 1 ? ` × ${gift.quantity}` : ''}`).join(', ');
         }
 
         const shipRow = widgetRoot.getElementById('trShip');
@@ -1391,7 +1426,7 @@ open: async function(options) {
          const money = (value) => `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
          const methods = [
             { id: 'COD', name: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: 'banknote', extra: (widgetConfig.isCodFeeEnabled !== false && widgetConfig.codFeeAmount > 0) ? `${money(widgetConfig.codFeeAmount)} COD fee may apply` : '' },
-            ...(widgetConfig.hasPartialCod ? [{ id: 'PARTIAL COD', name: 'Partial COD', sub: `Pay ${money(widgetConfig.partialCodAmount)} now, the rest on delivery`, icon: 'coins', extra: 'No COD fee' }] : []),
+            ...(widgetConfig.hasPartialCod ? [{ id: 'PARTIAL COD', name: 'Partial COD', sub: `Pay ${widgetConfig.partialCodType === 'percentage' ? `${widgetConfig.partialCodAmount}%` : money(widgetConfig.partialCodAmount)} now, the rest on delivery`, icon: 'coins', extra: 'No COD fee' }] : []),
             { id: 'ONLINE', name: 'Pay Online', sub: 'UPI, cards and more on secure checkout. Your details are filled in for you', icon: 'credit-card', extra: '' },
          ];
          widgetRoot.getElementById('cf-method-list').innerHTML = methods.map((m) => `

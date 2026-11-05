@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/checkout-session';
+import { codeProblem, loadCheckoutRules, matchShippingRule, needsCollections, pickOffers, rulesStillValid } from '@/lib/checkout-rules';
 
 const SHOPIFY_API_VERSION = '2026-07';
 const MAX_QUANTITY = 1000;
@@ -15,6 +16,12 @@ export class CheckoutError extends Error {
 type PaymentConfig = {
   isPartialCodEnabled: boolean;
   partialCodAmount: number;
+  partialCodType?: string;
+  isPartialDiscountEnabled?: boolean;
+  partialDiscountType?: string;
+  partialDiscountValue?: number;
+  partialFreeShipping?: boolean;
+  prepaidFreeShipping?: boolean;
   isPrepaidDiscountEnabled: boolean;
   prepaidDiscountType: string;
   prepaidDiscountValue: number;
@@ -97,6 +104,12 @@ const CREATE_DRAFT_ORDER = `mutation CreateDraftOrder($input: DraftOrderInput!) 
 const FIND_CUSTOMER = `query FindCustomer($query: String!) {
   customers(first: 1, query: $query) {
     nodes { id }
+  }
+}`;
+
+const VARIANT_COLLECTIONS = `query VariantCollections($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on ProductVariant { id product { collections(first: 50) { nodes { id } } } }
   }
 }`;
 
@@ -200,6 +213,20 @@ export function warmCustomerLookup(merchant: { shopDomain: string; accessToken: 
   findCustomerId({ ...merchant, id: '', paymentSettings: null }, phone).catch(() => {});
 }
 
+// Only asked for when a rule is limited to collections. If Shopify can't answer, those rules just don't apply.
+async function collectionsOfVariants(merchant: MerchantForPricing, variantIds: string[]) {
+  const found = new Map<string, string[]>();
+  try {
+    const data = await shopifyGraphql(merchant, VARIANT_COLLECTIONS, { ids: variantIds.map((id) => `gid://shopify/ProductVariant/${id}`) });
+    for (const node of data.nodes) {
+      if (node?.id) found.set(node.id.split('/').pop(), node.product.collections.nodes.map((collection: { id: string }) => collection.id));
+    }
+  } catch (error) {
+    console.error('Variant Collections Error:', error);
+  }
+  return found;
+}
+
 async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckoutInput) {
   const items = parseItems(input.items);
   const titles = items.map((item) => item.title || 'Product');
@@ -240,14 +267,32 @@ async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckout
     }
   }
 
-  const couponCode = text(input.couponCode);
-  const customerId = await findCustomerId(merchant, input.customer.phone);
+  const typedCode = text(input.couponCode);
+  const [customerId, rules] = await Promise.all([
+    findCustomerId(merchant, input.customer.phone),
+    loadCheckoutRules(merchant.id, input.customer.phone),
+  ]);
+
+  // Our own codes are handled here, and anything else is left for Shopify to check.
+  const upperCode = typedCode?.toUpperCase();
+  if (upperCode && rules.unusableCodes.has(upperCode)) {
+    throw new CheckoutError(400, 'This coupon is no longer available.', 'INVALID_COUPON');
+  }
+  const ownCode = upperCode ? rules.discounts.find((rule) => !rule.isAuto && rule.code === upperCode) ?? null : null;
+  const couponCode = ownCode ? undefined : typedCode;
+  const collectionsByVariant = needsCollections(rules.discounts)
+    ? await collectionsOfVariants(merchant, items.map((item) => item.variantId))
+    : new Map<string, string[]>();
 
   return {
     items,
     titles,
     upsellId,
     couponCode,
+    ownCode,
+    discountRules: rules.discounts,
+    shippingRules: rules.shippingRules,
+    collectionsByVariant,
     draftInput: {
       lineItems,
       discountCodes: couponCode ? [couponCode] : [],
@@ -265,6 +310,21 @@ const isCouponApplied = (couponCode: string, calculated: CalculatedDraftOrder) =
 
 // Shopify drops a code it does not recognise without any warning, so the code
 // must be in its applied list. When it explains the rejection, show that reason.
+const ruleCart = (base: Awaited<ReturnType<typeof buildBaseInput>>, calculated: CalculatedDraftOrder) => ({
+  lines: base.items.map((item, index) => ({
+    variantId: item.variantId,
+    quantity: item.quantity,
+    lineTotal: amountOf(calculated.lineItems[index].originalUnitPriceSet) * item.quantity,
+  })),
+  collectionsByVariant: base.collectionsByVariant,
+});
+
+function assertOwnCodeUsable(base: Awaited<ReturnType<typeof buildBaseInput>>, calculated: CalculatedDraftOrder) {
+  if (!base.ownCode) return;
+  const problem = codeProblem(base.ownCode, ruleCart(base, calculated));
+  if (problem) throw new CheckoutError(400, problem, 'INVALID_COUPON');
+}
+
 function assertCouponApplied(couponCode: string | undefined, calculated: CalculatedDraftOrder) {
   if (!couponCode || isCouponApplied(couponCode, calculated)) return;
   const reason = calculated.warnings.find((warning) => warning.field === 'discountCodes');
@@ -282,19 +342,41 @@ async function priceForMethod(
   const isCod = isCodMethod(paymentMethod);
   const isPartial = isPartialCodMethod(paymentMethod);
   const settings = merchant.paymentSettings;
+  const method = isCod ? 'COD' : isPartial ? 'PARTIAL COD' : 'PREPAID';
   const cartSubtotal = amountOf(calculated.totalLineItemsPriceSet);
-  const remaining = Math.max(0, cartSubtotal - amountOf(calculated.totalDiscountsSet));
+  const shopifyDiscount = amountOf(calculated.totalDiscountsSet);
 
+  const offers = pickOffers(base.discountRules, ruleCart(base, calculated), method, base.ownCode, shopifyDiscount);
+  const cartValue = Math.max(0, cartSubtotal - (offers.dropShopifyAutomatic ? 0 : shopifyDiscount));
+  let offerDiscount = roundMoney(Math.min(offers.money.reduce((sum, offer) => sum + offer.amount, 0), cartValue));
+  const remaining = cartValue - offerDiscount;
+
+  // Prepaid and Partial COD each have their own discount, which the store owner chooses.
+  const methodDiscountRule = !isCod && !isPartial && settings?.isPrepaidDiscountEnabled
+    ? { type: settings.prepaidDiscountType, value: settings.prepaidDiscountValue, title: 'Prepaid Discount' }
+    : isPartial && settings?.isPartialDiscountEnabled
+      ? { type: settings.partialDiscountType ?? 'percentage', value: settings.partialDiscountValue ?? 0, title: 'Partial COD Discount' }
+      : null;
   let prepaidDiscount = 0;
-  if (!isCod && !isPartial && settings?.isPrepaidDiscountEnabled) {
-    const discount = settings.prepaidDiscountType === 'percentage'
-      ? remaining * (settings.prepaidDiscountValue / 100)
-      : settings.prepaidDiscountValue;
+  if (methodDiscountRule) {
+    const discount = methodDiscountRule.type === 'percentage'
+      ? remaining * (methodDiscountRule.value / 100)
+      : methodDiscountRule.value;
     prepaidDiscount = roundMoney(Math.min(Math.max(0, discount), remaining));
   }
 
+  const freeShipping = offers.freeShipping ||
+    (!isCod && !isPartial && settings?.prepaidFreeShipping) ||
+    (isPartial && settings?.partialFreeShipping);
+  const customer = base.draftInput.shippingAddress;
+  const shippingRule = matchShippingRule(base.shippingRules, cartSubtotal, method, customer?.province ?? '', customer?.zip ?? '');
+
   let shippingFee = 0;
-  if (settings?.isShippingFeeEnabled) {
+  if (freeShipping) {
+    shippingFee = 0;
+  } else if (shippingRule) {
+    shippingFee = roundMoney(Math.max(0, shippingRule.fee));
+  } else if (settings?.isShippingFeeEnabled) {
     const threshold = settings.freeShippingThreshold;
     if (threshold === 0 || cartSubtotal < threshold) {
       shippingFee = roundMoney(Math.max(0, settings.shippingFeeAmount));
@@ -311,48 +393,91 @@ async function priceForMethod(
     title,
     priceWithCurrency: { amount, currencyCode: calculated.currencyCode },
   });
-  const inputWithFees = {
-    ...base.draftInput,
-    ...(shippingFee > 0 ? { shippingLine: shippingLine('Shipping Fee', shippingFee) } : {}),
-    ...(codFee > 0 ? { shippingLine: shippingLine('Cash on Delivery Fee', codFee) } : {}),
+  // Gifts go before any upsell line, which is expected to stay last.
+  const withGifts = (gifts: typeof offers.gifts) => {
+    if (gifts.length === 0) return base.draftInput.lineItems;
+    const lines = [...base.draftInput.lineItems];
+    lines.splice(base.items.length, 0, ...gifts.map((gift) => ({
+      variantId: `gid://shopify/ProductVariant/${gift.giftVariantId}`,
+      quantity: gift.giftQuantity,
+      appliedDiscount: { title: 'Free Gift', value: 100, valueType: 'PERCENTAGE' },
+    })));
+    return lines;
   };
-  let draftInput: typeof inputWithFees & { appliedDiscount?: unknown } = prepaidDiscount > 0
-    ? { ...inputWithFees, appliedDiscount: { title: 'Prepaid Discount', value: prepaidDiscount, valueType: 'FIXED_AMOUNT' } }
-    : inputWithFees;
+  const buildInput = (gifts: typeof offers.gifts, withDiscounts: boolean) => {
+    const offerAmount = withDiscounts ? offerDiscount : 0;
+    const methodAmount = withDiscounts ? prepaidDiscount : 0;
+    const title = [...(offerAmount > 0 ? offers.money.map((offer) => offer.rule.title) : []), ...(methodAmount > 0 && methodDiscountRule ? [methodDiscountRule.title] : [])].join(' + ');
+    return {
+      ...base.draftInput,
+      lineItems: withGifts(gifts),
+      ...(offers.dropShopifyAutomatic ? { acceptAutomaticDiscounts: false } : {}),
+      ...(shippingFee > 0 ? { shippingLine: shippingLine('Shipping Fee', shippingFee) } : {}),
+      ...(codFee > 0 ? { shippingLine: shippingLine('Cash on Delivery Fee', codFee) } : {}),
+      ...(offerAmount + methodAmount > 0
+        ? { appliedDiscount: { title: title.slice(0, 200), value: roundMoney(offerAmount + methodAmount), valueType: 'FIXED_AMOUNT' } }
+        : {}),
+    };
+  };
 
-  let final = !alreadyHasFees && (prepaidDiscount > 0 || shippingFee > 0 || codFee > 0)
-    ? await calculateDraftOrder(merchant, draftInput)
-    : calculated;
+  let gifts = offers.gifts;
+  let draftInput = buildInput(gifts, true);
+  const needsNewTotal = () => prepaidDiscount > 0 || offerDiscount > 0 || gifts.length > 0 || shippingFee > 0 || codFee > 0 || offers.dropShopifyAutomatic;
 
-  // If Shopify won't combine the customer's code with the prepaid discount, the code wins.
-  if (prepaidDiscount > 0 && base.couponCode && !isCouponApplied(base.couponCode, final)) {
+  let final = calculated;
+  if (!alreadyHasFees && needsNewTotal()) {
+    try {
+      final = await calculateDraftOrder(merchant, draftInput);
+    } catch (error) {
+      // A gift that's out of stock shouldn't stop the customer buying.
+      if (gifts.length === 0 || !(error instanceof CheckoutError) || error.status !== 400) throw error;
+      console.error('Free gift could not be added:', gifts.map((gift) => gift.giftVariantId).join(','));
+      gifts = [];
+      draftInput = buildInput(gifts, true);
+      final = needsNewTotal() ? await calculateDraftOrder(merchant, draftInput) : calculated;
+    }
+  }
+
+  // If Shopify won't combine the customer's code with our discounts, the code wins.
+  if (prepaidDiscount + offerDiscount > 0 && base.couponCode && !isCouponApplied(base.couponCode, final)) {
     prepaidDiscount = 0;
-    draftInput = inputWithFees;
-    final = shippingFee > 0 ? await calculateDraftOrder(merchant, draftInput) : calculated;
+    offerDiscount = 0;
+    draftInput = buildInput(gifts, false);
+    final = shippingFee > 0 || gifts.length > 0 ? await calculateDraftOrder(merchant, draftInput) : calculated;
   }
   assertCouponApplied(base.couponCode, final);
 
   const totalDiscount = amountOf(final.totalDiscountsSet);
+  const orderTotal = amountOf(final.totalPriceSet);
+  const partialDue = settings?.partialCodType === 'percentage'
+    ? roundMoney(orderTotal * (Math.max(0, settings.partialCodAmount ?? 0) / 100))
+    : Math.max(0, settings?.partialCodAmount ?? 0);
+  // Only offers that really reached the order count towards their limits.
+  const droppedGifts = offers.gifts.filter((gift) => !gifts.includes(gift)).map((gift) => gift.id);
+  const droppedMoney = offerDiscount > 0 ? [] : offers.money.map((offer) => offer.rule.id);
+  const usedRuleIds = offers.ruleIds.filter((id) => !droppedGifts.includes(id) && !droppedMoney.includes(id));
 
   return {
     paymentMethod,
     isCod,
     isPartial,
     // What the customer pays online now. COD pays nothing now, and prepaid pays it all.
-    amountDueNow: isCod ? 0 : isPartial ? Math.min(Math.max(0, settings?.partialCodAmount ?? 0), amountOf(final.totalPriceSet)) : amountOf(final.totalPriceSet),
+    amountDueNow: isCod ? 0 : isPartial ? Math.min(partialDue, orderTotal) : orderTotal,
     draftInput,
     currency: final.currencyCode,
     quantity: base.items.reduce((sum, item) => sum + item.quantity, 0),
     firstPrice: amountOf(final.lineItems[0].originalUnitPriceSet),
     firstVariantId: base.items[0].variantId,
-    productTitle: base.titles.join(', ').slice(0, 200),
+    productTitle: [...base.titles, ...gifts.map((gift) => `Free: ${gift.giftTitle ?? 'Gift'}`)].join(', ').slice(0, 200),
     subtotal: amountOf(final.totalLineItemsPriceSet),
     discount: roundMoney(Math.max(0, totalDiscount - prepaidDiscount)),
     prepaidDiscount,
     shippingFee,
     codFee,
     tax: amountOf(final.totalTaxSet),
-    total: amountOf(final.totalPriceSet),
+    total: orderTotal,
+    ruleIds: usedRuleIds,
+    gifts: gifts.map((gift) => ({ title: gift.giftTitle ?? 'Free gift', quantity: gift.giftQuantity })),
     upsell: base.upsellId
       ? { id: base.upsellId, revenue: amountOf(final.lineItems[final.lineItems.length - 1].discountedTotalSet) }
       : null,
@@ -369,6 +494,7 @@ export async function priceCheckout(
   const base = await buildBaseInput(merchant, input);
   const calculated = await calculateDraftOrder(merchant, base.draftInput);
   assertCouponApplied(base.couponCode, calculated);
+  assertOwnCodeUsable(base, calculated);
   return priceForMethod(merchant, base, calculated, paymentMethod);
 }
 
@@ -380,7 +506,8 @@ export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCh
   const base = await buildBaseInput(merchant, input);
 
   // The COD fee is known in advance when no shipping rule applies, so one calculation is enough.
-  if (methods?.length === 1 && methods[0] === 'COD' && !settings?.isShippingFeeEnabled) {
+  const hasRules = base.discountRules.length > 0 || base.shippingRules.length > 0;
+  if (methods?.length === 1 && methods[0] === 'COD' && !settings?.isShippingFeeEnabled && !hasRules) {
     const codFee = settings?.isCodFeeEnabled !== false ? roundMoney(Math.max(0, settings?.codFeeAmount ?? 69)) : 0;
     const calculated = await calculateDraftOrder(merchant, codFee > 0
       ? { ...base.draftInput, shippingLine: { title: 'Cash on Delivery Fee', priceWithCurrency: { amount: codFee, currencyCode: 'INR' } } }
@@ -391,12 +518,18 @@ export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCh
 
   const calculated = await calculateDraftOrder(merchant, base.draftInput);
   assertCouponApplied(base.couponCode, calculated);
+  assertOwnCodeUsable(base, calculated);
   const partialEnabled = settings?.isPartialCodEnabled && (settings.partialCodAmount ?? 0) > 0;
   const [cod, prepaid, partial] = await Promise.all([
     wants('COD') ? priceForMethod(merchant, base, calculated, 'COD') : null,
     wants('PREPAID') ? priceForMethod(merchant, base, calculated, 'PREPAID') : null,
     wants('PARTIAL COD') && partialEnabled ? priceForMethod(merchant, base, calculated, 'PARTIAL COD') : null,
   ]);
+  // A code limited to other ways of paying shouldn't look as if it worked.
+  const ownCodeId = base.ownCode?.id;
+  if (ownCodeId && ![cod, prepaid, partial].some((quote) => quote?.ruleIds.includes(ownCodeId))) {
+    throw new CheckoutError(400, "This code isn't valid for this way of paying.", 'INVALID_COUPON');
+  }
   return { cod, prepaid, partial };
 }
 
@@ -440,7 +573,8 @@ export async function resolvePricing(
 ) {
   const quoted = input.upsellVariantId ? null : readQuoteToken(input.quoteToken, merchant.shopDomain, input.customer.phone);
   const paymentMethod = text(input.paymentMethod)?.slice(0, 50) ?? 'COD';
-  if (quoted && quoted.isCod === isCodMethod(paymentMethod) && quoted.isPartial === isPartialCodMethod(paymentMethod)) {
+  const offersStillGood = quoted ? await rulesStillValid(merchant.id, quoted.ruleIds ?? [], input.customer.phone) : false;
+  if (quoted && offersStillGood && quoted.isCod === isCodMethod(paymentMethod) && quoted.isPartial === isPartialCodMethod(paymentMethod)) {
     return { pricing: { ...quoted, paymentMethod }, fromQuote: true };
   }
   return { pricing: await priceCheckout(merchant, input), fromQuote: false };

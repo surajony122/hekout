@@ -20,6 +20,23 @@ export async function GET(request: Request) {
     const ps = merchant.paymentSettings;
     const ws = merchant.widgetSettings;
 
+    // Only what a customer may see. Limits and other rules stay on the server.
+    const now = new Date();
+    const offerRows = await prisma.discount.findMany({
+      where: {
+        merchantId: merchant.id,
+        isActive: true,
+        isAuto: false,
+        showInCheckout: true,
+        AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gt: now } }] }],
+      },
+      select: { code: true, title: true, description: true, usageLimit: true, usageCount: true },
+      take: 20,
+    });
+    const offers = offerRows
+      .filter((offer) => offer.usageLimit === null || offer.usageCount < offer.usageLimit)
+      .map(({ code, title, description }) => ({ code, title, description }));
+
     return NextResponse.json({
       success: true,
       config: {
@@ -28,6 +45,8 @@ export async function GET(request: Request) {
         prepaidDiscountValue: ps?.prepaidDiscountValue || 0,
         isPartialCodEnabled: ps?.isPartialCodEnabled || false,
         partialCodAmount: ps?.partialCodAmount || 0,
+        partialCodType: ps?.partialCodType || 'flat',
+        offers,
         isCodFeeEnabled: ps?.isCodFeeEnabled !== false, // default true
         codFeeAmount: ps?.codFeeAmount !== undefined ? ps?.codFeeAmount : 69,
         isShippingFeeEnabled: ps?.isShippingFeeEnabled || false,
