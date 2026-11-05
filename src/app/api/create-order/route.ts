@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { CheckoutError, priceCheckout } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, createDraftOrder, priceCheckout } from '@/lib/checkout-pricing';
 import { readCheckoutSession, safeEqual } from '@/lib/checkout-session';
 
 const PAID_PAYMENT_STATUSES = ['authorized', 'captured'];
@@ -47,7 +47,7 @@ async function verifyRazorpayPayment(
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { shop, sessionToken, items, customerName, customerEmail, address, city, state, pincode, paymentMethod, appliedCoupon, upsellVariantId, utmSource, utmMedium, utmCampaign } = data;
+    const { shop, sessionToken, items, customerName, customerEmail, address, city, state, pincode, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, utmSource, utmMedium, utmCampaign } = data;
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -70,8 +70,17 @@ export async function POST(request: Request) {
 
     const pricing = await priceCheckout(
       { ...merchant, accessToken: merchant.accessToken },
-      { items, paymentMethod, couponCode: appliedCoupon?.code, upsellVariantId }
+      {
+        items,
+        paymentMethod,
+        couponCode: appliedCoupon?.code,
+        upsellVariantId,
+        customer: { phone: customerPhone, name: customerName, email: customerEmail, address, city, state, pincode },
+      }
     );
+
+    // A prepaid customer has already paid, so their payment is checked against the total instead.
+    if (pricing.isCod) assertExpectedTotal(pricing.total, expectedTotal);
 
     const paymentId = pricing.isCod
       ? null
@@ -137,68 +146,31 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create the Shopify draft order
-    let shippingTitle = "Shipping & Handling";
-    let shippingPrice = "0.00";
-
-    if (pricing.shippingFee > 0) {
-      shippingTitle = "Shipping Fee";
-      shippingPrice = pricing.shippingFee.toString();
-    } else if (pricing.codFee > 0) {
-      shippingTitle = "Cash on Delivery Fee";
-      shippingPrice = pricing.codFee.toString();
+    // Create the Shopify draft order with the same details that were priced
+    let draftOrder;
+    try {
+      draftOrder = await createDraftOrder(
+        { ...merchant, accessToken: merchant.accessToken },
+        {
+          ...pricing.draftInput,
+          tags: [pricing.paymentMethod, 'CheckoutFlow'],
+          note: 'Order via CheckoutFlow',
+        }
+      );
+    } catch (error) {
+      console.error('Shopify Draft Order Error:', error);
     }
 
-    const draftPayload = {
-      draft_order: {
-        line_items: pricing.lineItems,
-        customer: {
-          first_name: customerName || undefined,
-          email: customerEmail || undefined,
-          // Shopify needs a country code. 10-digit numbers default to India.
-          phone: customerPhone.length === 10 ? `+91${customerPhone}` : `+${customerPhone}`
-        },
-        shipping_address: {
-          first_name: customerName || undefined,
-          address1: address || undefined,
-          city: city || undefined,
-          province: state || undefined,
-          zip: pincode || undefined,
-          country: 'India'
-        },
-        use_customer_default_address: false,
-        shipping_line: {
-          title: shippingTitle,
-          price: shippingPrice
-        },
-        applied_discount: pricing.totalDiscount > 0 ? {
-          description: pricing.discountTitles.join(' + '),
-          value_type: 'fixed_amount',
-          value: pricing.totalDiscount.toString()
-        } : undefined,
-        tags: `${pricing.paymentMethod}, CheckoutFlow`,
-        note: `Order via CheckoutFlow`
-      }
-    };
-
-    const draftRes = await fetch(`https://${shop}/admin/api/2024-01/draft_orders.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': merchant.accessToken
-      },
-      body: JSON.stringify(draftPayload)
-    });
-
-    const draftData = await draftRes.json();
-
-    if (!draftRes.ok) {
-      console.error("Shopify Draft Order Error:", draftData);
+    if (!draftOrder) {
       await prisma.order.update({ where: { id: order.id }, data: { orderStatus: 'Failed' }});
       return NextResponse.json({ error: 'Could not create your order. Please contact the store.' }, { status: 500 });
     }
 
-    const shopifyDraftOrderId = draftData.draft_order.id.toString();
+    if (Math.abs(draftOrder.total - pricing.total) >= 0.01) {
+      console.error(`Draft order total ${draftOrder.total} differs from priced total ${pricing.total} for order ${order.id}`);
+    }
+
+    const shopifyDraftOrderId = draftOrder.legacyId;
 
     // Complete the draft into a real order. COD stays unpaid; only a verified payment is marked paid.
     const completeUrl = `https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json${pricing.isCod ? '?payment_pending=true' : ''}`;
@@ -251,7 +223,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, orderId: order.id, shopifyOrderId, orderStatusUrl });
   } catch (error) {
     if (error instanceof CheckoutError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     }
     console.error('Create Order Error:', error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });

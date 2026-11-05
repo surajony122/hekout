@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/prisma';
 
-const SHOPIFY_API_VERSION = '2024-01';
+const SHOPIFY_API_VERSION = '2026-07';
 const MAX_QUANTITY = 1000;
 
 // An error whose message is safe to show to the customer.
 export class CheckoutError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -28,14 +28,77 @@ type MerchantForPricing = {
   paymentSettings: PaymentConfig;
 };
 
-type PriceCheckoutInput = {
-  items: unknown;
-  paymentMethod: unknown;
-  couponCode: unknown;
-  upsellVariantId: unknown;
+export type CheckoutCustomer = {
+  name?: unknown;
+  email?: unknown;
+  phone: string;
+  address?: unknown;
+  city?: unknown;
+  state?: unknown;
+  pincode?: unknown;
 };
 
+type PriceCheckoutInput = {
+  items: unknown;
+  couponCode: unknown;
+  upsellVariantId: unknown;
+  customer: CheckoutCustomer;
+};
+
+type Money = { shopMoney: { amount: string } };
+
+type CalculatedDraftOrder = {
+  currencyCode: string;
+  discountCodes: string[];
+  warnings: { errorCode: string; field: string; message: string }[];
+  totalLineItemsPriceSet: Money;
+  totalDiscountsSet: Money;
+  totalShippingPriceSet: Money;
+  totalTaxSet: Money;
+  totalPriceSet: Money;
+  lineItems: { originalUnitPriceSet: Money; discountedTotalSet: Money }[];
+};
+
+const CALCULATE_DRAFT_ORDER = `mutation CalculateDraftOrder($input: DraftOrderInput!) {
+  draftOrderCalculate(input: $input) {
+    calculatedDraftOrder {
+      currencyCode
+      discountCodes
+      warnings { errorCode field message }
+      totalLineItemsPriceSet { shopMoney { amount } }
+      totalDiscountsSet { shopMoney { amount } }
+      totalShippingPriceSet { shopMoney { amount } }
+      totalTaxSet { shopMoney { amount } }
+      totalPriceSet { shopMoney { amount } }
+      lineItems {
+        originalUnitPriceSet { shopMoney { amount } }
+        discountedTotalSet { shopMoney { amount } }
+      }
+    }
+    userErrors { field message }
+  }
+}`;
+
+const CREATE_DRAFT_ORDER = `mutation CreateDraftOrder($input: DraftOrderInput!) {
+  draftOrderCreate(input: $input) {
+    draftOrder {
+      id
+      legacyResourceId
+      totalPriceSet { shopMoney { amount } }
+    }
+    userErrors { field message }
+  }
+}`;
+
+const FIND_CUSTOMER = `query FindCustomer($query: String!) {
+  customers(first: 1, query: $query) {
+    nodes { id }
+  }
+}`;
+
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
+const amountOf = (money: Money) => parseFloat(money.shopMoney.amount);
+const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
 
 export const isCodMethod = (method: string) => method.toUpperCase() === 'COD';
 
@@ -57,60 +120,74 @@ function parseItems(items: unknown) {
   });
 }
 
-async function fetchVariant(merchant: MerchantForPricing, variantId: string) {
-  const res = await fetch(
-    `https://${merchant.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/variants/${variantId}.json`,
-    { headers: { 'X-Shopify-Access-Token': merchant.accessToken } }
-  );
-  if (res.status === 404) {
-    throw new CheckoutError(400, 'A product in your cart is no longer available.');
+async function shopifyGraphql(merchant: MerchantForPricing, query: string, variables: unknown) {
+  const res = await fetch(`https://${merchant.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': merchant.accessToken,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body || body.errors) {
+    console.error('Shopify API Error:', res.status, JSON.stringify(body?.errors ?? body));
+    throw new CheckoutError(502, 'Could not confirm your order total. Please try again.');
   }
-  if (!res.ok) {
-    throw new CheckoutError(502, 'Could not confirm product prices. Please try again.');
-  }
-  const { variant } = await res.json();
-  const price = parseFloat(variant?.price);
-  if (!Number.isFinite(price) || price < 0) {
-    throw new CheckoutError(502, 'Could not confirm product prices. Please try again.');
-  }
-  return { price, title: typeof variant.title === 'string' ? variant.title : '' };
+  return body.data;
 }
 
-// The single source of truth for what an order costs. Every amount is derived
-// from Shopify prices and the merchant's saved settings, never from the browser.
-export async function priceCheckout(merchant: MerchantForPricing, input: PriceCheckoutInput) {
-  const items = parseItems(input.items);
-  const paymentMethod = typeof input.paymentMethod === 'string' && input.paymentMethod.trim()
-    ? input.paymentMethod.trim().slice(0, 50)
-    : 'COD';
-  const isCod = isCodMethod(paymentMethod);
-
-  const lineItems: { title: string; price: string; quantity: number; variant_id: number }[] = [];
-  const titles: string[] = [];
-  let subtotal = 0;
-  let firstPrice = 0;
-
-  for (const item of items) {
-    const variant = await fetchVariant(merchant, item.variantId);
-    const title = item.title || variant.title || 'Product';
-    if (lineItems.length === 0) firstPrice = variant.price;
-    subtotal += variant.price * item.quantity;
-    titles.push(title);
-    lineItems.push({
-      title,
-      price: variant.price.toString(),
-      quantity: item.quantity,
-      variant_id: Number(item.variantId),
-    });
+async function calculateDraftOrder(merchant: MerchantForPricing, input: unknown): Promise<CalculatedDraftOrder> {
+  const data = await shopifyGraphql(merchant, CALCULATE_DRAFT_ORDER, { input });
+  const { calculatedDraftOrder, userErrors } = data.draftOrderCalculate;
+  if (userErrors.length > 0 || !calculatedDraftOrder) {
+    console.error('Shopify Pricing Error:', JSON.stringify(userErrors));
+    throw new CheckoutError(400, 'Could not price your cart. A product may no longer be available.');
   }
+  return calculatedDraftOrder;
+}
 
-  const quantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const discountTitles: string[] = [];
-  // Coupons and free shipping are judged on the cart itself, as the widget shows them.
-  const cartSubtotal = subtotal;
+function buildAddress(customer: CheckoutCustomer) {
+  if (!text(customer.address)) return undefined;
+  const [firstName, ...rest] = (text(customer.name) ?? '').split(/\s+/);
+  return {
+    firstName: firstName || undefined,
+    lastName: rest.join(' ') || undefined,
+    address1: text(customer.address),
+    city: text(customer.city),
+    province: text(customer.state),
+    zip: text(customer.pincode),
+    country: 'India',
+    phone: formatPhone(customer.phone),
+  };
+}
 
-  let upsellDiscount = 0;
-  let upsell: { id: string; revenue: number } | null = null;
+// Shopify needs a country code. 10-digit numbers default to India.
+function formatPhone(phone: string) {
+  return phone.length === 10 ? `+91${phone}` : `+${phone}`;
+}
+
+// Codes limited to specific customers only apply when the order is linked to that
+// customer. The phone is verified by OTP, so it is safe to use for this. If the lookup
+// fails, checkout carries on as a guest and those codes are simply rejected.
+async function findCustomerId(merchant: MerchantForPricing, phone: string): Promise<string | null> {
+  try {
+    const data = await shopifyGraphql(merchant, FIND_CUSTOMER, { query: `phone:${formatPhone(phone)}` });
+    return data.customers.nodes[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckoutInput) {
+  const items = parseItems(input.items);
+  const titles = items.map((item) => item.title || 'Product');
+  const lineItems: Record<string, unknown>[] = items.map((item) => ({
+    variantId: `gid://shopify/ProductVariant/${item.variantId}`,
+    quantity: item.quantity,
+  }));
+
+  let upsellId: string | null = null;
   if (input.upsellVariantId) {
     const offerVariantId = String(input.upsellVariantId);
     if (!/^\d+$/.test(offerVariantId)) throw new CheckoutError(400, 'Invalid upsell offer.');
@@ -124,80 +201,180 @@ export async function priceCheckout(merchant: MerchantForPricing, input: PriceCh
       },
     });
     if (funnel) {
-      const variant = await fetchVariant(merchant, offerVariantId);
-      const discount = funnel.discountType === 'percentage'
-        ? variant.price * (funnel.discountValue / 100)
-        : funnel.discountValue;
-      upsellDiscount = Math.min(Math.max(0, discount), variant.price);
-      subtotal += variant.price;
+      upsellId = funnel.id;
       titles.push(funnel.offerTitle);
       lineItems.push({
-        title: funnel.offerTitle,
-        price: variant.price.toString(),
+        variantId: `gid://shopify/ProductVariant/${offerVariantId}`,
         quantity: 1,
-        variant_id: Number(offerVariantId),
+        ...(funnel.discountValue > 0
+          ? {
+              appliedDiscount: {
+                title: 'Upsell Offer',
+                value: funnel.discountValue,
+                valueType: funnel.discountType === 'percentage' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+              },
+            }
+          : {}),
       });
-      upsell = { id: funnel.id, revenue: variant.price - upsellDiscount };
-      if (upsellDiscount > 0) discountTitles.push('Upsell Offer');
     }
   }
 
-  let couponDiscount = 0;
-  if (input.couponCode) {
-    const coupon = await prisma.discount.findFirst({
-      where: { merchantId: merchant.id, code: String(input.couponCode), isActive: true },
-    });
-    if (!coupon || quantity < coupon.minItems || cartSubtotal < coupon.minCartValue) {
-      throw new CheckoutError(400, 'This coupon is not valid for your cart.');
-    }
-    couponDiscount = coupon.type === 'percentage' ? cartSubtotal * (coupon.value / 100) : coupon.value;
-    if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) couponDiscount = coupon.maxDiscount;
-    couponDiscount = Math.min(Math.max(0, couponDiscount), subtotal - upsellDiscount);
-    if (couponDiscount > 0) discountTitles.push(coupon.code);
-  }
+  const couponCode = text(input.couponCode);
+  const customerId = await findCustomerId(merchant, input.customer.phone);
 
+  return {
+    items,
+    titles,
+    upsellId,
+    couponCode,
+    draftInput: {
+      lineItems,
+      discountCodes: couponCode ? [couponCode] : [],
+      acceptAutomaticDiscounts: true,
+      phone: formatPhone(input.customer.phone),
+      email: text(input.customer.email),
+      shippingAddress: buildAddress(input.customer),
+      ...(customerId ? { purchasingEntity: { customerId } } : {}),
+    },
+  };
+}
+
+const isCouponApplied = (couponCode: string, calculated: CalculatedDraftOrder) =>
+  calculated.discountCodes.some((code) => code.toUpperCase() === couponCode.toUpperCase());
+
+// Shopify drops a code it does not recognise without any warning, so the code
+// must be in its applied list. When it explains the rejection, show that reason.
+function assertCouponApplied(couponCode: string | undefined, calculated: CalculatedDraftOrder) {
+  if (!couponCode || isCouponApplied(couponCode, calculated)) return;
+  const reason = calculated.warnings.find((warning) => warning.field === 'discountCodes');
+  throw new CheckoutError(400, reason?.message || 'This coupon is not valid for your cart.', 'INVALID_COUPON');
+}
+
+// Adds the store's payment-method fees and discounts, then asks Shopify for the final total.
+async function priceForMethod(
+  merchant: MerchantForPricing,
+  base: Awaited<ReturnType<typeof buildBaseInput>>,
+  calculated: CalculatedDraftOrder,
+  paymentMethod: string
+) {
+  const isCod = isCodMethod(paymentMethod);
   const settings = merchant.paymentSettings;
+  const cartSubtotal = amountOf(calculated.totalLineItemsPriceSet);
+  const remaining = Math.max(0, cartSubtotal - amountOf(calculated.totalDiscountsSet));
 
   let prepaidDiscount = 0;
   if (!isCod && settings?.isPrepaidDiscountEnabled) {
-    const remaining = Math.max(0, subtotal - upsellDiscount - couponDiscount);
     const discount = settings.prepaidDiscountType === 'percentage'
       ? remaining * (settings.prepaidDiscountValue / 100)
       : settings.prepaidDiscountValue;
-    prepaidDiscount = Math.min(Math.max(0, discount), remaining);
-    if (prepaidDiscount > 0) discountTitles.push('Prepaid Discount');
+    prepaidDiscount = roundMoney(Math.min(Math.max(0, discount), remaining));
   }
 
   let shippingFee = 0;
   if (settings?.isShippingFeeEnabled) {
     const threshold = settings.freeShippingThreshold;
     if (threshold === 0 || cartSubtotal < threshold) {
-      shippingFee = Math.max(0, settings.shippingFeeAmount);
+      shippingFee = roundMoney(Math.max(0, settings.shippingFeeAmount));
     }
   }
 
   // Matches the widget: the COD fee defaults to on at ₹69, and is waived when shipping is charged.
   let codFee = 0;
   if (isCod && settings?.isCodFeeEnabled !== false && shippingFee === 0) {
-    codFee = Math.max(0, settings?.codFeeAmount ?? 69);
+    codFee = roundMoney(Math.max(0, settings?.codFeeAmount ?? 69));
   }
 
-  const totalDiscount = roundMoney(upsellDiscount + couponDiscount + prepaidDiscount);
+  const shippingLine = (title: string, amount: number) => ({
+    title,
+    priceWithCurrency: { amount, currencyCode: calculated.currencyCode },
+  });
+  const inputWithFees = {
+    ...base.draftInput,
+    ...(shippingFee > 0 ? { shippingLine: shippingLine('Shipping Fee', shippingFee) } : {}),
+    ...(codFee > 0 ? { shippingLine: shippingLine('Cash on Delivery Fee', codFee) } : {}),
+  };
+  let draftInput: typeof inputWithFees & { appliedDiscount?: unknown } = prepaidDiscount > 0
+    ? { ...inputWithFees, appliedDiscount: { title: 'Prepaid Discount', value: prepaidDiscount, valueType: 'FIXED_AMOUNT' } }
+    : inputWithFees;
+
+  let final = prepaidDiscount > 0 || shippingFee > 0 || codFee > 0
+    ? await calculateDraftOrder(merchant, draftInput)
+    : calculated;
+
+  // If Shopify won't combine the customer's code with the prepaid discount, the code wins.
+  if (prepaidDiscount > 0 && base.couponCode && !isCouponApplied(base.couponCode, final)) {
+    prepaidDiscount = 0;
+    draftInput = inputWithFees;
+    final = shippingFee > 0 ? await calculateDraftOrder(merchant, draftInput) : calculated;
+  }
+  assertCouponApplied(base.couponCode, final);
+
+  const totalDiscount = amountOf(final.totalDiscountsSet);
 
   return {
-    lineItems,
     paymentMethod,
     isCod,
-    quantity,
-    firstPrice,
-    firstVariantId: items[0].variantId,
-    productTitle: titles.join(', ').slice(0, 200),
-    discountTitles,
-    prepaidDiscount: roundMoney(prepaidDiscount),
-    totalDiscount,
-    shippingFee: roundMoney(shippingFee),
-    codFee: roundMoney(codFee),
-    total: roundMoney(Math.max(0, subtotal - totalDiscount) + shippingFee + codFee),
-    upsell,
+    draftInput,
+    currency: final.currencyCode,
+    quantity: base.items.reduce((sum, item) => sum + item.quantity, 0),
+    firstPrice: amountOf(final.lineItems[0].originalUnitPriceSet),
+    firstVariantId: base.items[0].variantId,
+    productTitle: base.titles.join(', ').slice(0, 200),
+    subtotal: amountOf(final.totalLineItemsPriceSet),
+    discount: roundMoney(Math.max(0, totalDiscount - prepaidDiscount)),
+    prepaidDiscount,
+    shippingFee,
+    codFee,
+    tax: amountOf(final.totalTaxSet),
+    total: amountOf(final.totalPriceSet),
+    upsell: base.upsellId
+      ? { id: base.upsellId, revenue: amountOf(final.lineItems[final.lineItems.length - 1].discountedTotalSet) }
+      : null,
+  };
+}
+
+// The single source of truth for what an order costs. Shopify works out the
+// prices, discount codes, automatic discounts and tax, never the browser.
+export async function priceCheckout(
+  merchant: MerchantForPricing,
+  input: PriceCheckoutInput & { paymentMethod: unknown }
+) {
+  const paymentMethod = text(input.paymentMethod)?.slice(0, 50) ?? 'COD';
+  const base = await buildBaseInput(merchant, input);
+  const calculated = await calculateDraftOrder(merchant, base.draftInput);
+  assertCouponApplied(base.couponCode, calculated);
+  return priceForMethod(merchant, base, calculated, paymentMethod);
+}
+
+// Totals for both ways of paying, for the widget to show before the customer chooses.
+export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCheckoutInput) {
+  const base = await buildBaseInput(merchant, input);
+  const calculated = await calculateDraftOrder(merchant, base.draftInput);
+  assertCouponApplied(base.couponCode, calculated);
+  const [cod, prepaid] = await Promise.all([
+    priceForMethod(merchant, base, calculated, 'COD'),
+    priceForMethod(merchant, base, calculated, 'PREPAID'),
+  ]);
+  return { cod, prepaid };
+}
+
+// Stops an order if the total changed after the customer saw it.
+export function assertExpectedTotal(total: number, expectedTotal: unknown) {
+  if (expectedTotal === undefined || expectedTotal === null) return;
+  if (Math.abs(total - Number(expectedTotal)) >= 0.01) {
+    throw new CheckoutError(409, 'Your order total has changed. Please review it and try again.', 'TOTAL_CHANGED');
+  }
+}
+
+export async function createDraftOrder(merchant: MerchantForPricing, input: unknown) {
+  const data = await shopifyGraphql(merchant, CREATE_DRAFT_ORDER, { input });
+  const { draftOrder, userErrors } = data.draftOrderCreate;
+  if (userErrors.length > 0 || !draftOrder) {
+    console.error('Shopify Draft Order Error:', JSON.stringify(userErrors));
+    return null;
+  }
+  return {
+    legacyId: String(draftOrder.legacyResourceId),
+    total: amountOf(draftOrder.totalPriceSet),
   };
 }
