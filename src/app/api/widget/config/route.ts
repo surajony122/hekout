@@ -36,15 +36,15 @@ export async function GET(request: Request) {
         storeName: merchant.storeName || shop.split('.')[0],
         brandLogoUrl: ws?.brandLogoUrl || '',
         primaryColor: ws?.primaryColor || '#111827',
-        preLoginBannerText: ws?.preLoginBannerText || '🎉 FREE SHIPPING ON ALL ORDERS TODAY!',
+        preLoginBannerText: ws?.preLoginBannerText || '',
         preLoginBannerBg: ws?.preLoginBannerBg || '#000000',
         preLoginBannerColor: ws?.preLoginBannerColor || '#ffffff',
-        postLoginBannerText: ws?.postLoginBannerText || '⚡ EXTRA 2% OFF ON UPI/CARDS',
+        postLoginBannerText: ws?.postLoginBannerText || '',
         postLoginBannerBg: ws?.postLoginBannerBg || '#ecfdf5',
         postLoginBannerColor: ws?.postLoginBannerColor || '#059669',
         fbPixelId: ws?.fbPixelId || null
       }
-    });
+    }, { headers: { 'Cache-Control': 'public, max-age=60' } });
 
   } catch (error) {
     console.error('Widget Config Error:', error);

@@ -1,4 +1,6 @@
 (function() {
+  // The widget may be on a page twice, from the theme setting and an older manual install.
+  if (window.CheckoutFlow) return;
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
       const getBase = () => {
@@ -797,6 +799,20 @@
     },
 
     autoInject: function() {
+      // Fetches store settings and wakes the server early, so opening the popup is instant.
+      const prefetch = () => {
+        const shop = window.Shopify && window.Shopify.shop;
+        if (!shop || window._cfConfigPromise) return;
+        const scripts = document.querySelectorAll('script[src*="widget.js"]');
+        let base = 'https://checkoutflow-app.onrender.com';
+        if (scripts.length > 0) { try { base = new URL(scripts[0].src).origin; } catch(e) {} }
+        window._cfConfigPromise = fetch(base + '/api/widget/config?shop=' + encodeURIComponent(shop)).then(res => res.json());
+        window._cfConfigPromise.then((data) => {
+          if (data && data.config && data.config.primaryColor) document.documentElement.style.setProperty('--cf-btn-color', data.config.primaryColor);
+        }).catch(() => {});
+        window._cfConfigPromise.catch(() => { window._cfConfigPromise = null; });
+      };
+      if (window.requestIdleCallback) requestIdleCallback(prefetch); else setTimeout(prefetch, 500);
       const injectButtons = () => {
         // 1. Inject on Product Page
         const productForms = document.querySelectorAll('form[action="/cart/add"], form[action^="/cart/add"]');
@@ -809,8 +825,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'checkoutflow-btn';
-          btn.innerText = 'Buy Now (CheckoutFlow)';
-          btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
+          btn.innerText = 'Express Checkout';
+          btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: var(--cf-btn-color, #111827); color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
           
           btn.onmouseover = () => btn.style.transform = 'scale(0.98)';
           btn.onmouseout = () => btn.style.transform = 'scale(1)';
@@ -888,8 +904,8 @@
              const btn = document.createElement('button');
              btn.type = 'button';
              btn.className = 'checkoutflow-cart-btn';
-             btn.innerText = 'Checkout via CheckoutFlow';
-             btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
+             btn.innerText = 'Express Checkout';
+             btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: var(--cf-btn-color, #111827); color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
              
              btn.onmouseover = () => btn.style.transform = 'scale(0.98)';
              btn.onmouseout = () => btn.style.transform = 'scale(1)';
