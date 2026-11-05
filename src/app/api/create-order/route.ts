@@ -155,7 +155,8 @@ export async function POST(request: Request) {
         customer: {
           first_name: customerName || undefined,
           email: customerEmail || undefined,
-          phone: customerPhone
+          // Shopify needs a country code. 10-digit numbers default to India.
+          phone: customerPhone.length === 10 ? `+91${customerPhone}` : `+${customerPhone}`
         },
         shipping_address: {
           first_name: customerName || undefined,
