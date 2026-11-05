@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { safeEqual } from '@/lib/checkout-session';
 
 const SHOPIFY_API_VERSION = '2026-07';
 const MAX_QUANTITY = 1000;
@@ -356,6 +358,52 @@ export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCh
     priceForMethod(merchant, base, calculated, 'PREPAID'),
   ]);
   return { cod, prepaid };
+}
+
+type Pricing = Awaited<ReturnType<typeof priceForMethod>>;
+
+const QUOTE_TTL_MS = 10 * 60 * 1000;
+
+function signQuote(payload: string): string {
+  const secret = process.env.SHOPIFY_CLIENT_SECRET;
+  if (!secret) throw new Error('SHOPIFY_CLIENT_SECRET is not set');
+  const key = crypto.createHmac('sha256', secret).update('checkout-quote-v1').digest();
+  return crypto.createHmac('sha256', key).update(payload).digest('base64url');
+}
+
+// A tamper-proof copy of the pricing the customer was shown, so placing the order
+// doesn't have to ask Shopify for it all over again.
+export function createQuoteToken(pricing: Pricing, shop: string, phone: string): string {
+  const payload = Buffer.from(
+    JSON.stringify({ shop, phone, exp: Date.now() + QUOTE_TTL_MS, pricing })
+  ).toString('base64url');
+  return `${payload}.${signQuote(payload)}`;
+}
+
+function readQuoteToken(token: unknown, shop: string, phone: string): Pricing | null {
+  if (typeof token !== 'string') return null;
+  const [payload, signature, ...rest] = token.split('.');
+  if (!payload || !signature || rest.length > 0 || !safeEqual(signQuote(payload), signature)) return null;
+  try {
+    const quote = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return quote.shop === shop && quote.phone === phone && quote.exp > Date.now() ? quote.pricing : null;
+  } catch {
+    return null;
+  }
+}
+
+// Uses the signed quote when it matches this customer and way of paying. Otherwise
+// (expired, changed or missing) it prices the order from scratch.
+export async function resolvePricing(
+  merchant: MerchantForPricing,
+  input: PriceCheckoutInput & { paymentMethod: unknown; quoteToken: unknown }
+) {
+  const quoted = input.upsellVariantId ? null : readQuoteToken(input.quoteToken, merchant.shopDomain, input.customer.phone);
+  const paymentMethod = text(input.paymentMethod)?.slice(0, 50) ?? 'COD';
+  if (quoted && quoted.isCod === isCodMethod(paymentMethod)) {
+    return { pricing: { ...quoted, paymentMethod }, fromQuote: true };
+  }
+  return { pricing: await priceCheckout(merchant, input), fromQuote: false };
 }
 
 // Stops an order if the total changed after the customer saw it.

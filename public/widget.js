@@ -94,11 +94,11 @@
 
       const overlay = document.createElement('div');
       overlay.id = 'checkoutflow-overlay';
-      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.55); z-index:999999; display:flex; align-items:flex-end; justify-content:center; opacity:0; transition:opacity 0.25s ease;';
+      overlay.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:999999; display:flex; align-items:flex-end; justify-content:center; opacity:0; transition:opacity 0.25s ease;';
 
       const sheet = document.createElement('div');
       sheet.id = 'checkoutflow-sheet';
-      sheet.style.cssText = 'width:100%; max-width:420px; height:88vh; height:88dvh; background:#f9fafb; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.32s cubic-bezier(0.32, 0.72, 0, 1); will-change:transform; overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.25);';
+      sheet.style.cssText = 'width:100%; max-width:420px; height:92vh; height:92dvh; background:#f9fafb; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.32s cubic-bezier(0.32, 0.72, 0, 1); will-change:transform; overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.25);';
 
       // Uses the copy fetched when the page loaded, so the popup opens without waiting.
       const configPromise = window._cfConfigPromise || fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}`).then(res => res.json());
@@ -184,6 +184,7 @@
       document.head.appendChild(fontLink);
 
       sheet.innerHTML = `
+        <svg class="cf-sprite" aria-hidden="true"><symbol id="ic-arrow-left" viewBox="0 0 24 24"><line x1="20" y1="12" x2="5" y2="12"></line><polyline points="11 6 5 12 11 18"></polyline></symbol><symbol id="ic-shield-check" viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.4 7.8-8 9-4.6-1.2-8-4-8-9V6l8-3Z"></path><polyline points="8.5 12 11 14.5 15.5 9.5"></polyline></symbol><symbol id="ic-truck" viewBox="0 0 24 24"><path d="M2 6h11v10H2V6Z"></path><path d="M13 9h4.5L21 12.5V16h-8"></path><circle cx="6.5" cy="18.5" r="1.8"></circle><circle cx="17" cy="18.5" r="1.8"></circle></symbol><symbol id="ic-cart" viewBox="0 0 24 24"><path d="M2.5 4h2.2l2.6 10.5h10.4L21 7H6"></path><circle cx="9" cy="19" r="1.6"></circle><circle cx="17" cy="19" r="1.6"></circle></symbol><symbol id="ic-chevron-down" viewBox="0 0 24 24"><polyline points="5 9 12 16 19 9"></polyline></symbol><symbol id="ic-chevron-right" viewBox="0 0 24 24"><polyline points="9 5 16 12 9 19"></polyline></symbol><symbol id="ic-tag" viewBox="0 0 24 24"><path d="M3 3h8l10 10-8 8L3 11V3Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></symbol><symbol id="ic-map-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11Z"></path><circle cx="12" cy="10" r="2.6"></circle></symbol><symbol id="ic-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline></symbol><symbol id="ic-x" viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></symbol><symbol id="ic-qr-code" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"></rect><rect x="14" y="3" width="7" height="7" rx="1.3"></rect><rect x="3" y="14" width="7" height="7" rx="1.3"></rect><line x1="14" y1="14" x2="17" y2="14"></line><line x1="20" y1="14" x2="21" y2="14"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="18" y1="17.5" x2="21" y2="17.5"></line><line x1="18" y1="21" x2="21" y2="21"></line></symbol><symbol id="ic-credit-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.2"></rect><line x1="2.5" y1="10" x2="21.5" y2="10"></line><line x1="6" y1="15" x2="10" y2="15"></line></symbol><symbol id="ic-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><circle cx="16.5" cy="14.5" r="1.3"></circle></symbol><symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="3" y1="12" x2="21" y2="12"></line><path d="M12 3c2.6 2.4 4 5.4 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.4-4-9s1.4-6.6 4-9Z"></path></symbol><symbol id="ic-banknote" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="11" rx="2"></rect><circle cx="12" cy="12" r="2.6"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></symbol><symbol id="ic-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.9l6.1-.8L12 3.5Z"></path></symbol><symbol id="ic-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10.5" rx="2"></rect><path d="M8 10V7.5a4 4 0 0 1 8 0V10"></path></symbol></svg>
         <style>
           :host {
   --p1: #6d28d9; /* Deep Purple Accent */
@@ -498,6 +499,21 @@
           .pay-card:hover, .design-card:hover { border-color: var(--border-active); box-shadow: 0 4px 14px rgba(15,23,42,0.07); }
           .pay-card:active, .design-card:active { transform: scale(0.985); }
           .trust-footer { grid-template-columns: repeat(2, 1fr); }
+
+          .cf-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+          #checkoutflow-sheet svg:not(.cf-sprite) { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+          .pay-icon-box { color: var(--p1); }
+          .pay-icon-box svg { width: 24px; height: 24px; }
+          .recommended-tag svg { width: 11px; height: 11px; fill: currentColor !important; }
+          .cf-success-check { color: var(--green); }
+          .cf-heading { color: var(--text-main); font-size: 18px; font-weight: 700; }
+
+          /* Keeps content and the main action clear of the phone's bottom edge. */
+          .scroll-body { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+          /* The negative values cancel the scroll area's bottom padding, so nothing shows beneath the button. */
+          .cf-sticky-action { position: sticky; bottom: calc(-1 * max(24px, env(safe-area-inset-bottom))); z-index: 5; margin: 16px -16px calc(-1 * max(24px, env(safe-area-inset-bottom))); padding: 12px 16px max(16px, env(safe-area-inset-bottom)); background: var(--bg); box-shadow: 0 -8px 16px -12px rgba(15,23,42,0.25); }
+          .cf-payment-drawer { width: calc(100% - 24px) !important; margin: 0 auto max(12px, env(safe-area-inset-bottom)) !important; border-radius: 20px !important; max-height: 85%; overflow-y: auto; }
+          .cf-payment-overlay { z-index: 300; }
           .card-content, .pay-content { min-width: 0; }
           .card-title { gap: 6px; }
           .card-title .chevron-icon { flex-shrink: 0; }
@@ -531,6 +547,42 @@
           @keyframes cf-slide-up { from { transform: translateY(100%); } to { transform: none; } }
           @keyframes cf-check-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: none; } }
 
+          /* Inputs stay 16px because iPhones zoom the page in on anything smaller. */
+          @media (max-width: 480px) {
+            .top-header { padding: 8px 14px 8px; }
+            .scroll-body { padding-left: 12px; padding-right: 12px; }
+            .cf-sticky-action { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+            .brand-title { font-size: 14px; }
+            .brand-subtitle { font-size: 10px; }
+            .cf-heading { font-size: 16px; }
+            .promo-banner { padding: 8px; margin-bottom: 12px; }
+            .promo-text { font-size: 11px; }
+            .design-card { padding: 10px 12px; margin-bottom: 8px !important; gap: 10px; }
+            .icon-box { width: 34px; height: 34px; }
+            .icon-box svg { width: 17px; height: 17px; }
+            .card-title { font-size: 13px; }
+            .card-subtitle { font-size: 11px; }
+            .card-price { font-size: 14px; }
+            .change-link { font-size: 12px; }
+            .sec-lbl { font-size: 10px; margin: 14px 0 8px 2px; }
+            .pay-card { padding: 10px 12px; margin-bottom: 8px; gap: 10px; }
+            .pay-card.active { margin-top: 14px; }
+            .pay-icon-box { width: 36px; height: 36px; }
+            .pay-icon-box svg { width: 20px; height: 20px; }
+            .pay-title { font-size: 13px; }
+            .pay-subtitle, .pay-subtitle span { font-size: 10px !important; }
+            .pay-price { font-size: 13px; }
+            .arrow-circle { width: 22px; height: 22px; }
+            .recommended-tag { font-size: 9px; }
+            .trust-footer { margin-top: 16px; margin-bottom: 8px; padding-top: 14px; }
+            .cf-btn { height: 46px; font-size: 14px; }
+            .cf-float-group { margin-bottom: 10px; }
+            .cf-float-label { font-size: 13px; }
+            .cf-address-card { padding: 12px; margin-bottom: 8px; }
+            .cf-address-card-name { font-size: 13px; }
+            .cf-address-card-details { font-size: 12px; }
+          }
+
           @media (min-width: 640px) {
             #checkoutflow-overlay { align-items: center !important; }
             #checkoutflow-sheet { height: min(720px, 90vh) !important; border-radius: 24px !important; }
@@ -549,23 +601,23 @@
 
         <div class="top-header">
           <div class="back-btn" id="cf-close-btn" role="button" tabindex="0" aria-label="Close checkout">
-            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <svg viewBox="0 0 24 24"><use href="#ic-arrow-left"/></svg>
           </div>
           <div class="brand-center">
             <div class="brand-title" id="cf-brand">${shop.split('.')[0].substring(0,18)}</div>
-            <div class="brand-subtitle"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Secure Checkout</div>
+            <div class="brand-subtitle"><svg viewBox="0 0 24 24"><use href="#ic-shield-check"/></svg> Secure Checkout</div>
           </div>
         </div>
 
         <div class="scroll-body">
           <div class="promo-banner" id="dynamic-banner" style="display:none;">
-            <svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="16.5" cy="18.5" r="2.5"/></svg>
+            <svg viewBox="0 0 24 24"><use href="#ic-truck"/></svg>
             <span class="promo-text" id="cf-banner-text"></span>
           </div>
 
           <!-- STATE 1: PHONE -->
           <div id="state-phone" style="padding: 10px 0;">
-             <h3 style="margin-bottom:4px; color:var(--text-main); font-size:18px; font-weight:700;">Enter your mobile number</h3>
+             <h3 class="cf-heading" style="margin-bottom:4px;">Enter your mobile number</h3>
              <p style="margin-bottom:16px; color:var(--text-muted); font-size:13px;">We'll send a code to confirm it's you.</p>
              
              <div class="cf-phone-field">
@@ -590,16 +642,16 @@
 
           <!-- STATE 1.5: ADDRESS LIST -->
           <div id="state-address-list" style="display:none; padding: 10px 0;">
-             <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Select Delivery Address</h3>
+             <h3 class="cf-heading" style="margin-bottom:12px;">Select delivery address</h3>
              <div id="cf-address-cards" style="margin-bottom:16px;"></div>
              <button id="cf-addr-new-btn" class="cf-btn" style="background:var(--surface); color:var(--p1); border:1.5px solid var(--p1); margin-bottom:16px;">+ Add New Address</button>
-             <button id="cf-addr-sel-btn" class="cf-btn">Continue</button>
+             <div class="cf-sticky-action"><button id="cf-addr-sel-btn" class="cf-btn">Continue</button></div>
           </div>
 
           <!-- STATE 2: ADDRESS FORM -->
           <div id="state-address" style="display:none; padding: 10px 0;">
              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-               <h3 style="color:var(--text-main); font-size:16px; font-weight:600; margin:0;">Add new address</h3>
+               <h3 class="cf-heading" style="margin:0;">Add new address</h3>
                <div id="cf-addr-back" style="font-size:14px; font-weight:600; color:var(--p1); cursor:pointer; display:none;">Cancel</div>
              </div>
              
@@ -666,7 +718,7 @@
                </div>
              </div>
              
-             <button id="cf-addr-btn" class="cf-btn">Save Address</button>
+             <div class="cf-sticky-action"><button id="cf-addr-btn" class="cf-btn">Save Address</button></div>
           </div>
 
           <!-- STATE 3: CHECKOUT (GOKWIK UI) -->
@@ -674,9 +726,9 @@
             
              <!-- Order Summary -->
              <div class="design-card solid-border" onclick="window.cfToggleDrawer('drwBill', true)">
-               <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg></div>
+               <div class="icon-box purple"><svg viewBox="0 0 24 24"><use href="#ic-cart"/></svg></div>
                <div class="card-content">
-                  <div class="card-title"><span>Order Summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>)</span> <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+                  <div class="card-title"><span>Order Summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>)</span> <svg class="chevron-icon" viewBox="0 0 24 24"><use href="#ic-chevron-down"/></svg></div>
                   <div class="card-subtitle" id="osShippingText" style="color:var(--green); font-weight:600;">+ Free Shipping</div>
                </div>
                <div class="card-price-col">
@@ -687,23 +739,23 @@
 
              <!-- Apply Coupon -->
              <div class="design-card solid-border" id="osCpnLink" style="margin-bottom: 24px;" onclick="window.cfToggleDrawer('drwCoupon', true)">
-               <div class="icon-box orange"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></div>
+               <div class="icon-box orange"><svg viewBox="0 0 24 24"><use href="#ic-tag"/></svg></div>
                <div class="card-content">
                   <div class="card-title" style="color: #f97316;" id="osCpnLinkText">Apply Coupon</div>
                   <div class="card-subtitle" id="osCpnSubtitle">Unlock extra savings on your order</div>
                </div>
-               <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+               <svg class="chevron-icon" viewBox="0 0 24 24"><use href="#ic-chevron-right"/></svg>
              </div>
 
              <!-- Delivered To -->
              <div class="design-card solid-border">
-               <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+               <div class="icon-box purple"><svg viewBox="0 0 24 24"><use href="#ic-map-pin"/></svg></div>
                <div class="card-content">
                   <div class="card-title" style="font-size:12px; font-weight:500; color:var(--text-main);">Delivered To</div>
                   <div class="card-title" style="margin-top:4px;"><span id="disp-name">Name</span> <span class="home-tag">Home</span></div>
                   <div class="card-subtitle" id="disp-addr">Address</div>
                </div>
-               <div class="change-link" id="cf-edit-addr">Change <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+               <div class="change-link" id="cf-edit-addr">Change <svg viewBox="0 0 24 24"><use href="#ic-chevron-down"/></svg></div>
              </div>
 
              <div class="sec-lbl">PAYMENT METHODS</div>
@@ -713,12 +765,12 @@
 
              <div class="trust-footer">
                <div class="trust-item">
-                 <div class="trust-icon purple"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                 <div class="trust-icon purple"><svg viewBox="0 0 24 24"><use href="#ic-lock"/></svg></div>
                  <div class="trust-title">Secure payments</div>
                  <div class="trust-sub">Processed by Razorpay</div>
                </div>
                <div class="trust-item">
-                 <div class="trust-icon green"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                 <div class="trust-icon green"><svg viewBox="0 0 24 24"><use href="#ic-shield-check"/></svg></div>
                  <div class="trust-title">Verified login</div>
                  <div class="trust-sub">Protected by OTP</div>
                </div>
@@ -733,7 +785,7 @@
               <div class="cf-payment-drawer" style="width:100%; max-width:420px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Order Summary</div>
-                   <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwBill', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                   <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwBill', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><use href="#ic-x"/></svg>
                 </div>
                 <div class="card" style="padding:16px; border:1.5px solid var(--border); border-radius:12px; background:var(--bg);">
                    <div id="cart-items-container">
@@ -771,7 +823,7 @@
               <div class="cf-payment-drawer" style="width:100%; max-width:420px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
-                   <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwCoupon', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                   <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwCoupon', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><use href="#ic-x"/></svg>
                 </div>
                 <div style="display:flex; gap:8px; margin-bottom:16px;">
                    <input type="text" id="cpn-manual-input" class="cf-input" placeholder="Enter coupon code" style="margin-bottom:0; flex:1; text-transform:uppercase; font-weight:500;" />
@@ -787,9 +839,9 @@
         
         <!-- SUCCESS SCREEN -->
         <div class="success-screen" id="successScr" style="display:none; flex-direction:column; align-items:center; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900; text-align:center;">
-          <div class="s-icon" style="margin-top:80px;"><svg class="cf-success-check" viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
+          <div class="s-icon" style="margin-top:80px;"><svg class="cf-success-check" viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><use href="#ic-check-circle"/></svg></div>
           <div class="s-title" style="font-size:24px; font-weight:600; color:var(--text1); margin-top:24px;">Order placed!</div>
-          <div class="s-sub" style="font-size:15px; color:var(--text3); margin-top:8px;">Your order is confirmed.</div>
+          <div class="s-sub" id="cf-success-sub" style="font-size:15px; color:var(--text3); margin-top:8px;">Your order is confirmed.</div>
           <button class="cf-btn" id="close-success-btn" style="margin-top:40px; width:80%;">Close</button>
         </div>
       `;
@@ -1545,11 +1597,11 @@
                   
          
          const methods = [
-            { id: 'UPI', name: 'Pay via UPI', sub: '<div style="display:flex;gap:12px;align-items:center;margin-top:2px;"><span style="font-weight:700;letter-spacing:-0.5px;font-size:12px;"><span style="color:#EA4335">G</span><span style="color:#5F6368">Pay</span></span><span style="font-weight:700;color:#5E239D;letter-spacing:-0.5px;font-size:12px;">PhonePe</span><span style="font-weight:800;color:#00BAF2;letter-spacing:-0.5px;font-size:12px;font-style:italic;">Paytm</span><span style="font-weight:700;color:#F06522;letter-spacing:-0.5px;font-size:12px;">BHIM</span></div>', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:none;fill:var(--p1);"><path d="M16 11.5v-3h-3v3h-2v-5h7v5h-2zM5.5 13.5h3v-2h-3v2zm0-4h3v-2h-3v2zm9 4h3v-2h-3v2zm-4 0h3v-2h-3v2zm-5 4h5v-2h-5v2zm9 0h3v-2h-3v2zM22 2H2v20h20V2zm-2 18H4V4h16v16z"/></svg>' },
-            { id: 'Card', name: 'Debit / Credit Cards', sub: '<div style="display:flex;gap:12px;align-items:center;margin-top:2px;"><span style="font-style:italic;font-weight:800;color:#1434CB;letter-spacing:-0.5px;font-size:13px;">VISA</span><span style="display:inline-flex;align-items:center;position:relative;"><div style="width:14px;height:14px;border-radius:50%;background:#EB001B;opacity:0.9;"></div><div style="width:14px;height:14px;border-radius:50%;background:#F79E1B;margin-left:-6px;opacity:0.9;"></div></span><span style="font-weight:800;color:#F06522;font-style:italic;letter-spacing:-0.5px;font-size:13px;">RuPay</span></div>', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:var(--p1);fill:none;stroke-width:2;"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>' },
-            { id: 'Wallet', name: 'Wallets', sub: '<div style="display:flex;gap:12px;align-items:center;margin-top:2px;"><span style="font-weight:800;color:#00BAF2;letter-spacing:-0.5px;font-size:12px;font-style:italic;">Paytm</span><span style="font-weight:700;color:#5E239D;letter-spacing:-0.5px;font-size:12px;">PhonePe</span><span style="font-weight:700;color:#232F3E;letter-spacing:-0.5px;font-size:12px;">amazon<span style="color:#FF9900">pay</span></span></div>', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:var(--p1);fill:none;stroke-width:2;"><path d="M20 12V22H4V12"/><path d="M12 22V7M12 7a5 5 0 01-5-5 5 5 0 005 5z"/></svg>' },
-            { id: 'Netbanking', name: 'Net Banking', sub: '<div style="font-size:12px; color:var(--text3); font-weight:500; margin-top:2px;">HDFC · SBI · ICICI · Axis</div>', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:var(--p1);fill:none;stroke-width:2;"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>' },
-            { id: 'COD', name: 'Cash on Delivery', sub: (widgetConfig.isCodFeeEnabled !== false && (widgetConfig.codFeeAmount || 0) > 0) ? `Pay ₹${widgetConfig.codFeeAmount} fee` : 'Pay at doorstep', icon: '<svg viewBox="0 0 24 24" style="height:24px;stroke:#ea580c;fill:none;stroke-width:2;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>' }
+            { id: 'UPI', name: 'Pay via UPI', sub: '<div style="display:flex;gap:12px;align-items:center;margin-top:2px;"><span style="font-weight:700;letter-spacing:-0.5px;font-size:12px;"><span style="color:#EA4335">G</span><span style="color:#5F6368">Pay</span></span><span style="font-weight:700;color:#5E239D;letter-spacing:-0.5px;font-size:12px;">PhonePe</span><span style="font-weight:800;color:#00BAF2;letter-spacing:-0.5px;font-size:12px;font-style:italic;">Paytm</span><span style="font-weight:700;color:#F06522;letter-spacing:-0.5px;font-size:12px;">BHIM</span></div>', icon: '<svg viewBox="0 0 24 24"><use href="#ic-qr-code"/></svg>' },
+            { id: 'Card', name: 'Debit / Credit Cards', sub: '<div style="display:flex;gap:12px;align-items:center;margin-top:2px;"><span style="font-style:italic;font-weight:800;color:#1434CB;letter-spacing:-0.5px;font-size:13px;">VISA</span><span style="display:inline-flex;align-items:center;position:relative;"><div style="width:14px;height:14px;border-radius:50%;background:#EB001B;opacity:0.9;"></div><div style="width:14px;height:14px;border-radius:50%;background:#F79E1B;margin-left:-6px;opacity:0.9;"></div></span><span style="font-weight:800;color:#F06522;font-style:italic;letter-spacing:-0.5px;font-size:13px;">RuPay</span></div>', icon: '<svg viewBox="0 0 24 24"><use href="#ic-credit-card"/></svg>' },
+            { id: 'Wallet', name: 'Wallets', sub: '<div style="display:flex;gap:12px;align-items:center;margin-top:2px;"><span style="font-weight:800;color:#00BAF2;letter-spacing:-0.5px;font-size:12px;font-style:italic;">Paytm</span><span style="font-weight:700;color:#5E239D;letter-spacing:-0.5px;font-size:12px;">PhonePe</span><span style="font-weight:700;color:#232F3E;letter-spacing:-0.5px;font-size:12px;">amazon<span style="color:#FF9900">pay</span></span></div>', icon: '<svg viewBox="0 0 24 24"><use href="#ic-wallet"/></svg>' },
+            { id: 'Netbanking', name: 'Net Banking', sub: '<div style="font-size:12px; color:var(--text3); font-weight:500; margin-top:2px;">HDFC · SBI · ICICI · Axis</div>', icon: '<svg viewBox="0 0 24 24"><use href="#ic-globe"/></svg>' },
+            { id: 'COD', name: 'Cash on Delivery', sub: (widgetConfig.isCodFeeEnabled !== false && (widgetConfig.codFeeAmount || 0) > 0) ? `Pay ₹${widgetConfig.codFeeAmount} fee` : 'Pay at doorstep', icon: '<svg viewBox="0 0 24 24" style="color:#ea580c;"><use href="#ic-banknote"/></svg>' }
          ];
 
          methods.forEach(m => {
@@ -1585,7 +1637,7 @@
 
             html += `
               <div class="pay-card ${m.id==='UPI' ? 'active' : ''}" onclick="${clickAction}">
-                ${m.id==='UPI' ? '<div class="recommended-tag"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Recommended</div>' : ''}
+                ${m.id==='UPI' ? '<div class="recommended-tag"><svg viewBox="0 0 24 24"><use href="#ic-star"/></svg> Recommended</div>' : ''}
                 <div class="pay-icon-box">
                   ${m.icon}
                 </div>
@@ -1597,7 +1649,7 @@
                 <div class="pay-right">
                   <div class="pay-price ${m.id==='COD' ? 'red' : ''}" id="pp${m.id}"></div>
                   <div class="arrow-circle">
-                    <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    <svg viewBox="0 0 24 24"><use href="#ic-chevron-right"/></svg>
                   </div>
                 </div>
               </div>
@@ -1616,7 +1668,7 @@
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
          const btn = widgetRoot.getElementById(method === 'COD' ? 'cod-confirm-btn' : 'cod-save-btn');
-         if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
+         if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Placing your order...</div>';
 
          if (!quotes) await refreshQuotes();
          // refreshQuotes has already told the customer what went wrong.
@@ -1629,6 +1681,7 @@
             ...getCustomerDetails(),
             paymentMethod: method,
             expectedTotal: quotedTotal,
+            quoteToken: method === 'COD' ? quotes.cod.quoteToken : quotes.prepaid.quoteToken,
             appliedCoupon: appliedCoupon ? { code: appliedCoupon } : undefined
          };
 
@@ -1641,15 +1694,15 @@
                 const data = await res.json();
                 
                 if(data.success) {
+                   const drw = widgetRoot.getElementById(`drw${method}`);
+                   if (drw) drw.style.display = 'none';
+                   widgetRoot.getElementById('state-checkout').style.display='none';
+                   widgetRoot.getElementById('successScr').style.display='flex';
+                   if (window.launchConfetti) window.launchConfetti();
                    if (data.orderStatusUrl) {
+                       widgetRoot.getElementById('close-success-btn').style.display = 'none';
+                       widgetRoot.getElementById('cf-success-sub').textContent = 'Taking you to your order details...';
                        window.location.href = data.orderStatusUrl;
-                   } else {
-                       const drw = widgetRoot.getElementById(`drw${method}`);
-                       if (drw) drw.style.display = 'none';
-                       widgetRoot.getElementById('state-checkout').style.display='none';
-                       widgetRoot.getElementById('successScr').style.display='flex';
-                       if(window.launchConfetti) window.launchConfetti();
-                       setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                    }
                 } else {
                    notify(data.error || 'Could not place your order. Please try again.');

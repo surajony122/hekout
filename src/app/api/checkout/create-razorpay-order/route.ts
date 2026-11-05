@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import Razorpay from 'razorpay';
-import { CheckoutError, assertExpectedTotal, priceCheckout } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, resolvePricing } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
 
 export async function POST(request: Request) {
   try {
-    const { shop, sessionToken, items, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, customerName, customerEmail, address, city, state, pincode } = await request.json();
+    const { shop, sessionToken, items, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, customerName, customerEmail, address, city, state, pincode } = await request.json();
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -32,11 +32,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Razorpay not configured for this merchant' }, { status: 400 });
     }
 
-    const pricing = await priceCheckout(
+    const { pricing } = await resolvePricing(
       { ...merchant, accessToken: merchant.accessToken },
       {
         items,
         paymentMethod,
+        quoteToken,
         couponCode: appliedCoupon?.code,
         upsellVariantId,
         customer: { phone, name: customerName, email: customerEmail, address, city, state, pincode },
