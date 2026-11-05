@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 export default function WidgetSettingsClient({ initialSettings }: { initialSettings: any }) {
   const [settings, setSettings] = useState({
     primaryColor: initialSettings.primaryColor || '#111827',
-    preLoginBannerText: initialSettings.preLoginBannerText || '🎉 FREE SHIPPING ON ALL ORDERS TODAY!',
+    preLoginBannerText: initialSettings.preLoginBannerText || '',
     preLoginBannerBg: initialSettings.preLoginBannerBg || '#000000',
     preLoginBannerColor: initialSettings.preLoginBannerColor || '#ffffff',
-    postLoginBannerText: initialSettings.postLoginBannerText || '⚡ EXTRA 2% OFF ON UPI/CARDS',
+    postLoginBannerText: initialSettings.postLoginBannerText || '',
     postLoginBannerBg: initialSettings.postLoginBannerBg || '#ecfdf5',
     postLoginBannerColor: initialSettings.postLoginBannerColor || '#059669',
     brandLogoUrl: initialSettings.brandLogoUrl || '',

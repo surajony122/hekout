@@ -8,7 +8,11 @@
   --text-main: #111827; /* Dark Slate */
   --text-muted: #6b7280; /* Muted Gray */
   --green: #16a34a; /* Success Green */
-  --red: #ef4444; /* Alert Red */
+  --red: #dc2626; /* Alert Red */
+  --text1: #111827;
+  --text2: #4b5563;
+  --text3: #6b7280;
+  --border2: #e5e7eb;
   --radius: 16px;
   --radius-sm: 10px;
   --radius-lg: 24px;

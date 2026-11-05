@@ -121,11 +121,13 @@ model OtpVerification {
   expiresAt  DateTime @map("expires_at")
   verified   Boolean  @default(false)
   attempts   Int      @default(0)
+  ipAddress  String?  @map("ip_address")
   createdAt  DateTime @default(now()) @map("created_at")
 
   merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId, phone, createdAt])
+  @@index([ipAddress, createdAt])
   @@map("otp_verifications")
 }
 

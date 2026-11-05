@@ -10,6 +10,15 @@ const WINDOW_MS = 10 * 60 * 1000;
 const MAX_PER_WINDOW = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_PER_DAY = 10;
+const HOUR_MS = 60 * 60 * 1000;
+const IP_MAX_PER_WINDOW = 5;
+const IP_MAX_PER_DAY = 20;
+// A safety cap on one store's SMS bill if someone uses many numbers and connections.
+const STORE_MAX_PER_HOUR = 300;
+const INDIAN_MOBILE = /^[6-9]\d{9}$/;
+
+// Render sits behind Cloudflare, which sets this header itself, so visitors can't fake it.
+const clientIp = (request: Request) => request.headers.get('cf-connecting-ip');
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +27,11 @@ export async function POST(request: Request) {
 
     if (!shop || !phone) {
       return NextResponse.json({ error: 'A valid shop and phone number are required' }, { status: 400 });
+    }
+
+    // Checkout only delivers in India. This also blocks costly international SMS fraud.
+    if (!INDIAN_MOBILE.test(phone)) {
+      return NextResponse.json({ error: 'Please enter a valid 10-digit Indian mobile number.' }, { status: 400 });
     }
 
     const merchant = await prisma.merchant.findUnique({
@@ -56,6 +70,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many OTP requests. Please wait and try again.' }, { status: 429 });
     }
 
+    const ipAddress = clientIp(request);
+    if (ipAddress) {
+      const fromIp = await prisma.otpVerification.findMany({
+        where: { ipAddress, createdAt: { gte: new Date(now - DAY_MS) } },
+        select: { createdAt: true },
+      });
+      const ipInWindow = fromIp.filter((otp) => otp.createdAt.getTime() >= now - WINDOW_MS).length;
+      if (ipInWindow >= IP_MAX_PER_WINDOW || fromIp.length >= IP_MAX_PER_DAY) {
+        return NextResponse.json({ error: 'Too many OTP requests. Please wait and try again.' }, { status: 429 });
+      }
+    }
+
+    const storeLastHour = await prisma.otpVerification.count({
+      where: { merchantId: merchant.id, createdAt: { gte: new Date(now - HOUR_MS) } },
+    });
+    if (storeLastHour >= STORE_MAX_PER_HOUR) {
+      console.error(`OTP hourly cap reached for ${merchant.shopDomain}`);
+      return NextResponse.json({ error: 'Verification is busy right now. Please try again shortly.' }, { status: 429 });
+    }
+
     const otpCode = crypto.randomInt(100000, 1000000).toString();
 
     await prisma.otpVerification.create({
@@ -63,6 +97,7 @@ export async function POST(request: Request) {
         merchantId: merchant.id,
         phone,
         code: otpCode,
+        ipAddress,
         expiresAt: new Date(now + OTP_TTL_MS)
       }
     });

@@ -1,4 +1,6 @@
 (function() {
+  // The widget may be on a page twice, from the theme setting and an older manual install.
+  if (window.CheckoutFlow) return;
   window.CheckoutFlow = {
     trackEvent: async function(shop, eventName) {
       const getBase = () => {
@@ -75,8 +77,8 @@
         isPartialCodEnabled: false, partialCodAmount: 0, codFeeAmount: 69, hasRazorpay: false,
         primaryColor: '#7c3aed',
         brandLogoUrl: '',
-        preLoginBannerText: '🎉 FREE SHIPPING ON ALL ORDERS TODAY!', preLoginBannerBg: '#000000', preLoginBannerColor: '#ffffff',
-        postLoginBannerText: '⚡ EXTRA 2% OFF ON UPI/CARDS', postLoginBannerBg: '#ecfdf5', postLoginBannerColor: '#059669'
+        preLoginBannerText: '', preLoginBannerBg: '#000000', preLoginBannerColor: '#ffffff',
+        postLoginBannerText: '', postLoginBannerBg: '#ecfdf5', postLoginBannerColor: '#059669'
       };
 
       const primaryColor = widgetConfig.primaryColor || '#7c3aed';
@@ -92,32 +94,41 @@
 
       const overlay = document.createElement('div');
       overlay.id = 'checkoutflow-overlay';
-      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:999999; display:flex; align-items:flex-end; justify-content:center; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:all 0.3s ease;';
+      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.55); z-index:999999; display:flex; align-items:flex-end; justify-content:center; opacity:0; transition:opacity 0.25s ease;';
 
       const sheet = document.createElement('div');
       sheet.id = 'checkoutflow-sheet';
-      sheet.style.cssText = 'width:100%; max-width:400px; height:88vh; background:#f5f3ff; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.25);';
+      sheet.style.cssText = 'width:100%; max-width:420px; height:88vh; height:88dvh; background:#f9fafb; border-top-left-radius:24px; border-top-right-radius:24px; transform:translateY(100%); transition:transform 0.32s cubic-bezier(0.32, 0.72, 0, 1); will-change:transform; overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 -10px 40px rgba(0,0,0,0.25);';
 
-      // Fetch config asynchronously in background without blocking initial drawer UI
-      fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}&t=${Date.now()}`)
-        .then(res => res.json())
+      // Uses the copy fetched when the page loaded, so the popup opens without waiting.
+      const configPromise = window._cfConfigPromise || fetch(`${apiBaseUrl}/api/widget/config?shop=${shop}`).then(res => res.json());
+      configPromise
         .then(configData => {
            if (configData.success && configData.config) {
               widgetConfig = configData.config;
-              const logoImg = widgetRoot.getElementById('cf-logo-img');
-              const storeNameTxt = widgetRoot.getElementById('cf-store-name-txt');
-              if (logoImg && widgetConfig.brandLogoUrl) { logoImg.src = widgetConfig.brandLogoUrl; logoImg.style.display = 'block'; if (storeNameTxt) storeNameTxt.style.display = 'none'; }
-              else if (storeNameTxt && widgetConfig.storeName) { storeNameTxt.innerText = widgetConfig.storeName.toUpperCase(); }
-              const bannerEl = widgetRoot.getElementById('cf-prelogin-banner');
-              if (bannerEl && widgetConfig.preLoginBannerText) {
-                 bannerEl.style.background = widgetConfig.preLoginBannerBg || '#000000';
-                 bannerEl.style.color = widgetConfig.preLoginBannerColor || '#ffffff';
-                 bannerEl.innerHTML = `<span style="margin-right:6px;">🚚</span> ${widgetConfig.preLoginBannerText}`;
+              host.style.setProperty('--p1', widgetConfig.primaryColor || '#7c3aed');
+              const brand = widgetRoot.getElementById('cf-brand');
+              if (brand) {
+                 if (widgetConfig.brandLogoUrl) {
+                    const logo = document.createElement('img');
+                    logo.src = widgetConfig.brandLogoUrl;
+                    logo.alt = widgetConfig.storeName || 'Store logo';
+                    logo.style.cssText = 'max-height:28px; object-fit:contain;';
+                    brand.replaceChildren(logo);
+                 } else if (widgetConfig.storeName) {
+                    brand.textContent = widgetConfig.storeName.substring(0, 18);
+                 }
               }
-              const p1 = widgetConfig.primaryColor || '#7c3aed';
-              const styleEl = widgetRoot.querySelector('style');
-              if (styleEl) styleEl.innerHTML = styleEl.innerHTML.replace(/--p1:\s*#[0-9a-fA-F]+/g, `--p1: ${p1}`);
+              const banner = widgetRoot.getElementById('dynamic-banner');
+              if (banner && widgetConfig.preLoginBannerText) {
+                 banner.style.display = 'flex';
+                 banner.style.background = widgetConfig.preLoginBannerBg || '';
+                 const bannerText = widgetRoot.getElementById('cf-banner-text');
+                 bannerText.textContent = widgetConfig.preLoginBannerText;
+                 bannerText.style.color = widgetConfig.preLoginBannerColor || '';
+              }
               if (typeof updatePricing === 'function') updatePricing();
+              if (widgetConfig.hasRazorpay) loadScript(RAZORPAY_URL).catch(() => {});
            }
         }).catch(e => console.log('Config fetch fallback to default:', e));
 
@@ -141,21 +152,35 @@
       } catch (e) {}
       let customerData = null;
 
-      const phosphorScript = document.createElement('script');
-      phosphorScript.src = 'https://unpkg.com/@phosphor-icons/web';
-      document.head.appendChild(phosphorScript);
+      const RAZORPAY_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+      const CONFETTI_URL = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+      const scriptLoads = {};
+      function loadScript(src) {
+         if (!scriptLoads[src]) {
+            scriptLoads[src] = new Promise((resolve, reject) => {
+               const script = document.createElement('script');
+               script.src = src;
+               script.onload = resolve;
+               script.onerror = () => { delete scriptLoads[src]; reject(new Error('Could not load ' + src)); };
+               document.head.appendChild(script);
+            });
+         }
+         return scriptLoads[src];
+      }
+      const prefersReducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      const confettiScript = document.createElement('script');
-      confettiScript.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
-      document.head.appendChild(confettiScript);
-
-      const rzpScript = document.createElement('script');
-      rzpScript.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      document.head.appendChild(rzpScript);
+      if (!document.getElementById('cf-font-preconnect')) {
+         const preconnect = document.createElement('link');
+         preconnect.id = 'cf-font-preconnect';
+         preconnect.rel = 'preconnect';
+         preconnect.href = 'https://fonts.gstatic.com';
+         preconnect.crossOrigin = 'anonymous';
+         document.head.appendChild(preconnect);
+      }
 
       const fontLink = document.createElement('link');
       fontLink.rel = 'stylesheet';
-      fontLink.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap';
+      fontLink.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap';
       document.head.appendChild(fontLink);
 
       sheet.innerHTML = `
@@ -170,7 +195,11 @@
   --text-main: #111827; /* Dark Slate */
   --text-muted: #6b7280; /* Muted Gray */
   --green: #16a34a; /* Success Green */
-  --red: #ef4444; /* Alert Red */
+  --red: #dc2626; /* Alert Red */
+  --text1: #111827;
+  --text2: #4b5563;
+  --text3: #6b7280;
+  --border2: #e5e7eb;
   --radius: 16px;
   --radius-sm: 10px;
   --radius-lg: 24px;
@@ -443,46 +472,120 @@
           .cf-input { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font); color: var(--text1); outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
           .cf-input:focus { border-color: var(--p1); }
           .cf-btn { width: 100%; height: 52px; background: var(--p1); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: transform 0.15s, box-shadow 0.15s; }
-          .cf-btn:active { transform: scale(0.98); }
+          .cf-btn:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 6px 16px rgba(15,23,42,0.14); }
+          .cf-btn:active:not(:disabled) { transform: scale(0.98); }
+          .cf-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+          .cf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+          .cf-btn:focus-visible, .cf-link:focus-visible, .pay-card:focus-visible, .design-card:focus-visible, .back-btn:focus-visible { outline: 2px solid var(--p1); outline-offset: 2px; }
+          .cf-input { font-size: 16px; }
+          .cf-float-input { font-size: 16px; }
+          .cf-link { background: none; border: none; padding: 6px 0; color: var(--p1); font: inherit; font-weight: 600; cursor: pointer; }
+          .cf-link:disabled { color: var(--text-muted); cursor: default; }
+          .cf-phone-field { display: flex; align-items: center; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 4px 12px; margin-bottom: 16px; transition: border-color 0.2s, box-shadow 0.2s; }
+          .cf-phone-field:focus-within { border-color: var(--p1); box-shadow: 0 0 0 3px rgba(109,40,217,0.12); }
+          .cf-otp-input { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; font-size: 20px; text-align: center; letter-spacing: 12px; outline: none; font-weight: 600; color: var(--text-main); background: var(--surface); transition: border-color 0.2s, box-shadow 0.2s; }
+          .cf-otp-input:focus { border-color: var(--p1); box-shadow: 0 0 0 3px rgba(109,40,217,0.12); }
+          .cf-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: cf-spin 0.7s linear infinite; }
+          .cf-grabber { width: 40px; height: 4px; background: #d1d5db; border-radius: 4px; margin: 8px auto 0; flex-shrink: 0; }
+
+          #cf-notice { position: absolute; top: 12px; left: 16px; right: 16px; z-index: 950; padding: 12px 14px; border-radius: 12px; background: #111827; color: #fff; font-size: 13px; font-weight: 500; line-height: 1.4; box-shadow: 0 10px 30px rgba(15,23,42,0.3); opacity: 0; transform: translateY(-12px); pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+          #cf-notice.show { opacity: 1; transform: translateY(0); }
+
+          .cf-skeleton { display: inline-block; min-width: 64px; min-height: 16px; border-radius: 6px; background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%); background-size: 200% 100%; animation: cf-shimmer 1.2s linear infinite; }
+          .cf-pop { animation: cf-pop 0.3s ease; }
+          .cf-shake { animation: cf-shake 0.35s ease; }
+          .pay-card, .design-card { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+          .pay-card:hover, .design-card:hover { border-color: var(--border-active); box-shadow: 0 4px 14px rgba(15,23,42,0.07); }
+          .pay-card:active, .design-card:active { transform: scale(0.985); }
+          .trust-footer { grid-template-columns: repeat(2, 1fr); }
+          .card-content, .pay-content { min-width: 0; }
+          .card-title { gap: 6px; }
+          .card-title .chevron-icon { flex-shrink: 0; }
+          .card-price-col { flex-shrink: 0; }
+          .pay-card { padding: 14px; gap: 12px; }
+          .pay-card.active { margin-top: 18px; }
+          .pay-subtitle > div { flex-wrap: wrap; gap: 4px 10px !important; }
+          .pay-right { flex-shrink: 0; gap: 8px; }
+          .pay-icon-box { width: 42px; height: 42px; }
+          .recommended-tag { top: -10px; right: auto; left: 14px; }
+          #cf-edit-addr { flex-shrink: 0; cursor: pointer; }
+          .brand-center { min-width: 0; }
+
+          #state-phone, #state-address-list, #state-address, #state-checkout, #cf-otp-box { animation: cf-screen-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
+          #state-checkout > .design-card, #pay-methods-container > .pay-card { animation: cf-screen-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+          #pay-methods-container > .pay-card:nth-child(2) { animation-delay: 0.04s; }
+          #pay-methods-container > .pay-card:nth-child(3) { animation-delay: 0.08s; }
+          #pay-methods-container > .pay-card:nth-child(4) { animation-delay: 0.12s; }
+          #pay-methods-container > .pay-card:nth-child(5) { animation-delay: 0.16s; }
+          .cf-payment-overlay { animation: cf-fade-in 0.2s ease both; }
+          .cf-payment-drawer { animation: cf-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both; }
+          .cf-success-check { animation: cf-check-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+          .success-screen { animation: cf-fade-in 0.25s ease both; }
+
+          @keyframes cf-spin { to { transform: rotate(360deg); } }
+          @keyframes cf-shimmer { to { background-position: -200% 0; } }
+          @keyframes cf-pop { 40% { transform: scale(1.08); } }
+          @keyframes cf-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+          @keyframes cf-screen-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+          @keyframes cf-fade-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cf-slide-up { from { transform: translateY(100%); } to { transform: none; } }
+          @keyframes cf-check-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: none; } }
+
+          @media (min-width: 640px) {
+            #checkoutflow-overlay { align-items: center !important; }
+            #checkoutflow-sheet { height: min(720px, 90vh) !important; border-radius: 24px !important; }
+            .cf-grabber { display: none; }
+            .cf-payment-overlay { position: absolute !important; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+          }
         </style>
         
         
+        <div id="cf-notice" role="alert"></div>
+        <div class="cf-grabber" aria-hidden="true"></div>
         <canvas id="confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000;"></canvas>
 
         <div class="top-header">
-          <div class="back-btn" id="cf-close-btn">
+          <div class="back-btn" id="cf-close-btn" role="button" tabindex="0" aria-label="Close checkout">
             <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           </div>
           <div class="brand-center">
-            ${widgetConfig.brandLogoUrl ? `<img src="${widgetConfig.brandLogoUrl}" alt="Logo" style="max-height:28px; object-fit:contain;"/>` : `<div class="brand-title">${(widgetConfig.storeName || shop.split('.')[0]).substring(0,18)}</div>`}
+            <div class="brand-title" id="cf-brand">${shop.split('.')[0].substring(0,18)}</div>
             <div class="brand-subtitle"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Secure Checkout</div>
           </div>
         </div>
 
         <div class="scroll-body">
-          <div class="promo-banner" id="dynamic-banner">
+          <div class="promo-banner" id="dynamic-banner" style="display:none;">
             <svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="16.5" cy="18.5" r="2.5"/></svg>
-            <span class="promo-text">${widgetConfig.preLoginBannerText || '<strong>FREE SHIPPING</strong> on all orders today! 🎉'}</span>
+            <span class="promo-text" id="cf-banner-text"></span>
           </div>
 
           <!-- STATE 1: PHONE -->
           <div id="state-phone" style="padding: 10px 0;">
-             <h3 style="margin-bottom:16px; color:var(--text-main); font-size:16px; font-weight:600;">Enter mobile number</h3>
+             <h3 style="margin-bottom:4px; color:var(--text-main); font-size:18px; font-weight:700;">Enter your mobile number</h3>
+             <p style="margin-bottom:16px; color:var(--text-muted); font-size:13px;">We'll send a code to confirm it's you.</p>
              
-             <div style="display:flex; align-items:center; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:4px 12px; margin-bottom:16px;">
+             <div class="cf-phone-field">
                <div style="display:flex; align-items:center; gap:6px; padding-right:12px; border-right:1.5px solid var(--border); font-weight:600; font-size:15px; color:var(--text-main);">
                  <span>🇮🇳</span> <span>+91</span>
                </div>
-               <input type="tel" id="cf-phone-in" style="flex:1; border:none; background:transparent; padding:12px; font-size:16px; outline:none; font-weight:600; color:var(--text-main); letter-spacing:1px;" placeholder="Enter number" maxlength="10" />
+               <input type="tel" id="cf-phone-in" aria-label="Mobile number" style="flex:1; min-width:0; border:none; background:transparent; padding:12px; font-size:16px; outline:none; font-weight:600; color:var(--text-main); letter-spacing:1px;" placeholder="10-digit number" maxlength="10" inputmode="numeric" autocomplete="tel-national" />
              </div>
              
              <div id="cf-otp-box" style="display:none; margin-bottom:16px;">
-               <div style="font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; text-align:center;">Enter 6-digit OTP</div>
-               <input type="text" id="cf-otp-in" style="width:100%; border:1.5px solid var(--border); border-radius:12px; padding:14px; font-size:20px; text-align:center; letter-spacing:12px; outline:none; font-weight:600; color:var(--text-main);" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
-               <div id="cf-otp-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none; margin-top:8px;"></div>
+               <div id="cf-otp-sent" style="font-size:13px; font-weight:500; color:var(--text2); margin-bottom:8px; text-align:center;">Enter the 6-digit code</div>
+               <input type="text" id="cf-otp-in" aria-label="6-digit code" class="cf-otp-input" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+               <div id="cf-otp-err" role="alert" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none; margin-top:8px;"></div>
+               <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:13px; font-weight:600;">
+                 <button type="button" id="cf-change-phone" class="cf-link">Change number</button>
+                 <button type="button" id="cf-resend" class="cf-link" disabled>Resend code</button>
+               </div>
              </div>
              <button id="cf-phone-btn" class="cf-btn">Continue</button>
-             <div id="cf-phone-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; margin-top:10px; display:none;"></div>
+             <div id="cf-phone-err" role="alert" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; margin-top:10px; display:none;"></div>
           </div>
 
           <!-- STATE 1.5: ADDRESS LIST -->
@@ -501,7 +604,7 @@
              </div>
              
              <div class="cf-float-group">
-                <input type="text" id="cf-addr-pin" class="cf-float-input" placeholder=" " maxlength="6" />
+                <input type="text" id="cf-addr-pin" class="cf-float-input" placeholder=" " maxlength="6" inputmode="numeric" autocomplete="postal-code" />
                 <label class="cf-float-label">Pincode<span style="color:var(--red);">*</span></label>
              </div>
              
@@ -573,11 +676,8 @@
              <div class="design-card solid-border" onclick="window.cfToggleDrawer('drwBill', true)">
                <div class="icon-box purple"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg></div>
                <div class="card-content">
-                  <div class="card-title">Order Summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>) <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
-                  <div class="card-subtitle" style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                     <span>Total Amount</span>
-                     <span id="osShippingText" style="color:var(--green); font-weight:600; font-size:12px;">+ Free Shipping</span>
-                  </div>
+                  <div class="card-title"><span>Order Summary (<span id="osItemCount">${totalQuantity} item${totalQuantity>1?'s':''}</span>)</span> <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+                  <div class="card-subtitle" id="osShippingText" style="color:var(--green); font-weight:600;">+ Free Shipping</div>
                </div>
                <div class="card-price-col">
                   <div class="card-price" id="hFinal">₹${total.toLocaleString('en-IN')}</div>
@@ -614,23 +714,13 @@
              <div class="trust-footer">
                <div class="trust-item">
                  <div class="trust-icon purple"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-                 <div class="trust-title">100% Secure</div>
-                 <div class="trust-sub">SSL Encrypted</div>
+                 <div class="trust-title">Secure payments</div>
+                 <div class="trust-sub">Processed by Razorpay</div>
                </div>
                <div class="trust-item">
                  <div class="trust-icon green"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-                 <div class="trust-title">RBI Compliant</div>
-                 <div class="trust-sub">Trusted Gateways</div>
-               </div>
-               <div class="trust-item">
-                 <div class="trust-icon blue"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></div>
-                 <div class="trust-title">Easy Returns</div>
-                 <div class="trust-sub">Hassle Free</div>
-               </div>
-               <div class="trust-item">
-                 <div class="trust-icon orange"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></div>
-                 <div class="trust-title">4.8/5 Rating</div>
-                 <div class="trust-sub">18,000+ Customers</div>
+                 <div class="trust-title">Verified login</div>
+                 <div class="trust-sub">Protected by OTP</div>
                </div>
              </div>
           </div>
@@ -640,7 +730,7 @@
 
          
             <div class="cf-payment-overlay" id="drwBill" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
-              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+              <div class="cf-payment-drawer" style="width:100%; max-width:420px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Order Summary</div>
                    <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwBill', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -678,7 +768,7 @@
          
          
             <div class="cf-payment-overlay" id="drwCoupon" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:300; align-items:flex-end;" onclick="this.style.display='none'">
-              <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+              <div class="cf-payment-drawer" style="width:100%; max-width:420px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                    <div style="font-size:18px; font-weight:600;">Apply Coupon</div>
                    <svg viewBox="0 0 24 24" onclick="window.cfToggleDrawer('drwCoupon', false)" style="width:24px; height:24px; stroke:var(--text3); fill:none; stroke-width:2; cursor:pointer;"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -697,8 +787,8 @@
         
         <!-- SUCCESS SCREEN -->
         <div class="success-screen" id="successScr" style="display:none; flex-direction:column; align-items:center; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900; text-align:center;">
-          <div class="s-icon" style="margin-top:80px;"><svg viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
-          <div class="s-title" style="font-size:24px; font-weight:600; color:var(--text1); margin-top:24px;">Order placed! 🎉</div>
+          <div class="s-icon" style="margin-top:80px;"><svg class="cf-success-check" viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
+          <div class="s-title" style="font-size:24px; font-weight:600; color:var(--text1); margin-top:24px;">Order placed!</div>
           <div class="s-sub" style="font-size:15px; color:var(--text3); margin-top:8px;">Your order is confirmed.</div>
           <button class="cf-btn" id="close-success-btn" style="margin-top:40px; width:80%;">Close</button>
         </div>
@@ -709,29 +799,47 @@
       document.body.appendChild(host);
       document.body.style.overflow = 'hidden';
 
-      setTimeout(() => { sheet.style.transform = 'translateY(0)'; }, 10);
+      // Forcing a layout starts the transition from the off-screen position.
+      void sheet.offsetHeight;
+      overlay.style.opacity = '1';
+      sheet.style.transform = 'none';
 
       const closeWidget = () => {
-        sheet.style.transform = 'translateY(100%)';
+        sheet.style.transform = window.innerWidth >= 640 ? 'translateY(24px) scale(0.98)' : 'translateY(100%)';
+        overlay.style.opacity = '0';
         setTimeout(() => { 
           const h = document.getElementById('checkoutflow-host');
           if (h) h.remove();
           document.body.style.overflow = '';
           window._cfIsOpening = false;
-        }, 400);
+        }, 280);
       };
       widgetRoot.getElementById('cf-close-btn').onclick = closeWidget;
+      widgetRoot.getElementById('cf-close-btn').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') closeWidget(); };
       overlay.addEventListener('click', (e) => { if (e.target === overlay) closeWidget(); });
+
+      // Friendly messages inside the popup, in place of browser alerts.
+      let noticeTimer;
+      const notify = (message) => {
+         const notice = widgetRoot.getElementById('cf-notice');
+         notice.textContent = message;
+         notice.classList.add('show');
+         clearTimeout(noticeTimer);
+         noticeTimer = setTimeout(() => notice.classList.remove('show'), 5000);
+      };
 
       // Confetti Logic
       
-      window.launchConfetti = () => {
+      window.launchConfetti = async () => {
+         if (prefersReducedMotion()) return;
          const canvas = widgetRoot.getElementById('confetti-canvas');
-         if (!canvas || !window.confetti) return;
-         const myConfetti = window.confetti.create(canvas, { resize: true, useWorker: true });
-         myConfetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+         if (!canvas) return;
+         try {
+            await loadScript(CONFETTI_URL);
+            const myConfetti = window.confetti.create(canvas, { resize: true, useWorker: true });
+            myConfetti({ particleCount: 110, spread: 80, origin: { y: 0.6 } });
+         } catch(e) {}
       };
-
 
       // --- STATE MANAGEMENT ---
       const statePhone = widgetRoot.getElementById('state-phone');
@@ -747,6 +855,7 @@
       let appliedCoupon = null;
       let quotes = null;
       let quoteRequestId = 0;
+      let quoteFailed = false;
 
       const getCustomerDetails = () => ({
          customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || customerData?.fname || 'Valued Customer',
@@ -769,10 +878,22 @@
       const refreshQuotes = async () => {
          const requestId = ++quoteRequestId;
          quotes = null;
+         quoteFailed = false;
          updatePricing();
+         let failureMessage = 'Could not load your total. Please try again.';
          try {
-            let { data } = await fetchQuotes(appliedCoupon);
+            let { status, data } = await fetchQuotes(appliedCoupon);
             if (requestId !== quoteRequestId) return null;
+            if (status === 401) {
+               // The verified session ended, so ask for a new code.
+               localStorage.removeItem('checkoutflow_verified');
+               sessionToken = '';
+               widgetRoot.getElementById('state-checkout').style.display = 'none';
+               widgetRoot.getElementById('cf-change-phone').click();
+               widgetRoot.getElementById('state-phone').style.display = 'block';
+               notify('Please verify your number again to continue.');
+               return null;
+            }
             // A coupon can stop applying when the cart changes, so retry without it.
             if (data.code === 'INVALID_COUPON') {
                appliedCoupon = null;
@@ -781,8 +902,15 @@
             }
             if (data.success) {
                quotes = { cod: data.cod, prepaid: data.prepaid };
+            } else if (data.error) {
+               failureMessage = data.error;
             }
          } catch(e) {}
+         if (requestId !== quoteRequestId) return null;
+         if (!quotes) {
+            quoteFailed = true;
+            notify(failureMessage);
+         }
          updatePricing();
          return quotes;
       };
@@ -889,8 +1017,22 @@
         const totalDiscount = couponDiscount + prepaidDiscount;
         const grandTotal = quote ? quote.total : subtotalBase;
 
-        widgetRoot.getElementById('hFinal').innerText = quote ? money(grandTotal) : 'Calculating...';
-        widgetRoot.getElementById('osFinalPrice').innerText = quote ? money(grandTotal) : '';
+        const showAmount = (el, text) => {
+           if (!el) return;
+           const previous = el.dataset.amount;
+           el.classList.toggle('cf-skeleton', !text && !quoteFailed);
+           el.textContent = text || (quoteFailed ? '–' : '');
+           if (text) {
+              el.dataset.amount = text;
+              if (previous && previous !== text) {
+                 el.classList.remove('cf-pop');
+                 void el.offsetWidth;
+                 el.classList.add('cf-pop');
+              }
+           }
+        };
+        showAmount(widgetRoot.getElementById('hFinal'), quote ? money(grandTotal) : null);
+        widgetRoot.getElementById('osFinalPrice').style.display = 'none';
         widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
         
         const osShipTxt = widgetRoot.getElementById('osShippingText');
@@ -941,7 +1083,7 @@
 
         // Drawer values
         widgetRoot.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
-        widgetRoot.getElementById('tGrand').innerText = quote ? money(grandTotal) : 'Calculating...';
+        showAmount(widgetRoot.getElementById('tGrand'), quote ? money(grandTotal) : null);
 
         const discRow = widgetRoot.getElementById('trDisc');
         if (discRow) {
@@ -985,13 +1127,16 @@
 
         ['UPI','Card','Wallet','Netbanking'].forEach(m => {
            const el = widgetRoot.getElementById(`pp${m}`);
-           if(el) el.innerText = quotes ? money(quotes.prepaid.total) : '...';
+           showAmount(el, quotes ? money(quotes.prepaid.total) : null);
         });
         const elCod = widgetRoot.getElementById('ppCOD');
-        if(elCod) elCod.innerText = quotes ? money(quotes.cod.total) : '...';
+        showAmount(elCod, quotes ? money(quotes.cod.total) : null);
 
         const elCodBtn = widgetRoot.getElementById('cod-confirm-btn');
-        if(elCodBtn) elCodBtn.innerText = quotes ? `Confirm COD (${money(quotes.cod.total)})` : 'Calculating...';
+        if(elCodBtn) {
+           elCodBtn.textContent = quotes ? `Confirm COD (${money(quotes.cod.total)})` : (quoteFailed ? 'Try again' : 'Updating total...');
+           elCodBtn.disabled = !quotes && !quoteFailed;
+        }
 
         const elOnlineBtn = widgetRoot.getElementById('cod-save-btn');
         if(elOnlineBtn) {
@@ -1062,45 +1207,95 @@
       const otpIn = widgetRoot.getElementById('cf-otp-in');
       const phoneBtn = widgetRoot.getElementById('cf-phone-btn');
       
+      const phoneErr = widgetRoot.getElementById('cf-phone-err');
+      const otpErr = widgetRoot.getElementById('cf-otp-err');
+      const otpBox = widgetRoot.getElementById('cf-otp-box');
+      const resendBtn = widgetRoot.getElementById('cf-resend');
+      const showError = (el, message) => { el.textContent = message || ''; el.style.display = message ? 'block' : 'none'; };
+      const SPINNER = '<span class="cf-spinner" aria-hidden="true"></span>';
+      const setBusy = (button, label) => { button.disabled = true; button.innerHTML = SPINNER + label; };
+      const setIdle = (button, label) => { button.disabled = false; button.textContent = label; };
+      const updatePhoneBtn = () => { if (!otpStepActive) phoneBtn.disabled = !/^[6-9]\d{9}$/.test(phoneIn.value); };
+      updatePhoneBtn();
+
+      let resendTimer;
+      const startResendCountdown = () => {
+         let remaining = 30;
+         clearInterval(resendTimer);
+         resendBtn.disabled = true;
+         resendBtn.textContent = `Resend in ${remaining}s`;
+         resendTimer = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+               clearInterval(resendTimer);
+               resendBtn.disabled = false;
+               resendBtn.textContent = 'Resend code';
+            } else {
+               resendBtn.textContent = `Resend in ${remaining}s`;
+            }
+         }, 1000);
+      };
+
+      const sendOtp = async () => {
+         const phone = phoneIn.value;
+         const res = await fetch(`${apiBaseUrl}/api/otp/send`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ shop, phone })
+         });
+         const data = await res.json();
+         if (!data.success) throw new Error(data.error || 'Could not send the code. Please try again.');
+         verifiedPhone = phone;
+         widgetRoot.getElementById('cf-otp-sent').textContent = `Enter the 6-digit code sent to +91 ${phone}`;
+         otpBox.style.display = 'block';
+         otpStepActive = true;
+         phoneIn.disabled = true;
+         startResendCountdown();
+         otpIn.value = '';
+         otpIn.focus();
+         if (data.simulatedCode) {
+            let testBadge = widgetRoot.getElementById('cf-test-badge');
+            if (!testBadge) {
+               testBadge = document.createElement('button');
+               testBadge.type = 'button';
+               testBadge.id = 'cf-test-badge';
+               testBadge.style.cssText = 'width:100%; margin-top:10px; padding:10px 14px; background:rgba(124,58,237,0.12); border:1px dashed var(--p1); border-radius:8px; color:var(--p1); font-size:13px; font-weight:600; cursor:pointer;';
+               otpBox.appendChild(testBadge);
+            }
+            testBadge.textContent = `Test mode code: ${data.simulatedCode} (tap to fill)`;
+            testBadge.onclick = () => { otpIn.value = data.simulatedCode; phoneBtn.click(); };
+         }
+      };
+
+      phoneIn.addEventListener('input', () => {
+         phoneIn.value = phoneIn.value.replace(/\D/g, '').slice(0, 10);
+         showError(phoneErr, '');
+         updatePhoneBtn();
+      });
+      phoneIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !phoneBtn.disabled) phoneBtn.click(); });
+      otpIn.addEventListener('input', () => {
+         otpIn.value = otpIn.value.replace(/\D/g, '').slice(0, 6);
+         showError(otpErr, '');
+         if (otpIn.value.length === 6) phoneBtn.click();
+      });
+
       phoneBtn.onclick = async () => {
         if (!otpStepActive) {
-          const phone = phoneIn.value;
-          if(phone.length !== 10) return;
-          phoneBtn.innerText = 'Sending...';
+          if (phoneBtn.disabled) return;
+          setBusy(phoneBtn, 'Sending code...');
+          showError(phoneErr, '');
           try {
-            const res = await fetch(`${apiBaseUrl}/api/otp/send`, {
-              method: 'POST', headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ shop, phone })
-            });
-            const data = await res.json();
-            if (data.success) {
-              verifiedPhone = phone;
-              widgetRoot.getElementById('cf-otp-box').style.display = 'block';
-              otpStepActive = true;
-              phoneBtn.innerText = 'Verify & Continue';
-              if (data.simulatedCode) {
-                 const otpBox = widgetRoot.getElementById('cf-otp-box');
-                 let testBadge = widgetRoot.getElementById('cf-test-badge');
-                 if (!testBadge) {
-                    testBadge = document.createElement('div');
-                    testBadge.id = 'cf-test-badge';
-                    testBadge.style.cssText = 'margin-top: 10px; padding: 10px 14px; background: rgba(124, 58, 237, 0.12); border: 1px dashed var(--p1); border-radius: 8px; color: var(--p1); font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s ease;';
-                    otpBox.appendChild(testBadge);
-                 }
-                 testBadge.innerHTML = `⚡ <span>Test Mode OTP: <strong style="text-decoration: underline; font-size: 14px;">${data.simulatedCode}</strong> (Tap to Auto-fill)</span>`;
-                 testBadge.onclick = () => {
-                    otpIn.value = data.simulatedCode;
-                    phoneBtn.click();
-                 };
-              }
-            } else {
-              phoneBtn.innerText = 'Continue';
-              alert(data.error || 'Could not send the OTP. Please try again.');
-            }
-          } catch(err) { phoneBtn.innerText = 'Continue'; }
+            await sendOtp();
+            setIdle(phoneBtn, 'Verify & Continue');
+          } catch(err) {
+            setIdle(phoneBtn, 'Continue');
+            showError(phoneErr, err.message);
+          }
         } else {
           const code = otpIn.value;
-          phoneBtn.innerText = 'Verifying...';
+          if (code.length !== 6) { showError(otpErr, 'Enter the 6-digit code.'); return; }
+          if (phoneBtn.disabled) return;
+          setBusy(phoneBtn, 'Verifying...');
+          showError(otpErr, '');
           try {
             const res = await fetch(`${apiBaseUrl}/api/otp/verify`, {
               method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1109,15 +1304,46 @@
             const data = await res.json();
             if (data.success && data.sessionToken) {
               sessionToken = data.sessionToken;
+              clearInterval(resendTimer);
               localStorage.setItem('checkoutflow_verified', JSON.stringify({ phone: verifiedPhone, shop, sessionToken, time: Date.now() }));
               cfTrack('OTP_VERIFIED');
               checkCustomer();
             } else {
-              phoneBtn.innerText = 'Verify & Continue';
-              alert(data.error || 'Could not verify the OTP. Please try again.');
+              setIdle(phoneBtn, 'Verify & Continue');
+              showError(otpErr, data.error || 'That code did not work. Please try again.');
+              otpIn.select();
+              otpIn.classList.remove('cf-shake');
+              void otpIn.offsetWidth;
+              otpIn.classList.add('cf-shake');
             }
-          } catch(err) { phoneBtn.innerText = 'Verify & Continue'; }
+          } catch(err) {
+            setIdle(phoneBtn, 'Verify & Continue');
+            showError(otpErr, 'Could not reach the server. Please try again.');
+          }
         }
+      };
+
+      resendBtn.onclick = async () => {
+         resendBtn.disabled = true;
+         showError(otpErr, '');
+         try {
+            await sendOtp();
+            notify('A new code has been sent.');
+         } catch(err) {
+            showError(otpErr, err.message);
+            resendBtn.disabled = false;
+         }
+      };
+
+      widgetRoot.getElementById('cf-change-phone').onclick = () => {
+         clearInterval(resendTimer);
+         otpStepActive = false;
+         otpBox.style.display = 'none';
+         showError(otpErr, '');
+         phoneIn.disabled = false;
+         phoneIn.focus();
+         phoneBtn.textContent = 'Continue';
+         updatePhoneBtn();
       };
 
       let selectedAddressIndex = 0;
@@ -1263,7 +1489,7 @@
             type: typeEl ? typeEl.value : 'Home'
          };
          if(!newAddr.fname || !newAddr.street || !newAddr.city || !newAddr.state || !newAddr.pincode) {
-            alert('Please fill all mandatory fields'); return;
+            notify('Please fill in all the required fields.'); return;
          }
          let addrs = [];
          try {
@@ -1333,7 +1559,7 @@
             if (m.id === 'COD') {
               dHtml += `
                 <div class="cf-payment-overlay" id="drw${m.id}" style="display:none; position:fixed; inset:0; background:rgba(30,27,75,0.5); z-index:200; align-items:flex-end;" onclick="this.style.display='none'">
-                  <div class="cf-payment-drawer" style="width:100%; max-width:400px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
+                  <div class="cf-payment-drawer" style="width:100%; max-width:420px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                      <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                      <div style="display:flex; flex-direction:column; gap:10px;">
                         <button class="cf-btn" onclick="window.cfToggleDrawer('drw${m.id}', false); window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
@@ -1393,10 +1619,8 @@
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
 
          if (!quotes) await refreshQuotes();
-         if (!quotes) {
-            alert('Could not calculate your total. Please try again.');
-            return;
-         }
+         // refreshQuotes has already told the customer what went wrong.
+         if (!quotes) return;
 
          // The customer agreed to this total, so the server stops the order if it has changed.
          const quotedTotal = method === 'COD' ? quotes.cod.total : quotes.prepaid.total;
@@ -1428,11 +1652,11 @@
                        setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                    }
                 } else {
-                   alert("Failed to create order: " + (data.error || 'Unknown error'));
+                   notify(data.error || 'Could not place your order. Please try again.');
                    await refreshQuotes();
                 }
              } catch(e) {
-                alert("Network error: " + e.message);
+                notify('Could not reach the server. Please check your connection and try again.');
                 updatePricing();
              }
          };
@@ -1447,7 +1671,7 @@
              const rzpOrderData = await rzpOrderRes.json();
              
              if (!rzpOrderData.success) {
-               alert('Failed to initialize payment gateway: ' + rzpOrderData.error);
+               notify(rzpOrderData.error || 'Could not start the payment. Please try again.');
                await refreshQuotes();
                return;
              }
@@ -1480,15 +1704,16 @@
                }
              };
              
+             await loadScript(RAZORPAY_URL);
              const rzp = new window.Razorpay(options);
              rzp.on('payment.failed', function (response){
-               alert('Payment failed. Reason: ' + response.error.description);
+               notify('Payment failed: ' + response.error.description);
                updatePricing();
              });
              rzp.open();
              
            } catch(e) {
-             alert('Error initiating payment.');
+             notify('Could not start the payment. Please try again.');
              updatePricing();
            }
          } else {
@@ -1501,6 +1726,20 @@
     },
 
     autoInject: function() {
+      // Fetches store settings and wakes the server early, so opening the popup is instant.
+      const prefetch = () => {
+        const shop = window.Shopify && window.Shopify.shop;
+        if (!shop || window._cfConfigPromise) return;
+        const scripts = document.querySelectorAll('script[src*="widget.js"]');
+        let base = 'https://checkoutflow-app.onrender.com';
+        if (scripts.length > 0) { try { base = new URL(scripts[0].src).origin; } catch(e) {} }
+        window._cfConfigPromise = fetch(base + '/api/widget/config?shop=' + encodeURIComponent(shop)).then(res => res.json());
+        window._cfConfigPromise.then((data) => {
+          if (data && data.config && data.config.primaryColor) document.documentElement.style.setProperty('--cf-btn-color', data.config.primaryColor);
+        }).catch(() => {});
+        window._cfConfigPromise.catch(() => { window._cfConfigPromise = null; });
+      };
+      if (window.requestIdleCallback) requestIdleCallback(prefetch); else setTimeout(prefetch, 500);
       const injectButtons = () => {
         // 1. Inject on Product Page
         const productForms = document.querySelectorAll('form[action="/cart/add"], form[action^="/cart/add"]');
@@ -1513,8 +1752,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'checkoutflow-btn';
-          btn.innerText = 'Buy Now (CheckoutFlow)';
-          btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
+          btn.innerText = 'Express Checkout';
+          btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: var(--cf-btn-color, #111827); color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
           
           btn.onmouseover = () => btn.style.transform = 'scale(0.98)';
           btn.onmouseout = () => btn.style.transform = 'scale(1)';
@@ -1592,8 +1831,8 @@
              const btn = document.createElement('button');
              btn.type = 'button';
              btn.className = 'checkoutflow-cart-btn';
-             btn.innerText = 'Checkout via CheckoutFlow';
-             btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: #10b981; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
+             btn.innerText = 'Express Checkout';
+             btn.style.cssText = 'width: 100%; padding: 15px; margin-top: 10px; background-color: var(--cf-btn-color, #111827); color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease;';
              
              btn.onmouseover = () => btn.style.transform = 'scale(0.98)';
              btn.onmouseout = () => btn.style.transform = 'scale(1)';
