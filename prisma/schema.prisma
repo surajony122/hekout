@@ -235,6 +235,7 @@ model Discount {
   giftTitle       String?  @map("gift_title")
   giftQuantity    Int      @default(1) @map("gift_quantity")
   collections     Json?
+  tags            String[] @default([])
   paymentMethods  String[] @default([]) @map("payment_methods")
   usageLimit      Int?     @map("usage_limit")
   usageCount      Int      @default(0) @map("usage_count")

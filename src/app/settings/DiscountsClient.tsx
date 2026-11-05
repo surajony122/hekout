@@ -29,6 +29,7 @@ type Saved = {
   giftTitle: string | null;
   giftQuantity: number;
   collections: unknown;
+  tags: string[];
   paymentMethods: string[];
   usageLimit: number | null;
   usageCount: number;
@@ -64,6 +65,7 @@ const EMPTY = {
   gift: null as SelectedProduct | null,
   giftQuantity: '1',
   collections: [] as Collection[],
+  tags: '',
   paymentMethods: [] as string[],
   usageLimit: '',
   perCustomerLimit: '',
@@ -87,6 +89,7 @@ function describe(discount: Saved) {
     offer,
     discount.minCartValue > 0 ? `Cart from ₹${discount.minCartValue}` : null,
     collections.length > 0 ? collections.map((collection) => collection.title).join(', ') : null,
+    discount.tags.length > 0 ? `Tags: ${discount.tags.join(', ')}` : null,
     discount.usageLimit !== null ? `Used ${discount.usageCount} of ${discount.usageLimit}` : `Used ${discount.usageCount}`,
   ].filter(Boolean).join(' · ');
 }
@@ -131,6 +134,7 @@ export default function DiscountsClient({ initialDiscounts: discounts, shopDomai
       gift: discount.giftVariantId ? { title: discount.giftTitle ?? 'Free gift', variantId: discount.giftVariantId, price: '0', imageUrl: null } : null,
       giftQuantity: String(discount.giftQuantity),
       collections: Array.isArray(discount.collections) ? discount.collections as Collection[] : [],
+      tags: discount.tags.join(', '),
       paymentMethods: discount.paymentMethods,
       usageLimit: blankIfNull(discount.usageLimit),
       perCustomerLimit: blankIfNull(discount.perCustomerLimit),
@@ -150,6 +154,7 @@ export default function DiscountsClient({ initialDiscounts: discounts, shopDomai
         body: JSON.stringify({
           ...form,
           id: form.id || undefined,
+          tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
           giftVariantId: form.gift?.variantId,
           giftTitle: form.gift?.title,
           gift: undefined,
@@ -346,7 +351,7 @@ export default function DiscountsClient({ initialDiscounts: discounts, shopDomai
                 </fieldset>
 
                 <fieldset className="space-y-2 mt-4">
-                  <legend className="text-sm font-medium">Collections (none ticked means the whole cart)</legend>
+                  <legend className="text-sm font-medium">Collections</legend>
                   {!collectionsLoaded && <p className="text-sm text-slate-500">Loading your collections...</p>}
                   {collectionsLoaded && allCollections.length === 0 && <p className="text-sm text-slate-500">No collections found in your store.</p>}
                   <div className="max-h-40 overflow-y-auto space-y-1">
@@ -363,6 +368,12 @@ export default function DiscountsClient({ initialDiscounts: discounts, shopDomai
                     ))}
                   </div>
                 </fieldset>
+
+                <div className="space-y-2 mt-4">
+                  <label htmlFor="offer-tags" className="text-sm font-medium">Product tags</label>
+                  <Input id="offer-tags" value={form.tags} onChange={(e) => update({ tags: e.target.value })} placeholder="sale, new-arrival" />
+                  <p className="text-xs text-slate-500">Separate tags with commas. An item counts if it&apos;s in any chosen collection or has any of these tags. With neither set, the whole cart counts.</p>
+                </div>
 
                 <div className="space-y-2 mt-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">

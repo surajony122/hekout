@@ -11,6 +11,7 @@ export type RuleCollection = { id: string; title: string };
 export type RuleCart = {
   lines: { variantId: string; quantity: number; lineTotal: number }[];
   collectionsByVariant: Map<string, string[]>;
+  tagsByVariant: Map<string, string[]>;
 };
 
 export type PickedOffers = {
@@ -27,7 +28,7 @@ const slabsOf = (rule: Discount) => (Array.isArray(rule.slabs) ? rule.slabs as u
 const isMoneyRule = (rule: Discount) => ['percentage', 'flat', 'slab'].includes(rule.type);
 const allowsMethod = (methods: string[], method: string) => methods.length === 0 || methods.includes(method);
 
-export const needsCollections = (rules: Discount[]) => rules.some((rule) => collectionsOf(rule).length > 0);
+export const needsProductDetails = (rules: Discount[]) => rules.some((rule) => collectionsOf(rule).length > 0 || rule.tags.length > 0);
 
 const isLive = (rule: Discount, now: Date) =>
   rule.isActive &&
@@ -74,10 +75,14 @@ export async function rulesStillValid(merchantId: string, ruleIds: string[], pho
 }
 
 function checkRule(rule: Discount, cart: RuleCart): { amount: number; reason?: string } {
+  // An item counts if it's in any chosen collection or has any chosen tag.
   const collections = collectionsOf(rule).map((collection) => collection.id);
-  const lines = collections.length === 0
+  const tags = rule.tags.map((tag) => tag.toLowerCase());
+  const lines = collections.length === 0 && tags.length === 0
     ? cart.lines
-    : cart.lines.filter((line) => (cart.collectionsByVariant.get(line.variantId) ?? []).some((id) => collections.includes(id)));
+    : cart.lines.filter((line) =>
+        (cart.collectionsByVariant.get(line.variantId) ?? []).some((id) => collections.includes(id)) ||
+        (cart.tagsByVariant.get(line.variantId) ?? []).some((tag) => tags.includes(tag.toLowerCase())));
   if (lines.length === 0) return { amount: 0, reason: "This code isn't valid for the items in your cart." };
 
   const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);

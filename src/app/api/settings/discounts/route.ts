@@ -85,6 +85,11 @@ function ruleFromBody(body: Record<string, unknown>) {
     : [];
   if (collections.length > 20) throw new InvalidRule('A discount can use up to 20 collections.');
 
+  const tags = Array.isArray(body.tags)
+    ? [...new Set(body.tags.map((tag) => String(tag).trim()).filter(Boolean))] as string[]
+    : [];
+  if (tags.length > 20 || tags.some((tag) => tag.length > 255)) throw new InvalidRule('A discount can use up to 20 tags.');
+
   const paymentMethods = Array.isArray(body.paymentMethods) ? body.paymentMethods.map(String) : [];
   if (paymentMethods.some((method) => !RULE_METHODS.includes(method))) throw new InvalidRule('Please choose valid payment methods.');
 
@@ -113,6 +118,7 @@ function ruleFromBody(body: Record<string, unknown>) {
     giftTitle,
     giftQuantity,
     collections: collections.length > 0 ? collections : Prisma.DbNull,
+    tags,
     paymentMethods,
     usageLimit: optionalWhole(body.usageLimit, 'Total uses'),
     perCustomerLimit: optionalWhole(body.perCustomerLimit, 'Uses per customer'),
