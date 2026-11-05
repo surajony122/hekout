@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { readCheckoutSession } from '@/lib/checkout-session';
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const shop = searchParams.get('shop');
-    const phone = searchParams.get('phone');
+    const { shop, sessionToken } = await request.json();
 
-    if (!shop || !phone) {
-      return NextResponse.json({ error: 'Shop and phone are required' }, { status: 400 });
+    if (typeof shop !== 'string' || !shop) {
+      return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
+    }
+
+    // Customers can only look up the phone number they verified by OTP.
+    const phone = readCheckoutSession(sessionToken, shop);
+    if (!phone) {
+      return NextResponse.json({ error: 'Please verify your phone number again.' }, { status: 401 });
     }
 
     const merchant = await prisma.merchant.findUnique({
@@ -22,7 +27,7 @@ export async function GET(request: Request) {
     const customer = await prisma.customerProfile.findFirst({
       where: {
         merchantId: merchant.id,
-        phone: phone
+        phone
       },
       orderBy: {
         lastOrderAt: 'desc'

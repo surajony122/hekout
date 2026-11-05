@@ -126,12 +126,14 @@
       let total = subtotalBase;
       
       let verifiedPhone = '';
+      let sessionToken = '';
       try {
          const stored = localStorage.getItem('checkoutflow_verified');
          if (stored) {
             const parsed = JSON.parse(stored);
-            if (Date.now() - parsed.time < 24 * 60 * 60 * 1000) {
+            if (parsed.sessionToken && parsed.shop === shop && Date.now() - parsed.time < 24 * 60 * 60 * 1000) {
                verifiedPhone = parsed.phone;
+               sessionToken = parsed.sessionToken;
             } else {
                localStorage.removeItem('checkoutflow_verified');
             }
@@ -475,8 +477,8 @@
              </div>
              
              <div id="cf-otp-box" style="display:none; margin-bottom:16px;">
-               <div style="font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; text-align:center;">Enter 4-digit OTP</div>
-               <input type="text" id="cf-otp-in" style="width:100%; border:1.5px solid var(--border); border-radius:12px; padding:14px; font-size:20px; text-align:center; letter-spacing:12px; outline:none; font-weight:600; color:var(--text-main);" placeholder="••••" maxlength="4" />
+               <div style="font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; text-align:center;">Enter 6-digit OTP</div>
+               <input type="text" id="cf-otp-in" style="width:100%; border:1.5px solid var(--border); border-radius:12px; padding:14px; font-size:20px; text-align:center; letter-spacing:12px; outline:none; font-weight:600; color:var(--text-main);" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
                <div id="cf-otp-err" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; display:none; margin-top:8px;"></div>
              </div>
              <button id="cf-phone-btn" class="cf-btn">Continue</button>
@@ -1180,6 +1182,7 @@
               }
             } else {
               phoneBtn.innerText = 'Continue';
+              alert(data.error || 'Could not send the OTP. Please try again.');
             }
           } catch(err) { phoneBtn.innerText = 'Continue'; }
         } else {
@@ -1191,12 +1194,14 @@
               body: JSON.stringify({ shop, phone: verifiedPhone, code })
             });
             const data = await res.json();
-            if (data.success || data.valid) {
-              localStorage.setItem('checkoutflow_verified', JSON.stringify({ phone: verifiedPhone, time: Date.now() }));
+            if (data.success && data.sessionToken) {
+              sessionToken = data.sessionToken;
+              localStorage.setItem('checkoutflow_verified', JSON.stringify({ phone: verifiedPhone, shop, sessionToken, time: Date.now() }));
               cfTrack('OTP_VERIFIED');
               checkCustomer();
             } else {
               phoneBtn.innerText = 'Verify & Continue';
+              alert(data.error || 'Could not verify the OTP. Please try again.');
             }
           } catch(err) { phoneBtn.innerText = 'Verify & Continue'; }
         }
@@ -1259,7 +1264,18 @@
       const checkCustomer = async () => {
         statePhone.style.display = 'none';
         try {
-          const res = await fetch(`${apiBaseUrl}/api/customer/lookup?shop=${shop}&phone=${verifiedPhone}`);
+          const res = await fetch(`${apiBaseUrl}/api/customer/lookup`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ shop, sessionToken })
+          });
+          if (res.status === 401) {
+            // The saved session is no longer valid, so ask for a new OTP.
+            localStorage.removeItem('checkoutflow_verified');
+            verifiedPhone = '';
+            sessionToken = '';
+            statePhone.style.display = 'block';
+            return;
+          }
           const data = await res.json();
           let serverCustomer = null;
           if (data.success && data.customer) serverCustomer = data.customer;
@@ -1463,40 +1479,17 @@
          const btn = widgetRoot.getElementById(`paybtn-${method}`) || widgetRoot.getElementById('cod-save-btn');
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
          
-         let prepaidDiscount = 0;
-         let shippingFee = 0;
-         let codFee = 0;
-         const subtotal = subtotalBase;
-         
-         if (widgetConfig.isShippingFeeEnabled) {
-             const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
-             if (threshold === 0 || subtotal < threshold) {
-                 shippingFee = widgetConfig.shippingFeeAmount || 0;
-             }
-         }
-         
-         if (method === 'COD') {
-            if (widgetConfig.isCodFeeEnabled !== false) {
-                codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
-            }
-         } else if (widgetConfig.isPrepaidDiscountEnabled) {
-            prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - currentCouponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
-         }
-
+         // The server works out every price and fee from Shopify and the store's settings.
          const payload = {
-            shop, items: cartItems,
+            shop, sessionToken, items: cartItems,
             customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || customerData?.fname || 'Valued Customer',
-            customerPhone: verifiedPhone,
             customerEmail: widgetRoot.getElementById('cf-addr-email')?.value || customerData?.email || '',
             address: widgetRoot.getElementById('cf-addr-street')?.value || customerData?.street || customerData?.address || '',
             city: widgetRoot.getElementById('cf-addr-city')?.value || customerData?.city || '',
             state: widgetRoot.getElementById('cf-addr-state')?.value || customerData?.state || '',
             pincode: widgetRoot.getElementById('cf-addr-pin')?.value || customerData?.pincode || '',
             paymentMethod: method,
-            prepaidDiscount,
-            shippingFee,
-            codFee,
-            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code, amount: Math.round(currentCouponDiscount) } : undefined
+            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code } : undefined
          };
 
          const createFinalOrder = async () => {
@@ -1530,11 +1523,10 @@
 
          if (method !== 'COD') {
            try {
-             const rzpAmount = Math.max(0, subtotal - currentCouponDiscount - prepaidDiscount) + shippingFee;
              const rzpOrderRes = await fetch(`${apiBaseUrl}/api/checkout/create-razorpay-order`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ shop, amount: rzpAmount })
+               body: JSON.stringify({ shop, sessionToken, items: cartItems, paymentMethod: method, appliedCoupon: payload.appliedCoupon })
              });
              const rzpOrderData = await rzpOrderRes.json();
              
@@ -1553,28 +1545,16 @@
                order_id: rzpOrderData.orderId,
                handler: async function (response) {
                  if (btn) btn.innerText = 'Verifying...';
-                 const verifyRes = await fetch(`${apiBaseUrl}/api/checkout/verify-payment`, {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({
-                     shop, razorpay_order_id: response.razorpay_order_id,
-                     razorpay_payment_id: response.razorpay_payment_id,
-                     razorpay_signature: response.razorpay_signature
-                   })
-                 });
-                 const verifyData = await verifyRes.json();
-                 if (verifyData.success) {
-                   payload.paymentId = response.razorpay_payment_id;
-                   await createFinalOrder();
-                 } else {
-                   alert('Payment verification failed.');
-                   if (btn) btn.innerText = `Pay ${method}`;
-                 }
+                 // The server verifies this payment with Razorpay before creating the order.
+                 payload.razorpay_order_id = response.razorpay_order_id;
+                 payload.razorpay_payment_id = response.razorpay_payment_id;
+                 payload.razorpay_signature = response.razorpay_signature;
+                 await createFinalOrder();
                },
                prefill: {
                  name: payload.customerName,
                  email: payload.customerEmail,
-                 contact: payload.customerPhone
+                 contact: verifiedPhone
                },
                theme: { color: primaryColor },
                modal: {

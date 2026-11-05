@@ -70,6 +70,7 @@ model Order {
 
   merchant            Merchant @relation(fields: [merchantId], references: [id])
 
+  @@unique([merchantId, paymentId])
   @@map("orders")
 }
 
@@ -119,10 +120,12 @@ model OtpVerification {
   code       String
   expiresAt  DateTime @map("expires_at")
   verified   Boolean  @default(false)
+  attempts   Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
 
   merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
+  @@index([merchantId, phone, createdAt])
   @@map("otp_verifications")
 }
 
