@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import Razorpay from 'razorpay';
 import { CheckoutError, assertExpectedTotal, resolvePricing } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
+import { planAllowsOnlinePayments } from '@/lib/plans';
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,10 @@ export async function POST(request: Request) {
 
     if (!merchant || !merchant.isActive || !merchant.accessToken) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
+    }
+
+    if (!planAllowsOnlinePayments(merchant.checkoutPlan)) {
+      return NextResponse.json({ error: 'Online payments are not available for this store.' }, { status: 403 });
     }
 
     const keyId = merchant.paymentSettings?.razorpayKeyId?.trim();

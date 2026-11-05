@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { CheckoutError, assertExpectedTotal, createDraftOrder, resolvePricing } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, createDraftOrder, isCodMethod, resolvePricing } from '@/lib/checkout-pricing';
+import { calculateFee, planAllowsOnlinePayments, planFeePercent } from '@/lib/plans';
 import { readCheckoutSession, safeEqual } from '@/lib/checkout-session';
 
 const PAID_PAYMENT_STATUSES = ['authorized', 'captured'];
@@ -88,6 +89,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found or missing access token' }, { status: 403 });
     }
 
+    if (typeof paymentMethod === 'string' && !isCodMethod(paymentMethod) && !planAllowsOnlinePayments(merchant.checkoutPlan)) {
+      return NextResponse.json({ error: 'Online payments are not available for this store.' }, { status: 403 });
+    }
+
     const { pricing, fromQuote } = await resolvePricing(
       { ...merchant, accessToken: merchant.accessToken },
       {
@@ -107,6 +112,8 @@ export async function POST(request: Request) {
       ? null
       : await verifyRazorpayPayment(merchant.paymentSettings, data, pricing.total);
 
+    const feePercent = planFeePercent(merchant.checkoutPlan);
+
     // The unique index on (merchantId, paymentId) stops one payment paying for two orders.
     let order;
     try {
@@ -123,6 +130,9 @@ export async function POST(request: Request) {
           paymentMethod: pricing.paymentMethod,
           paymentId,
           prepaidDiscount: pricing.prepaidDiscount,
+          checkoutPlan: merchant.checkoutPlan,
+          feePercent,
+          feeAmount: calculateFee(pricing.total, feePercent),
           orderStatus: 'Pending',
           utmSource: utmSource || null,
           utmMedium: utmMedium || null,

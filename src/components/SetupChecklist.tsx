@@ -6,13 +6,14 @@ type Props = {
   storefrontUrl: string;
   buttonEnabled: boolean;
   paymentsConnected: boolean;
+  showPaymentsStep: boolean;
   orderPlaced: boolean;
 };
 
 const ACTION_CLASS = 'shrink-0 px-3 py-1.5 text-sm font-medium text-white bg-slate-900 rounded-md hover:bg-slate-800 transition-colors';
 
 // Takes a new merchant from install to a first order without anyone's help.
-export default function SetupChecklist({ activateUrl, storefrontUrl, buttonEnabled, paymentsConnected, orderPlaced }: Props) {
+export default function SetupChecklist({ activateUrl, storefrontUrl, buttonEnabled, paymentsConnected, showPaymentsStep, orderPlaced }: Props) {
   if (buttonEnabled && orderPlaced) return null;
 
   const steps = [
@@ -22,12 +23,14 @@ export default function SetupChecklist({ activateUrl, storefrontUrl, buttonEnabl
       detail: 'Switch on CheckoutFlow in your theme and click Save. Then open a product page and try the button.',
       action: <a href={activateUrl} target="_blank" rel="noreferrer" className={ACTION_CLASS}>Turn on</a>,
     },
-    {
-      done: paymentsConnected,
-      title: 'Connect online payments (optional)',
-      detail: 'Add your Razorpay keys to accept UPI and cards. Without them, customers can still use Cash on Delivery.',
-      action: <Link href="/settings" className={ACTION_CLASS}>Add keys</Link>,
-    },
+    ...(showPaymentsStep
+      ? [{
+          done: paymentsConnected,
+          title: 'Connect online payments (optional)',
+          detail: 'Add your Razorpay keys to accept UPI and cards. Without them, customers can still use Cash on Delivery.',
+          action: <Link href="/settings" className={ACTION_CLASS}>Add keys</Link>,
+        }]
+      : []),
     {
       done: orderPlaced,
       title: 'Place a test order',

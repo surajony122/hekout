@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import DashboardClient from './components/DashboardClient';
 import SetupChecklist from '@/components/SetupChecklist';
+import { planAllowsOnlinePayments } from '@/lib/plans';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,7 @@ export default async function Home() {
         storefrontUrl={`https://${merchant.shopDomain}`}
         buttonEnabled={Boolean(widgetUsed)}
         paymentsConnected={Boolean(paymentSettings?.razorpayKeyId)}
+        showPaymentsStep={planAllowsOnlinePayments(merchant.checkoutPlan)}
         orderPlaced={Boolean(orderPlaced)}
       />
       <DashboardClient />

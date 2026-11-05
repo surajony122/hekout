@@ -128,7 +128,12 @@
                  bannerText.style.color = widgetConfig.preLoginBannerColor || '';
               }
               if (typeof updatePricing === 'function') updatePricing();
-              if (widgetConfig.hasRazorpay) loadScript(RAZORPAY_URL).catch(() => {});
+              if (widgetConfig.hasRazorpay) {
+                 loadScript(RAZORPAY_URL).catch(() => {});
+                 widgetRoot.getElementById('cf-trust-payments').style.display = '';
+              }
+              // Settings can arrive after the customer reaches payment, so show the right methods.
+              if (widgetRoot.getElementById('state-checkout').style.display === 'block') renderPaymentMethods();
            }
         }).catch(e => console.log('Config fetch fallback to default:', e));
 
@@ -764,7 +769,7 @@
              </div>
 
              <div class="trust-footer">
-               <div class="trust-item">
+               <div class="trust-item" id="cf-trust-payments" style="display:none;">
                  <div class="trust-icon purple"><svg viewBox="0 0 24 24"><use href="#ic-lock"/></svg></div>
                  <div class="trust-title">Secure payments</div>
                  <div class="trust-sub">Processed by Razorpay</div>
@@ -1614,7 +1619,7 @@
                   <div class="cf-payment-drawer" style="width:100%; max-width:420px; margin:0 auto; background:var(--surface); border-radius:20px 20px 0 0; padding:20px;" onclick="event.stopPropagation()">
                      <div style="font-size:18px; font-weight:600; margin-bottom:16px;">${m.name}</div>
                      <div style="display:flex; flex-direction:column; gap:10px;">
-                        <button class="cf-btn" onclick="window.cfToggleDrawer('drw${m.id}', false); window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>
+                        ${widgetConfig.hasRazorpay ? `<button class="cf-btn" onclick="window.cfToggleDrawer('drw${m.id}', false); window.cfExecutePayment('UPI')" id="cod-save-btn" style="background:var(--green);">Pay Online (Save)</button>` : ''}
                         <button class="cf-btn" onclick="window.cfExecutePayment('${m.id}')" id="cod-confirm-btn" style="background:var(--surface); color:var(--text-main); border:1.5px solid var(--border); box-shadow:none;">Confirm COD</button>
                      </div>
                   </div>
