@@ -6,7 +6,8 @@ import { reconcileInBackground } from '@/lib/order-fulfillment';
 import { revealSecret } from '@/lib/secrets';
 import { planAllowsPartialCod, planAllowsPopupOrders } from '@/lib/plans';
 
-type Quote = Awaited<ReturnType<typeof quoteCheckout>>['cod'];
+type Quote = NonNullable<Awaited<ReturnType<typeof quoteCheckout>>['cod']>;
+const KNOWN_METHODS = ['COD', 'PREPAID', 'PARTIAL COD'];
 
 // Only what the customer needs to see, without the internal order details.
 const forCustomer = (quote: Quote) => ({
@@ -23,7 +24,8 @@ const forCustomer = (quote: Quote) => ({
 
 export async function POST(request: Request) {
   try {
-    const { shop, sessionToken, items, couponCode, upsellVariantId, customerName, customerEmail, address, city, state, pincode } = await request.json();
+    const startedAt = Date.now();
+    const { shop, sessionToken, items, couponCode, upsellVariantId, methods, customerName, customerEmail, address, city, state, pincode } = await request.json();
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -56,13 +58,16 @@ export async function POST(request: Request) {
         couponCode,
         upsellVariantId,
         customer: { phone, name: customerName, email: customerEmail, address, city, state, pincode },
-      }
+      },
+      Array.isArray(methods) && methods.length > 0 && methods.every((method) => KNOWN_METHODS.includes(method)) ? methods : undefined
     );
+
+    console.log(`Quote timing: total=${Date.now() - startedAt}ms methods=${Array.isArray(methods) ? methods.join('+') : 'all'}`);
 
     return NextResponse.json({
       success: true,
-      cod: { ...forCustomer(cod), quoteToken: createQuoteToken(cod, shop, phone) },
-      prepaid: { ...forCustomer(prepaid), quoteToken: createQuoteToken(prepaid, shop, phone) },
+      cod: cod && { ...forCustomer(cod), quoteToken: createQuoteToken(cod, shop, phone) },
+      prepaid: prepaid && { ...forCustomer(prepaid), quoteToken: createQuoteToken(prepaid, shop, phone) },
       partial: partial && planAllowsPartialCod(merchant.checkoutPlan)
         ? { ...forCustomer(partial), quoteToken: createQuoteToken(partial, shop, phone) }
         : null,

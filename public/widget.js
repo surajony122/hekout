@@ -127,6 +127,16 @@
                  bannerText.textContent = widgetConfig.preLoginBannerText;
                  bannerText.style.color = widgetConfig.preLoginBannerColor || '';
               }
+              if (widgetConfig.fbPixelId && /^\d+$/.test(widgetConfig.fbPixelId)) {
+                 if (!window.fbq) {
+                    const queue = function() { queue.callMethod ? queue.callMethod.apply(queue, arguments) : queue.queue.push(arguments); };
+                    queue.push = queue; queue.loaded = true; queue.version = '2.0'; queue.queue = [];
+                    window.fbq = queue; if (!window._fbq) window._fbq = queue;
+                    loadScript('https://connect.facebook.net/en_US/fbevents.js').catch(() => {});
+                 }
+                 window.fbq('init', widgetConfig.fbPixelId);
+                 window.fbq('track', 'InitiateCheckout', { num_items: totalQuantity, currency: 'INR', value: subtotalBase });
+              }
               if (typeof updatePricing === 'function') updatePricing();
               if (widgetConfig.hasRazorpay) {
                  loadScript(RAZORPAY_URL).catch(() => {});
@@ -939,7 +949,7 @@
       let quoteFailed = false;
 
       const getCustomerDetails = () => ({
-         customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || customerData?.fname || 'Valued Customer',
+         customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || `${customerData?.fname || ''} ${customerData?.lname || ''}`.trim() || 'Valued Customer',
          customerEmail: widgetRoot.getElementById('cf-addr-email')?.value || customerData?.email || '',
          address: widgetRoot.getElementById('cf-addr-street')?.value || customerData?.street || customerData?.address || '',
          city: widgetRoot.getElementById('cf-addr-city')?.value || customerData?.city || '',
@@ -948,15 +958,30 @@
       });
 
       // Shopify works out the final totals, including discounts and tax.
-      const fetchQuotes = async (couponCode) => {
-         const res = await fetch(`${apiBaseUrl}/api/checkout/quote`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ shop, sessionToken, items: cartItems, couponCode: couponCode || undefined, upsellVariantId: upsellAccepted && activeUpsell ? activeUpsell.variantId : undefined, ...getCustomerDetails() })
+      // Identical requests share one answer, so a total fetched ahead of time shows instantly.
+      const quoteCache = new Map();
+      const fetchQuotes = (couponCode) => {
+         const body = JSON.stringify({
+            shop, sessionToken, items: cartItems, couponCode: couponCode || undefined,
+            upsellVariantId: upsellAccepted && activeUpsell ? activeUpsell.variantId : undefined,
+            methods: widgetConfig.checkoutPlan === 'OTP_COD' && chosenMethod ? [chosenMethod] : undefined,
+            ...getCustomerDetails()
          });
-         return { status: res.status, data: await res.json() };
+         const cached = quoteCache.get(body);
+         if (cached && Date.now() - cached.at < 60000) return cached.request;
+         const request = fetch(`${apiBaseUrl}/api/checkout/quote`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body
+         }).then(async (res) => {
+            const result = { status: res.status, data: await res.json() };
+            if (!result.data.success) quoteCache.delete(body);
+            return result;
+         }).catch((error) => { quoteCache.delete(body); throw error; });
+         quoteCache.set(body, { at: Date.now(), request });
+         return request;
       };
 
-      const refreshQuotes = async () => {
+      const refreshQuotes = async (force = false) => {
+         if (force) quoteCache.clear();
          const requestId = ++quoteRequestId;
          quotes = null;
          quoteFailed = false;
@@ -1210,10 +1235,10 @@
 
         ['UPI','Card','Wallet','Netbanking'].forEach(m => {
            const el = widgetRoot.getElementById(`pp${m}`);
-           showAmount(el, quotes ? money(quotes.prepaid.total) : null);
+           showAmount(el, quotes?.prepaid ? money(quotes.prepaid.total) : null);
         });
         const elCod = widgetRoot.getElementById('ppCOD');
-        showAmount(elCod, quotes ? money(quotes.cod.total) : null);
+        showAmount(elCod, quotes?.cod ? money(quotes.cod.total) : null);
 
         const isPartialChoice = currentPaymentMethod === 'PARTIAL COD' && quote;
         ['trPaidNow', 'trDueLater'].forEach((id) => {
@@ -1236,13 +1261,13 @@
 
         const elCodBtn = widgetRoot.getElementById('cod-confirm-btn');
         if(elCodBtn) {
-           elCodBtn.textContent = quotes ? `Confirm COD (${money(quotes.cod.total)})` : (quoteFailed ? 'Try again' : 'Updating total...');
+           elCodBtn.textContent = quotes?.cod ? `Confirm COD (${money(quotes.cod.total)})` : (quoteFailed ? 'Try again' : 'Updating total...');
            elCodBtn.disabled = !quotes && !quoteFailed;
         }
 
         const elOnlineBtn = widgetRoot.getElementById('cod-save-btn');
         if(elOnlineBtn) {
-            const onlineSaving = quotes ? quotes.cod.total - quotes.prepaid.total : 0;
+            const onlineSaving = quotes?.cod && quotes?.prepaid ? quotes.cod.total - quotes.prepaid.total : 0;
             if (onlineSaving > 0) {
                 elOnlineBtn.innerHTML = `Pay Online <span style="background:rgba(255,255,255,0.25); padding:4px 8px; border-radius:20px; font-size:12px; margin-left:6px; font-weight:600;">Save ${money(onlineSaving)}</span>`;
             } else {
@@ -1506,7 +1531,6 @@
       const goToShopifyCheckout = async () => {
          const stateRedirect = widgetRoot.getElementById('state-redirect');
          stateRedirect.style.display = 'block';
-         if (!sessionToken) widgetRoot.getElementById('cf-redirect-title').textContent = 'One moment';
          let checkoutUrl = null;
          try {
             const res = await fetch(`${apiBaseUrl}/api/checkout/shopify-redirect`, {
@@ -1532,7 +1556,7 @@
         statePhone.style.display = 'none';
         // The store's plan decides the next step, but a slow answer mustn't leave a blank screen.
         try { await Promise.race([configPromise, new Promise((done) => setTimeout(done, 3000))]); } catch(e) {}
-        if (widgetConfig.checkoutPlan === 'OTP_ONLY') {
+        if (widgetConfig.checkoutPlan === 'OTP_ONLY' || chosenMethod === 'ONLINE') {
            await goToShopifyCheckout();
            return;
         }
@@ -1578,6 +1602,8 @@
           if (savedAddresses.length > 0) {
              customerData = savedAddresses[0];
              selectedAddressIndex = 0;
+             // Starts working out the total now, so it's ready on the next screen.
+             fetchQuotes(appliedCoupon).catch(() => {});
              renderSavedAddresses(savedAddresses);
              widgetRoot.getElementById('state-address-list').style.display = 'block';
           } else {
@@ -1672,7 +1698,7 @@
          const methods = [
             { id: 'COD', name: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: 'banknote', extra: (widgetConfig.isCodFeeEnabled !== false && widgetConfig.codFeeAmount > 0) ? `${money(widgetConfig.codFeeAmount)} COD fee may apply` : '' },
             ...(widgetConfig.hasPartialCod ? [{ id: 'PARTIAL COD', name: 'Partial COD', sub: `Pay ${money(widgetConfig.partialCodAmount)} now, the rest on delivery`, icon: 'coins', extra: 'No COD fee' }] : []),
-            { id: 'ONLINE', name: 'Pay Online', sub: 'UPI, cards and more on secure checkout', icon: 'credit-card', extra: '' },
+            { id: 'ONLINE', name: 'Pay Online', sub: 'UPI, cards and more on secure checkout. Your details are filled in for you', icon: 'credit-card', extra: '' },
          ];
          widgetRoot.getElementById('cf-method-list').innerHTML = methods.map((m) => `
             <button type="button" class="pay-card cf-method" data-method="${m.id}" style="width:100%; text-align:left; font:inherit; color:inherit;">
@@ -1688,9 +1714,7 @@
             card.onclick = () => {
                chosenMethod = card.dataset.method;
                widgetRoot.getElementById('state-methods').style.display = 'none';
-               if (chosenMethod === 'ONLINE') {
-                  goToShopifyCheckout();
-               } else if (verifiedPhone && sessionToken) {
+               if (verifiedPhone && sessionToken) {
                   checkCustomer();
                } else {
                   statePhone.style.display = 'block';
@@ -1814,7 +1838,7 @@
          const quoteFor = () => method === 'COD' ? quotes.cod : method === 'PARTIAL COD' ? quotes.partial : quotes.prepaid;
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Placing your order...</div>';
 
-         if (!quotes) await refreshQuotes();
+         if (!quotes) await refreshQuotes(true);
          // refreshQuotes has already told the customer what went wrong.
          if (!quotes) return;
          if (!quoteFor()) {
@@ -1844,6 +1868,7 @@
                 const data = await res.json();
                 
                 if (data.paymentReceived) {
+                   if (window.fbq && widgetConfig.fbPixelId) window.fbq('track', 'Purchase', { currency: 'INR', value: quotedTotal, num_items: totalQuantity });
                    const drw = widgetRoot.getElementById(`drw${method}`);
                    if (drw) drw.style.display = 'none';
                    widgetRoot.getElementById('state-checkout').style.display='none';
@@ -1856,6 +1881,7 @@
                    widgetRoot.getElementById('state-checkout').style.display='none';
                    widgetRoot.getElementById('successScr').style.display='flex';
                    if (window.launchConfetti) window.launchConfetti();
+                   if (window.fbq && widgetConfig.fbPixelId) window.fbq('track', 'Purchase', { currency: 'INR', value: quotedTotal, num_items: totalQuantity });
                    if (method === 'PARTIAL COD') {
                        const partialQuote = quoteFor();
                        widgetRoot.getElementById('cf-success-sub').textContent = `₹${partialQuote.amountDueNow} paid. Please pay ₹${partialQuote.amountDueLater} on delivery.`;
@@ -1867,7 +1893,7 @@
                    }
                 } else {
                    notify(data.error || 'Could not place your order. Please try again.');
-                   await refreshQuotes();
+                   await refreshQuotes(true);
                 }
              } catch(e) {
                 notify('Could not reach the server. Please check your connection and try again.');
@@ -1886,7 +1912,7 @@
              
              if (!rzpOrderData.success) {
                notify(rzpOrderData.error || 'Could not start the payment. Please try again.');
-               await refreshQuotes();
+               await refreshQuotes(true);
                return;
              }
 

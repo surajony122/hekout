@@ -139,11 +139,8 @@ async function createCart(merchant: ShopMerchant, token: string, input: unknown)
 
 // Returns Shopify's checkout link for this cart. Details travel in Shopify's cart, not
 // in the link, so a customer's address never appears in a URL.
-export async function createShopifyCheckout(merchant: ShopMerchant, plan: string, phone: string | null, items: CartLine[]): Promise<string> {
-  const [token, shopper] = await Promise.all([
-    storefrontToken(merchant),
-    phone ? findShopper(merchant, phone) : Promise.resolve({} as Shopper),
-  ]);
+export async function createShopifyCheckout(merchant: ShopMerchant, plan: string, phone: string, items: CartLine[]): Promise<string> {
+  const [token, shopper] = await Promise.all([storefrontToken(merchant), findShopper(merchant, phone)]);
 
   const baseInput = {
     lines: items.map((item) => ({
@@ -152,7 +149,7 @@ export async function createShopifyCheckout(merchant: ShopMerchant, plan: string
     })),
     attributes: [{ key: PLAN_ATTRIBUTE, value: plan }],
     buyerIdentity: {
-      ...(phone ? { phone: formatPhone(phone) } : {}),
+      phone: formatPhone(phone),
       countryCode: shopper.address?.countryCode ?? 'IN',
       ...(shopper.email ? { email: shopper.email } : {}),
     },
