@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 
 export default function WidgetSettingsClient({ initialSettings }: { initialSettings: any }) {
   const [settings, setSettings] = useState({
+    storeName: initialSettings.storeName || '',
     primaryColor: initialSettings.primaryColor || '#111827',
     preLoginBannerText: initialSettings.preLoginBannerText || '',
     preLoginBannerBg: initialSettings.preLoginBannerBg || '#000000',
@@ -49,6 +50,16 @@ export default function WidgetSettingsClient({ initialSettings }: { initialSetti
           <CardDescription>Customize the look and feel of your checkout widget.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="store-name" className="text-sm font-medium leading-none">Store name</label>
+            <Input
+              id="store-name"
+              value={settings.storeName}
+              maxLength={40}
+              onChange={e => setSettings({...settings, storeName: e.target.value})}
+              placeholder="Shown at the top of your checkout"
+            />
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none">Primary Brand Color (Hex)</label>
             <div className="flex items-center gap-3">

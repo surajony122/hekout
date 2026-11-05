@@ -4,28 +4,62 @@ import { prisma } from '@/lib/prisma';
 import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import DashboardClient from './components/DashboardClient';
 import SetupChecklist from '@/components/SetupChecklist';
+import PaidOrdersAlert from '@/components/PaidOrdersAlert';
+import { planAllowsOnlinePayments } from '@/lib/plans';
+import { reconcileInBackground } from '@/lib/order-fulfillment';
+import { isEncryptionConfigured, isProtected, protectSecret } from '@/lib/secrets';
 
 export const dynamic = 'force-dynamic';
+
+// Secrets saved before encryption was added are encrypted the next time the owner visits.
+async function encryptExistingSecrets(
+  merchant: { id: string; accessToken: string | null },
+  settings: { merchantId: string; razorpayKeySecret: string | null; cashfreeSecretKey: string | null } | null
+) {
+  if (!isEncryptionConfigured()) return;
+  if (merchant.accessToken && !isProtected(merchant.accessToken)) {
+    await prisma.merchant.update({ where: { id: merchant.id }, data: { accessToken: protectSecret(merchant.accessToken) } });
+  }
+  if (settings) {
+    const updates: { razorpayKeySecret?: string; cashfreeSecretKey?: string } = {};
+    if (settings.razorpayKeySecret && !isProtected(settings.razorpayKeySecret)) updates.razorpayKeySecret = protectSecret(settings.razorpayKeySecret);
+    if (settings.cashfreeSecretKey && !isProtected(settings.cashfreeSecretKey)) updates.cashfreeSecretKey = protectSecret(settings.cashfreeSecretKey);
+    if (Object.keys(updates).length > 0) {
+      await prisma.paymentSettings.update({ where: { merchantId: settings.merchantId }, data: updates });
+    }
+  }
+}
 
 export default async function Home() {
   const merchant = await getLoggedInMerchant();
   if (!merchant) redirect('/login');
 
-  const [widgetUsed, orderPlaced, paymentSettings] = await Promise.all([
+  const [widgetUsed, orderPlaced, paymentSettings, paidOrders] = await Promise.all([
     prisma.analyticsEvent.findFirst({ where: { merchantId: merchant.id }, select: { id: true } }),
     prisma.order.findFirst({ where: { merchantId: merchant.id, orderStatus: 'Synced' }, select: { id: true } }),
-    prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id }, select: { razorpayKeyId: true } }),
+    prisma.paymentSettings.findUnique({ where: { merchantId: merchant.id }, }),
+    prisma.order.findMany({
+      where: { merchantId: merchant.id, paymentId: { not: null }, orderStatus: { in: ['Needs_Attention', 'Processing'] } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, customerName: true, customerPhone: true, total: true, paymentId: true },
+      take: 20,
+    }),
   ]);
+
+  reconcileInBackground({ ...merchant, paymentSettings });
+  await encryptExistingSecrets(merchant, paymentSettings);
 
   const activateUrl = `https://${merchant.shopDomain}/admin/themes/current/editor?context=apps&template=product&activateAppId=${process.env.SHOPIFY_CLIENT_ID}/checkout-button`;
 
   return (
     <>
+      <PaidOrdersAlert orders={paidOrders} />
       <SetupChecklist
         activateUrl={activateUrl}
         storefrontUrl={`https://${merchant.shopDomain}`}
         buttonEnabled={Boolean(widgetUsed)}
         paymentsConnected={Boolean(paymentSettings?.razorpayKeyId)}
+        showPaymentsStep={planAllowsOnlinePayments(merchant.checkoutPlan)}
         orderPlaced={Boolean(orderPlaced)}
       />
       <DashboardClient />

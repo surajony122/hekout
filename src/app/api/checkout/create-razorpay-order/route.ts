@@ -3,10 +3,13 @@ import { prisma } from '@/lib/prisma';
 import Razorpay from 'razorpay';
 import { CheckoutError, assertExpectedTotal, resolvePricing } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
+import { orderDataFromPricing } from '@/lib/order-fulfillment';
+import { planAllowsOnlinePayments } from '@/lib/plans';
+import { revealSecret } from '@/lib/secrets';
 
 export async function POST(request: Request) {
   try {
-    const { shop, sessionToken, items, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, customerName, customerEmail, address, city, state, pincode } = await request.json();
+    const { shop, sessionToken, items, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, customerName, customerEmail, address, city, state, pincode, utmSource, utmMedium, utmCampaign } = await request.json();
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -26,21 +29,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }
 
+    if (!planAllowsOnlinePayments(merchant.checkoutPlan)) {
+      return NextResponse.json({ error: 'Online payments are not available for this store.' }, { status: 403 });
+    }
+
     const keyId = merchant.paymentSettings?.razorpayKeyId?.trim();
-    const keySecret = merchant.paymentSettings?.razorpayKeySecret?.trim();
+    const keySecret = revealSecret(merchant.paymentSettings?.razorpayKeySecret)?.trim();
     if (!keyId || !keySecret) {
       return NextResponse.json({ error: 'Razorpay not configured for this merchant' }, { status: 400 });
     }
 
+    const customer = { phone, name: customerName, email: customerEmail, address, city, state, pincode };
+
     const { pricing } = await resolvePricing(
-      { ...merchant, accessToken: merchant.accessToken },
+      { ...merchant, accessToken: revealSecret(merchant.accessToken) ?? '' },
       {
         items,
         paymentMethod,
         quoteToken,
         couponCode: appliedCoupon?.code,
         upsellVariantId,
-        customer: { phone, name: customerName, email: customerEmail, address, city, state, pincode },
+        customer,
       }
     );
 
@@ -62,6 +71,15 @@ export async function POST(request: Request) {
       amount: Math.round(pricing.total * 100),
       currency: pricing.currency,
       receipt: `receipt_${Date.now()}`
+    });
+
+    // Saved before the customer pays, so a dropped connection can't lose a paid order.
+    await prisma.order.create({
+      data: {
+        ...orderDataFromPricing(merchant, pricing, customer, { source: utmSource, medium: utmMedium, campaign: utmCampaign }),
+        razorpayOrderId: order.id,
+        orderStatus: 'Awaiting_Payment',
+      },
     });
 
     return NextResponse.json({

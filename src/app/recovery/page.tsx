@@ -15,7 +15,8 @@ export default async function RecoveryPage() {
     abandonedOrders = await prisma.order.findMany({
       where: {
         merchantId: merchant.id,
-        orderStatus: { in: ['Pending', 'Draft_Created', 'Failed'] }
+        paymentId: null,
+        orderStatus: { in: ['Pending', 'Draft_Created', 'Failed', 'Awaiting_Payment'] }
       },
       orderBy: { createdAt: 'desc' },
       take: 100,

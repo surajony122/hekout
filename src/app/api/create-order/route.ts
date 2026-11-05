@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { CheckoutError, assertExpectedTotal, createDraftOrder, resolvePricing } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, isCodMethod, resolvePricing } from '@/lib/checkout-pricing';
+import { PAID_PAYMENT_STATUSES, fulfillOrder, orderDataFromPricing } from '@/lib/order-fulfillment';
+import { planAllowsOnlinePayments } from '@/lib/plans';
+import { revealSecret } from '@/lib/secrets';
 import { readCheckoutSession, safeEqual } from '@/lib/checkout-session';
-
-const PAID_PAYMENT_STATUSES = ['authorized', 'captured'];
 
 type PaymentProof = {
   razorpay_order_id?: unknown;
@@ -13,17 +14,11 @@ type PaymentProof = {
   razorpay_signature?: unknown;
 };
 
-// Confirms with Razorpay that this payment is genuine and covers the order total.
-async function verifyRazorpayPayment(
-  settings: { razorpayKeyId: string | null; razorpayKeySecret: string | null } | null,
-  proof: PaymentProof,
-  expectedTotal: number
-): Promise<string> {
+// Confirms the payment really came from Razorpay and belongs to this Razorpay order.
+function verifySignature(keySecret: string | null | undefined, proof: PaymentProof) {
   const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = proof;
-  const keyId = settings?.razorpayKeyId?.trim();
-  const keySecret = settings?.razorpayKeySecret?.trim();
 
-  if (typeof orderId !== 'string' || typeof paymentId !== 'string' || typeof signature !== 'string' || !keyId || !keySecret) {
+  if (typeof orderId !== 'string' || typeof paymentId !== 'string' || typeof signature !== 'string' || !keySecret) {
     throw new CheckoutError(402, 'Payment could not be verified.');
   }
 
@@ -32,6 +27,11 @@ async function verifyRazorpayPayment(
     throw new CheckoutError(402, 'Payment could not be verified.');
   }
 
+  return { orderId, paymentId };
+}
+
+// Confirms with Razorpay that this payment went through and covers the order total.
+async function verifyPaymentAmount(keyId: string, keySecret: string, orderId: string, paymentId: string, expectedTotal: number) {
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
   const payment = await razorpay.payments.fetch(paymentId);
   const paidEnough = Number(payment.amount) >= Math.round(expectedTotal * 100);
@@ -40,8 +40,6 @@ async function verifyRazorpayPayment(
     console.error(`Razorpay payment ${paymentId} failed verification for order ${orderId}`);
     throw new CheckoutError(402, 'Payment could not be verified. If you were charged, please contact the store.');
   }
-
-  return paymentId;
 }
 
 async function saveCustomerProfile(
@@ -88,151 +86,107 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found or missing access token' }, { status: 403 });
     }
 
-    const { pricing, fromQuote } = await resolvePricing(
-      { ...merchant, accessToken: merchant.accessToken },
-      {
-        items,
-        paymentMethod,
-        quoteToken,
-        couponCode: appliedCoupon?.code,
-        upsellVariantId,
-        customer: { phone: customerPhone, name: customerName, email: customerEmail, address, city, state, pincode },
-      }
-    );
-
-    // A prepaid customer has already paid, so their payment is checked against the total instead.
-    if (pricing.isCod) assertExpectedTotal(pricing.total, expectedTotal);
-
-    const paymentId = pricing.isCod
-      ? null
-      : await verifyRazorpayPayment(merchant.paymentSettings, data, pricing.total);
-
-    // The unique index on (merchantId, paymentId) stops one payment paying for two orders.
-    let order;
-    try {
-      order = await prisma.order.create({
-        data: {
-          merchantId: merchant.id,
-          customerName, customerPhone, customerEmail,
-          address, city, state, pincode,
-          productTitle: pricing.productTitle,
-          variantId: pricing.firstVariantId,
-          quantity: pricing.quantity,
-          price: pricing.firstPrice,
-          total: pricing.total,
-          paymentMethod: pricing.paymentMethod,
-          paymentId,
-          prepaidDiscount: pricing.prepaidDiscount,
-          orderStatus: 'Pending',
-          utmSource: utmSource || null,
-          utmMedium: utmMedium || null,
-          utmCampaign: utmCampaign || null
-        }
-      });
-    } catch (error) {
-      if ((error as { code?: string }).code === 'P2002') {
-        return NextResponse.json({ error: 'This payment has already been used for an order.' }, { status: 409 });
-      }
-      throw error;
+    if (typeof paymentMethod === 'string' && !isCodMethod(paymentMethod) && !planAllowsOnlinePayments(merchant.checkoutPlan)) {
+      return NextResponse.json({ error: 'Online payments are not available for this store.' }, { status: 403 });
     }
 
-    if (pricing.upsell) {
-      prisma.upsellFunnel.update({
-        where: { id: pricing.upsell.id },
-        data: { conversions: { increment: 1 }, revenue: { increment: pricing.upsell.revenue } }
-      }).catch(() => {});
+    const shopMerchant = { ...merchant, accessToken: revealSecret(merchant.accessToken) ?? '' };
+    const customer = { phone: customerPhone, name: customerName, email: customerEmail, address, city, state, pincode };
+    const utm = { source: utmSource, medium: utmMedium, campaign: utmCampaign };
+    const isCod = typeof paymentMethod !== 'string' || isCodMethod(paymentMethod);
+
+    let orderId: string;
+    let attempts: number;
+
+    if (isCod) {
+      const { pricing } = await resolvePricing(shopMerchant, {
+        items, paymentMethod, quoteToken, couponCode: appliedCoupon?.code, upsellVariantId, customer,
+      });
+      assertExpectedTotal(pricing.total, expectedTotal);
+
+      const order = await prisma.order.create({
+        data: { ...orderDataFromPricing(merchant, pricing, customer, utm), orderStatus: 'Pending' },
+      });
+      orderId = order.id;
+      attempts = 2;
+    } else {
+      const keyId = merchant.paymentSettings?.razorpayKeyId?.trim();
+      const keySecret = revealSecret(merchant.paymentSettings?.razorpayKeySecret)?.trim();
+      const proof = verifySignature(keySecret, data);
+      if (!keyId || !keySecret) throw new CheckoutError(402, 'Payment could not be verified.');
+
+      // The record saved when the payment started already holds the order's exact details.
+      const started =
+        await prisma.order.findFirst({
+          where: { merchantId: merchant.id, customerPhone, razorpayOrderId: proof.orderId, paymentId: proof.paymentId },
+        }) ??
+        await prisma.order.findFirst({
+          where: { merchantId: merchant.id, customerPhone, razorpayOrderId: proof.orderId, paymentId: null, orderStatus: 'Awaiting_Payment' },
+          orderBy: { createdAt: 'desc' },
+        });
+
+      try {
+        if (started) {
+          await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, started.total);
+          if (!started.paymentId) {
+            await prisma.order.update({ where: { id: started.id }, data: { paymentId: proof.paymentId } });
+          }
+          orderId = started.id;
+        } else {
+          const { pricing } = await resolvePricing(shopMerchant, {
+            items, paymentMethod, quoteToken, couponCode: appliedCoupon?.code, upsellVariantId, customer,
+          });
+          await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, pricing.total);
+          const order = await prisma.order.create({
+            data: {
+              ...orderDataFromPricing(merchant, pricing, customer, utm),
+              paymentId: proof.paymentId,
+              razorpayOrderId: proof.orderId,
+              orderStatus: 'Pending',
+            },
+          });
+          orderId = order.id;
+        }
+      } catch (error) {
+        // The unique index on (merchantId, paymentId) stops one payment paying for two orders.
+        if ((error as { code?: string }).code === 'P2002') {
+          return NextResponse.json({ error: 'This payment has already been used for an order.' }, { status: 409 });
+        }
+        throw error;
+      }
+      attempts = 3;
     }
 
     // Saving the customer's local profile shouldn't make them wait for their order.
     saveCustomerProfile(merchant.id, customerPhone, { name: customerName, email: customerEmail, address, city, state, pincode })
       .catch((error) => console.error('Save Customer Profile Error:', error));
 
-    const pricedAt = Date.now();
+    const result = await fulfillOrder(merchant, orderId, attempts);
 
-    // Create the Shopify draft order with the same details that were priced
-    let draftOrder;
-    try {
-      draftOrder = await createDraftOrder(
-        { ...merchant, accessToken: merchant.accessToken },
-        {
-          ...pricing.draftInput,
-          tags: [pricing.paymentMethod, 'CheckoutFlow'],
-          note: 'Order via CheckoutFlow',
-        }
-      );
-    } catch (error) {
-      console.error('Shopify Draft Order Error:', error);
-    }
+    console.log(`Order timing: total=${Date.now() - startedAt}ms status=${result.status} paid=${!isCod}`);
 
-    if (!draftOrder) {
-      await prisma.order.update({ where: { id: order.id }, data: { orderStatus: 'Failed' }});
-      return NextResponse.json({ error: 'Could not create your order. Please contact the store.' }, { status: 500 });
-    }
-
-    if (Math.abs(draftOrder.total - pricing.total) >= 0.01) {
-      console.error(`Draft order total ${draftOrder.total} differs from priced total ${pricing.total} for order ${order.id}`);
-      // A COD customer hasn't paid yet, so they can review the new total first.
-      if (pricing.isCod) {
-        await prisma.order.update({ where: { id: order.id }, data: { orderStatus: 'Failed' }});
-        return NextResponse.json({ error: 'Your order total has changed. Please review it and try again.', code: 'TOTAL_CHANGED' }, { status: 409 });
-      }
-    }
-
-    const draftedAt = Date.now();
-
-    const shopifyDraftOrderId = draftOrder.legacyId;
-
-    // Complete the draft into a real order. COD stays unpaid; only a verified payment is marked paid.
-    const completeUrl = `https://${shop}/admin/api/2024-01/draft_orders/${shopifyDraftOrderId}/complete.json${pricing.isCod ? '?payment_pending=true' : ''}`;
-
-    const completeRes = await fetch(completeUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': merchant.accessToken
-      }
-    });
-
-    const completeData = await completeRes.json();
-
-    if (!completeRes.ok) {
-      console.error("Shopify Complete Draft Error:", completeData);
-      await prisma.order.update({ where: { id: order.id }, data: { shopifyDraftOrderId, orderStatus: 'Draft_Created' }});
-      return NextResponse.json({ error: 'Failed to complete Shopify Draft Order' }, { status: 500 });
-    }
-
-    const shopifyOrderId = completeData.draft_order.order_id?.toString() || 'Unknown';
-
-    // Fetch the actual order to get the Order Status URL (Thank you page)
-    let orderStatusUrl = null;
-    if (shopifyOrderId !== 'Unknown') {
-      const orderRes = await fetch(`https://${shop}/admin/api/2024-01/orders/${shopifyOrderId}.json`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': merchant.accessToken
-        }
+    if (result.status === 'synced') {
+      return NextResponse.json({
+        success: true,
+        orderId: result.orderId,
+        shopifyOrderId: result.shopifyOrderId,
+        orderStatusUrl: result.orderStatusUrl,
       });
-      if (orderRes.ok) {
-        const orderData = await orderRes.json();
-        if (orderData.order && orderData.order.order_status_url) {
-          orderStatusUrl = orderData.order.order_status_url;
-        }
-      }
     }
-
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        shopifyDraftOrderId,
-        shopifyOrderId,
-        orderStatus: 'Synced'
-      }
-    });
-
-    console.log(`Order timing: pricing=${pricedAt - startedAt}ms draft=${draftedAt - pricedAt}ms complete=${Date.now() - draftedAt}ms total=${Date.now() - startedAt}ms fromQuote=${fromQuote}`);
-
-    return NextResponse.json({ success: true, orderId: order.id, shopifyOrderId, orderStatusUrl });
+    if (result.status === 'total_changed') {
+      return NextResponse.json({ error: 'Your order total has changed. Please review it and try again.', code: 'TOTAL_CHANGED' }, { status: 409 });
+    }
+    if (!isCod) {
+      // Their money is safe and the order is saved, so they must not be asked to pay again.
+      return NextResponse.json({
+        paymentReceived: true,
+        error: 'We received your payment and are confirming your order. You do not need to pay again.',
+      }, { status: 202 });
+    }
+    if (result.status === 'busy') {
+      return NextResponse.json({ error: 'Your order is already being placed.' }, { status: 409 });
+    }
+    return NextResponse.json({ error: 'Could not create your order. Please try again.' }, { status: 500 });
   } catch (error) {
     if (error instanceof CheckoutError) {
       return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });

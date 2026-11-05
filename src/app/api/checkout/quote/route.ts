@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CheckoutError, createQuoteToken, quoteCheckout } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
+import { reconcileInBackground } from '@/lib/order-fulfillment';
+import { revealSecret } from '@/lib/secrets';
 
 type Quote = Awaited<ReturnType<typeof quoteCheckout>>['cod'];
 
@@ -38,8 +40,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }
 
+    reconcileInBackground(merchant);
+
     const { cod, prepaid } = await quoteCheckout(
-      { ...merchant, accessToken: merchant.accessToken },
+      { ...merchant, accessToken: revealSecret(merchant.accessToken) ?? '' },
       {
         items,
         couponCode,

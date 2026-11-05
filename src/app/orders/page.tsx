@@ -12,7 +12,7 @@ export default async function OrdersPage() {
   let orders: any[] = [];
   try {
     orders = await prisma.order.findMany({
-      where: { merchantId: merchant.id },
+      where: { merchantId: merchant.id, orderStatus: { not: 'Awaiting_Payment' } },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import PaymentSettingsClient from './PaymentSettingsClient';
 import WidgetSettingsClient from './WidgetSettingsClient';
+import PlanSettingsClient from './PlanSettingsClient';
+import { CHECKOUT_PLANS, planFeePercent } from '@/lib/plans';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -14,8 +16,27 @@ export default async function SettingsPage() {
 
   let paymentSettings = null;
   let widgetSettings = null;
+  let feeTotals = { _count: 0, _sum: { total: 0 as number | null, feeAmount: 0 as number | null } };
+
+  // Months follow Indian time, whatever timezone the server runs in.
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowInIndia = new Date(Date.now() + IST_OFFSET_MS);
+  const monthStart = new Date(Date.UTC(nowInIndia.getUTCFullYear(), nowInIndia.getUTCMonth(), 1) - IST_OFFSET_MS);
+
+  const planOptions = Object.entries(CHECKOUT_PLANS).map(([id, plan]) => ({
+    id,
+    name: plan.name,
+    description: plan.description,
+    available: plan.available,
+    feePercent: planFeePercent(id),
+  }));
 
   try {
+    feeTotals = await prisma.order.aggregate({
+      where: { merchantId: merchant.id, orderStatus: 'Synced', createdAt: { gte: monthStart } },
+      _count: true,
+      _sum: { total: true, feeAmount: true },
+    });
     paymentSettings = await prisma.paymentSettings.findUnique({
       where: { merchantId: merchant.id }
     });
@@ -25,6 +46,14 @@ export default async function SettingsPage() {
   } catch (error) {
     console.error('Error fetching settings:', error);
   }
+
+  // Saved secrets stay on the server, and the page only learns whether one exists.
+  const safePaymentSettings = paymentSettings
+    ? (({ razorpayKeySecret, cashfreeSecretKey, payuMerchantKey, payuMerchantSalt, ...rest }) => ({
+        ...rest,
+        hasRazorpaySecret: Boolean(razorpayKeySecret),
+      }))(paymentSettings)
+    : {};
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -39,6 +68,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="widget" className="text-xs">Widget Design</TabsTrigger>
           <TabsTrigger value="otp" className="text-xs">OTP</TabsTrigger>
           <TabsTrigger value="payments" className="text-xs">Payments</TabsTrigger>
+          <TabsTrigger value="plan" className="text-xs">Plan & Fees</TabsTrigger>
           <TabsTrigger value="discounts" className="text-xs">Discounts</TabsTrigger>
           <TabsTrigger value="shipping" className="text-xs">Shipping</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
@@ -59,7 +89,7 @@ export default async function SettingsPage() {
 
         <TabsContent value="widget" className="space-y-4">
           <WidgetSettingsClient
-            initialSettings={widgetSettings || {}}
+            initialSettings={{ ...(widgetSettings || {}), storeName: merchant.storeName || '' }}
           />
         </TabsContent>
 
@@ -77,7 +107,19 @@ export default async function SettingsPage() {
 
         <TabsContent value="payments" className="space-y-4">
           <PaymentSettingsClient
-            initialSettings={paymentSettings || {}}
+            initialSettings={safePaymentSettings}
+          />
+        </TabsContent>
+
+        <TabsContent value="plan" className="space-y-4">
+          <PlanSettingsClient
+            currentPlan={merchant.checkoutPlan}
+            plans={planOptions}
+            feeSummary={{
+              orders: feeTotals._count,
+              sales: feeTotals._sum.total ?? 0,
+              fees: feeTotals._sum.feeAmount ?? 0,
+            }}
           />
         </TabsContent>
 
