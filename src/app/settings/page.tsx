@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import PaymentSettingsClient from './PaymentSettingsClient';
 import WidgetSettingsClient from './WidgetSettingsClient';
-import DiscountSettingsClient from './DiscountSettingsClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -83,7 +82,22 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="discounts" className="space-y-4">
-          <DiscountSettingsClient />
+          <Card className="shadow-sm border-slate-200">
+            <CardHeader>
+              <CardTitle>Discounts</CardTitle>
+              <CardDescription>Your checkout uses the discounts you create in Shopify.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <a
+                href={`https://${merchant.shopDomain}/admin/discounts`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-medium text-slate-900 underline"
+              >
+                Manage discounts in Shopify
+              </a>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="shipping" className="space-y-4">

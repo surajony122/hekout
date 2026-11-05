@@ -590,7 +590,7 @@
                <div class="icon-box orange"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></div>
                <div class="card-content">
                   <div class="card-title" style="color: #f97316;" id="osCpnLinkText">Apply Coupon</div>
-                  <div class="card-subtitle">Unlock extra savings on your order</div>
+                  <div class="card-subtitle" id="osCpnSubtitle">Unlock extra savings on your order</div>
                </div>
                <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
              </div>
@@ -667,6 +667,7 @@
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Sub total</span><span id="tSub" style="color:var(--text-main); font-weight:600;">₹${total.toLocaleString('en-IN')}</span></div>
                 <div id="trDisc" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Discount on MRP</span><span id="tDisc" style="color:var(--green); font-weight:600;">-₹0</span></div>
                 <div id="trShip" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Shipping Fee</span><span id="tShipFee" style="color:var(--text-main); font-weight:600;">₹0</span></div>
+                <div id="trTax" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Tax</span><span id="tTax" style="color:var(--text-main); font-weight:600;"></span></div>
                 <div id="trCod" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">COD Fee</span><span id="tCodFee" style="color:var(--text-main); font-weight:600;">₹${widgetConfig.codFeeAmount}</span></div>
                 <hr style="border:none; border-top:1.5px dashed var(--border); margin:12px 0;">
                 <div style="display:flex; justify-content:space-between; font-size:16px; align-items:center;"><span style="color:var(--text1); font-weight:700;">Total amount</span><span id="tGrand" style="color:var(--text-main); font-weight:700; font-size:18px;">₹${total.toLocaleString('en-IN')}</span></div>
@@ -687,7 +688,7 @@
                    <button class="cf-btn" id="cpn-manual-btn" style="width:auto; padding:0 24px; font-size:14px;">Apply</button>
                 </div>
                 <div id="cpn-manual-err" style="color:var(--red); font-size:12px; font-weight:600; display:none; margin-bottom:16px;"></div>
-                <div id="cpn-list-container" style="display:flex; flex-direction:column; gap:12px;">Loading coupons...</div>
+                
               </div>
             </div>
          
@@ -743,22 +744,48 @@
       if (sumHdr) sumHdr.onclick = () => { widgetRoot.getElementById('drwBill').style.display='flex'; };
       const cpnL = widgetRoot.getElementById('osCpnLink'); if(cpnL) cpnL.onclick = () => { widgetRoot.getElementById('drwCoupon').style.display='flex'; };
 
-      let availableCoupons = [];
       let appliedCoupon = null;
-      let currentCouponDiscount = 0;
+      let quotes = null;
+      let quoteRequestId = 0;
 
-      const fetchCoupons = async () => {
-         try {
-           const res = await fetch(`${apiBaseUrl}/api/widget/coupons?shop=${shop}`);
-           const data = await res.json();
-           if(data.success) {
-              availableCoupons = data.coupons;
-              autoApplyCoupon();
-              renderCoupons();
-           }
-         } catch(e){}
+      const getCustomerDetails = () => ({
+         customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || customerData?.fname || 'Valued Customer',
+         customerEmail: widgetRoot.getElementById('cf-addr-email')?.value || customerData?.email || '',
+         address: widgetRoot.getElementById('cf-addr-street')?.value || customerData?.street || customerData?.address || '',
+         city: widgetRoot.getElementById('cf-addr-city')?.value || customerData?.city || '',
+         state: widgetRoot.getElementById('cf-addr-state')?.value || customerData?.state || '',
+         pincode: widgetRoot.getElementById('cf-addr-pin')?.value || customerData?.pincode || ''
+      });
+
+      // Shopify works out the final totals, including discounts and tax.
+      const fetchQuotes = async (couponCode) => {
+         const res = await fetch(`${apiBaseUrl}/api/checkout/quote`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shop, sessionToken, items: cartItems, couponCode: couponCode || undefined, ...getCustomerDetails() })
+         });
+         return { status: res.status, data: await res.json() };
       };
-      fetchCoupons();
+
+      const refreshQuotes = async () => {
+         const requestId = ++quoteRequestId;
+         quotes = null;
+         updatePricing();
+         try {
+            let { data } = await fetchQuotes(appliedCoupon);
+            if (requestId !== quoteRequestId) return null;
+            // A coupon can stop applying when the cart changes, so retry without it.
+            if (data.code === 'INVALID_COUPON') {
+               appliedCoupon = null;
+               ({ data } = await fetchQuotes(null));
+               if (requestId !== quoteRequestId) return null;
+            }
+            if (data.success) {
+               quotes = { cod: data.cod, prepaid: data.prepaid };
+            }
+         } catch(e) {}
+         updatePricing();
+         return quotes;
+      };
 
       
       const cfTrack = async (evt) => {
@@ -810,160 +837,60 @@
       };
       loadUpsell();
 
-      const autoApplyCoupon = () => {
-         const subtotal = subtotalBase;
-         
-         // 1. Check if currently applied coupon is still valid
-         if (appliedCoupon) {
-             if (totalQuantity < appliedCoupon.minItems || subtotal < appliedCoupon.minCartValue) {
-                 appliedCoupon = null; // Clear it if invalid
-             }
-         }
-         
-         // 2. Try to find a valid auto-apply coupon if none applied
-         if (!appliedCoupon) {
-             const validAuto = availableCoupons.filter(c => c.isAuto && totalQuantity >= c.minItems && subtotal >= c.minCartValue);
-             if(validAuto.length > 0) {
-                // Sort by value (descending) to apply the best one
-                validAuto.sort((a,b) => {
-                   let aVal = a.type === 'percentage' ? subtotal * (a.value/100) : a.value;
-                   let bVal = b.type === 'percentage' ? subtotal * (b.value/100) : b.value;
-                   if(a.maxDiscount) aVal = Math.min(aVal, a.maxDiscount);
-                   if(b.maxDiscount) bVal = Math.min(bVal, b.maxDiscount);
-                   return bVal - aVal;
-                });
-                appliedCoupon = validAuto[0];
-                if(window.launchConfetti) window.launchConfetti();
-             }
-         }
-      };
-
-      const renderCoupons = () => {
-         const subtotal = subtotalBase;
-         const container = widgetRoot.getElementById('cpn-list-container');
-         let html = '';
-         
-         const applicable = availableCoupons.filter(c => totalQuantity >= c.minItems && subtotal >= c.minCartValue);
-         const unlockable = availableCoupons.filter(c => totalQuantity < c.minItems || subtotal < c.minCartValue);
-
-         if(applicable.length === 0 && unlockable.length === 0) {
-            html += '<div style="font-size:13px; color:var(--text3);">No coupons available at the moment.</div>';
-         } else {
-            if(applicable.length > 0) {
-               html += '<div style="font-size:14px; font-weight:600; color:var(--text2); margin-bottom:4px;">Applicable coupons</div>';
-            }
-            applicable.forEach(c => {
-               const isActive = appliedCoupon && appliedCoupon.id === c.id;
-               const actTxt = isActive ? '<span style="color:var(--green); font-weight:600; font-size:14px;">Applied</span>' : `<span onclick="window.cfApplyCoupon('${c.id}')" style="color:var(--primary); font-weight:600; font-size:14px; cursor:pointer;">Apply</span>`;
-               html += `
-                  <div style="border:1.5px solid ${isActive ? 'var(--green)' : 'var(--border)'}; border-radius:12px; padding:16px; background:${isActive ? 'rgba(34,197,94,0.05)' : 'var(--surface)'};">
-                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <div style="border:1.5px dashed ${isActive ? 'var(--green)' : 'var(--border)'}; padding:4px 12px; border-radius:8px; font-weight:600; font-size:14px; color:${isActive ? 'var(--green)' : 'var(--text-main)'}; text-transform:uppercase;">${c.code}</div>
-                        ${actTxt}
-                     </div>
-                     <div style="font-weight:600; font-size:15px; color:var(--text-main); margin-bottom:4px;">${c.type === 'percentage' ? c.value+'% OFF' : '₹'+c.value+' OFF'}</div>
-                     ${c.description ? `<div style="font-size:13px; color:var(--text3);">${c.description}</div>` : ''}
-                  </div>
-               `;
-            });
-
-            if(unlockable.length > 0) {
-               html += '<div style="font-size:14px; font-weight:600; color:var(--text2); margin:12px 0 4px;">More offers</div>';
-               unlockable.forEach(c => {
-                  html += `
-                     <div style="border:1.5px solid var(--border); border-radius:12px; padding:16px; opacity:0.6; background:var(--bg);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                           <div style="border:1.5px dashed var(--border); padding:4px 12px; border-radius:8px; font-weight:600; font-size:14px; color:var(--text-main); text-transform:uppercase;">${c.code}</div>
-                        </div>
-                        <div style="font-size:13px; color:var(--text3); font-weight:500;">Applicable only on ${c.minCartValue > 0 ? `₹${c.minCartValue} orders` : `${c.minItems} or more items`}.</div>
-                     </div>
-                  `;
-               });
-            }
-         }
-         if(container) container.innerHTML = html;
-      };
-
-      window.cfApplyCoupon = (id) => {
-         appliedCoupon = availableCoupons.find(c => c.id === id);
-         if(window.launchConfetti) window.launchConfetti();
-         widgetRoot.getElementById('drwCoupon').style.display = 'none';
-         updatePricing();
-         renderCoupons();
-      };
-
-      // Handle manual input
-      widgetRoot.getElementById('cpn-manual-btn').onclick = () => {
-         const code = widgetRoot.getElementById('cpn-manual-input').value.trim().toUpperCase();
+      // Handle manual input. Shopify decides whether the code is valid for this cart.
+      widgetRoot.getElementById('cpn-manual-btn').onclick = async () => {
+         const input = widgetRoot.getElementById('cpn-manual-input');
          const err = widgetRoot.getElementById('cpn-manual-err');
+         const btn = widgetRoot.getElementById('cpn-manual-btn');
+         const code = input.value.trim().toUpperCase();
          if(!code) return;
-         const subtotal = subtotalBase;
-         const c = availableCoupons.find(x => x.code.toUpperCase() === code);
-         
-         if(!c) {
-            err.style.display = 'block'; err.innerText = 'Invalid coupon code.'; return;
-         }
-         if(totalQuantity < c.minItems || subtotal < c.minCartValue) {
-            err.style.display = 'block'; err.innerText = 'Requirements not met for this coupon.'; return;
-         }
-         
          err.style.display = 'none';
-         appliedCoupon = c;
-         if(window.launchConfetti) window.launchConfetti();
-         widgetRoot.getElementById('cpn-manual-input').value = '';
-         widgetRoot.getElementById('drwCoupon').style.display = 'none';
-         updatePricing();
-         renderCoupons();
+         const btnText = btn.innerText;
+         btn.innerText = '...';
+         btn.disabled = true;
+         try {
+            const { data } = await fetchQuotes(code);
+            if (!data.success) {
+               err.style.display = 'block';
+               err.innerText = data.error || 'Invalid coupon code.';
+               return;
+            }
+            quoteRequestId++;
+            appliedCoupon = code;
+            quotes = { cod: data.cod, prepaid: data.prepaid };
+            if(window.launchConfetti) window.launchConfetti();
+            input.value = '';
+            widgetRoot.getElementById('drwCoupon').style.display = 'none';
+            updatePricing();
+         } catch(e) {
+            err.style.display = 'block';
+            err.innerText = 'Could not check this coupon. Please try again.';
+         } finally {
+            btn.innerText = btnText;
+            btn.disabled = false;
+         }
       };
 
-
-
-      // --- DYNAMIC PRICING ---
+            // --- DYNAMIC PRICING ---
       let currentPaymentMethod = null;
       
       const updatePricing = (method = null) => {
-        autoApplyCoupon();
-        renderCoupons();
-
         if (method) currentPaymentMethod = method;
-        
-        const subtotal = subtotalBase;
-        let couponDiscount = 0;
-        
-        if (appliedCoupon) {
-           if(appliedCoupon.type === 'percentage') {
-              couponDiscount = subtotal * (appliedCoupon.value / 100);
-              if(appliedCoupon.maxDiscount && couponDiscount > appliedCoupon.maxDiscount) couponDiscount = appliedCoupon.maxDiscount;
-           } else {
-              couponDiscount = appliedCoupon.value;
-           }
-        }
 
-        let prepaidDiscount = 0;
-        let codFee = 0;
-        let shippingFee = 0;
-        
-        if (widgetConfig.isShippingFeeEnabled) {
-            const threshold = typeof widgetConfig.freeShippingThreshold === 'number' ? widgetConfig.freeShippingThreshold : 999;
-            if (threshold === 0 || subtotal < threshold) {
-                shippingFee = widgetConfig.shippingFeeAmount || 0;
-            }
-        }
-        
-        if (currentPaymentMethod === 'COD') {
-           if (widgetConfig.isCodFeeEnabled !== false) {
-               codFee = shippingFee > 0 ? 0 : (widgetConfig.codFeeAmount || 0);
-           }
-        } else if (currentPaymentMethod !== null && widgetConfig.isPrepaidDiscountEnabled) {
-           prepaidDiscount = widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
-        }
-        
-        currentCouponDiscount = couponDiscount;
+        const useCodQuote = currentPaymentMethod === 'COD' || (currentPaymentMethod === null && !widgetConfig.hasRazorpay);
+        const quote = quotes ? (useCodQuote ? quotes.cod : quotes.prepaid) : null;
+        const money = (value) => `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+        const subtotal = quote ? quote.subtotal : subtotalBase;
+        const couponDiscount = quote ? quote.discount : 0;
+        const prepaidDiscount = quote ? quote.prepaidDiscount : 0;
+        const codFee = quote ? quote.codFee : 0;
+        const shippingFee = quote ? quote.shippingFee : 0;
+        const tax = quote ? quote.tax : 0;
         const totalDiscount = couponDiscount + prepaidDiscount;
-        const grandTotal = Math.max(0, subtotal - totalDiscount) + codFee + shippingFee;
+        const grandTotal = quote ? quote.total : subtotalBase;
 
-        widgetRoot.getElementById('hFinal').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
-        widgetRoot.getElementById('osFinalPrice').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        widgetRoot.getElementById('hFinal').innerText = quote ? money(grandTotal) : 'Calculating...';
+        widgetRoot.getElementById('osFinalPrice').innerText = quote ? money(grandTotal) : '';
         widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity>1?'s':''}`;
         
         const osShipTxt = widgetRoot.getElementById('osShippingText');
@@ -1001,25 +928,20 @@
         }
 
         // Coupon Box in Order Summary Bar
-        const osCpnEmpty = widgetRoot.getElementById('osCpnEmpty');
-        const osCpnActive = widgetRoot.getElementById('osCpnActive');
-        if (osCpnEmpty && osCpnActive) {
-           if(appliedCoupon) {
-              osCpnEmpty.style.display = 'none';
-              osCpnActive.style.display = 'inline-flex';
-              widgetRoot.getElementById('osCpnCode').innerText = appliedCoupon.code;
-              widgetRoot.getElementById('osCpnSave').innerText = `Save ₹${Math.round(couponDiscount).toLocaleString('en-IN')}`;
-              const _t = widgetRoot.getElementById('osCpnLinkText'); if(_t) _t.innerText = 'Change >';
+        const cpnTitle = widgetRoot.getElementById('osCpnLinkText');
+        const cpnSub = widgetRoot.getElementById('osCpnSubtitle');
+        if (cpnTitle && cpnSub) {
+           cpnTitle.innerText = appliedCoupon ? `${appliedCoupon} applied` : 'Apply Coupon';
+           if (couponDiscount > 0) {
+              cpnSub.innerText = `You save ${money(couponDiscount)}${appliedCoupon ? ' · Tap to change' : ''}`;
            } else {
-              osCpnEmpty.style.display = 'block';
-              osCpnActive.style.display = 'none';
-              const _t2 = widgetRoot.getElementById('osCpnLinkText'); if(_t2) _t2.innerText = 'Enter a Coupon >';
+              cpnSub.innerText = appliedCoupon ? 'Tap to change' : 'Unlock extra savings on your order';
            }
         }
 
         // Drawer values
         widgetRoot.getElementById('tSub').innerText = `₹${subtotal.toLocaleString('en-IN')}`;
-        widgetRoot.getElementById('tGrand').innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        widgetRoot.getElementById('tGrand').innerText = quote ? money(grandTotal) : 'Calculating...';
 
         const discRow = widgetRoot.getElementById('trDisc');
         if (discRow) {
@@ -1043,6 +965,13 @@
            }
         }
 
+        const taxRow = widgetRoot.getElementById('trTax');
+        if (taxRow) {
+           taxRow.style.display = tax > 0 ? 'flex' : 'none';
+           const tTax = widgetRoot.getElementById('tTax');
+           if (tTax) tTax.innerText = money(tax);
+        }
+
         const codRow = widgetRoot.getElementById('trCod');
         if (codRow) {
            if (codFee > 0) {
@@ -1056,35 +985,19 @@
 
         ['UPI','Card','Wallet','Netbanking'].forEach(m => {
            const el = widgetRoot.getElementById(`pp${m}`);
-           if(el) {
-              let mDisc = couponDiscount;
-              if (widgetConfig.isPrepaidDiscountEnabled) {
-                 mDisc += widgetConfig.prepaidDiscountType === 'percentage' ? (subtotal - couponDiscount) * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
-              }
-              const finalVal = Math.max(0, subtotal - mDisc) + shippingFee;
-              el.innerText = `₹${Number.isInteger(finalVal) ? finalVal : finalVal.toFixed(2)}`;
-           }
+           if(el) el.innerText = quotes ? money(quotes.prepaid.total) : '...';
         });
         const elCod = widgetRoot.getElementById('ppCOD');
-        if(elCod) {
-           const finalCod = Math.max(0, subtotal - couponDiscount) + shippingFee + codFee;
-           elCod.innerText = `₹${Number.isInteger(finalCod) ? finalCod : finalCod.toFixed(2)}`;
-        }
+        if(elCod) elCod.innerText = quotes ? money(quotes.cod.total) : '...';
 
         const elCodBtn = widgetRoot.getElementById('cod-confirm-btn');
-        if(elCodBtn) {
-           const finalCodBtn = Math.max(0, subtotal - couponDiscount) + shippingFee + codFee;
-           elCodBtn.innerText = `Confirm COD (₹${Number.isInteger(finalCodBtn) ? finalCodBtn : finalCodBtn.toFixed(2)})`;
-        }
+        if(elCodBtn) elCodBtn.innerText = quotes ? `Confirm COD (${money(quotes.cod.total)})` : 'Calculating...';
 
         const elOnlineBtn = widgetRoot.getElementById('cod-save-btn');
         if(elOnlineBtn) {
-            let mDisc = 0;
-            if (widgetConfig.isPrepaidDiscountEnabled) {
-               mDisc = widgetConfig.prepaidDiscountType === 'percentage' ? subtotal * (widgetConfig.prepaidDiscountValue/100) : widgetConfig.prepaidDiscountValue;
-            }
-            if (mDisc > 0) {
-                elOnlineBtn.innerHTML = `Pay Online <span style="background:rgba(255,255,255,0.25); padding:4px 8px; border-radius:20px; font-size:12px; margin-left:6px; font-weight:600;">Save ₹${Math.round(mDisc).toLocaleString('en-IN')}</span>`;
+            const onlineSaving = quotes ? quotes.cod.total - quotes.prepaid.total : 0;
+            if (onlineSaving > 0) {
+                elOnlineBtn.innerHTML = `Pay Online <span style="background:rgba(255,255,255,0.25); padding:4px 8px; border-radius:20px; font-size:12px; margin-left:6px; font-weight:600;">Save ${money(onlineSaving)}</span>`;
             } else {
                 elOnlineBtn.innerHTML = `Pay Online`;
             }
@@ -1139,7 +1052,7 @@
                subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                widgetRoot.getElementById('osItemCount').innerText = `${totalQuantity} item${totalQuantity > 1 ? 's' : ''}`;
                
-               updatePricing();
+               refreshQuotes();
             }
          }
       };
@@ -1470,26 +1383,29 @@
          if(!dynD) { dynD = document.createElement('div'); dynD.id = 'dynamic-drawers'; dContainer.appendChild(dynD); }
          dynD.innerHTML = dHtml;
 
-         updatePricing();
+         refreshQuotes();
       };
 
       // --- PAYMENT EXECUTION ---
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
-         const btn = widgetRoot.getElementById(`paybtn-${method}`) || widgetRoot.getElementById('cod-save-btn');
+         const btn = widgetRoot.getElementById(method === 'COD' ? 'cod-confirm-btn' : 'cod-save-btn');
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Processing...</div>';
-         
-         // The server works out every price and fee from Shopify and the store's settings.
+
+         if (!quotes) await refreshQuotes();
+         if (!quotes) {
+            alert('Could not calculate your total. Please try again.');
+            return;
+         }
+
+         // The customer agreed to this total, so the server stops the order if it has changed.
+         const quotedTotal = method === 'COD' ? quotes.cod.total : quotes.prepaid.total;
          const payload = {
             shop, sessionToken, items: cartItems,
-            customerName: (`${widgetRoot.getElementById('cf-addr-fname')?.value || ''} ${widgetRoot.getElementById('cf-addr-lname')?.value || ''}`.trim()) || customerData?.name || customerData?.fname || 'Valued Customer',
-            customerEmail: widgetRoot.getElementById('cf-addr-email')?.value || customerData?.email || '',
-            address: widgetRoot.getElementById('cf-addr-street')?.value || customerData?.street || customerData?.address || '',
-            city: widgetRoot.getElementById('cf-addr-city')?.value || customerData?.city || '',
-            state: widgetRoot.getElementById('cf-addr-state')?.value || customerData?.state || '',
-            pincode: widgetRoot.getElementById('cf-addr-pin')?.value || customerData?.pincode || '',
+            ...getCustomerDetails(),
             paymentMethod: method,
-            appliedCoupon: appliedCoupon ? { code: appliedCoupon.code } : undefined
+            expectedTotal: quotedTotal,
+            appliedCoupon: appliedCoupon ? { code: appliedCoupon } : undefined
          };
 
          const createFinalOrder = async () => {
@@ -1512,12 +1428,12 @@
                        setTimeout(() => { if(window.launchConfetti) window.launchConfetti(); }, 600);
                    }
                 } else {
-                   if (btn) btn.innerText = 'Failed';
                    alert("Failed to create order: " + (data.error || 'Unknown error'));
+                   await refreshQuotes();
                 }
              } catch(e) {
-                if (btn) btn.innerText = 'Error';
                 alert("Network error: " + e.message);
+                updatePricing();
              }
          };
 
@@ -1526,13 +1442,13 @@
              const rzpOrderRes = await fetch(`${apiBaseUrl}/api/checkout/create-razorpay-order`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ shop, sessionToken, items: cartItems, paymentMethod: method, appliedCoupon: payload.appliedCoupon })
+               body: JSON.stringify(payload)
              });
              const rzpOrderData = await rzpOrderRes.json();
              
              if (!rzpOrderData.success) {
                alert('Failed to initialize payment gateway: ' + rzpOrderData.error);
-               if (btn) btn.innerText = `Pay ${method}`;
+               await refreshQuotes();
                return;
              }
 
@@ -1559,7 +1475,7 @@
                theme: { color: primaryColor },
                modal: {
                  ondismiss: function() {
-                   if (btn) btn.innerText = `Pay ${method}`;
+                   updatePricing();
                  }
                }
              };
@@ -1567,13 +1483,13 @@
              const rzp = new window.Razorpay(options);
              rzp.on('payment.failed', function (response){
                alert('Payment failed. Reason: ' + response.error.description);
-               if (btn) btn.innerText = `Pay ${method}`;
+               updatePricing();
              });
              rzp.open();
              
            } catch(e) {
              alert('Error initiating payment.');
-             if (btn) btn.innerText = `Pay ${method}`;
+             updatePricing();
            }
          } else {
             await createFinalOrder();
