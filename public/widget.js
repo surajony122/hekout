@@ -116,7 +116,7 @@
                     logo.style.cssText = 'max-height:28px; object-fit:contain;';
                     brand.replaceChildren(logo);
                  } else if (widgetConfig.storeName) {
-                    brand.textContent = widgetConfig.storeName.substring(0, 18);
+                    brand.textContent = widgetConfig.storeName.substring(0, 24);
                  }
               }
               const banner = widgetRoot.getElementById('dynamic-banner');
@@ -845,7 +845,7 @@
         <!-- SUCCESS SCREEN -->
         <div class="success-screen" id="successScr" style="display:none; flex-direction:column; align-items:center; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:900; text-align:center;">
           <div class="s-icon" style="margin-top:80px;"><svg class="cf-success-check" viewBox="0 0 24 24" style="width:64px; height:64px; stroke:var(--green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><use href="#ic-check-circle"/></svg></div>
-          <div class="s-title" style="font-size:24px; font-weight:600; color:var(--text1); margin-top:24px;">Order placed!</div>
+          <div class="s-title" id="cf-success-title" style="font-size:24px; font-weight:600; color:var(--text1); margin-top:24px;">Order placed!</div>
           <div class="s-sub" id="cf-success-sub" style="font-size:15px; color:var(--text3); margin-top:8px;">Your order is confirmed.</div>
           <button class="cf-btn" id="close-success-btn" style="margin-top:40px; width:80%;">Close</button>
         </div>
@@ -910,6 +910,8 @@
       const cpnL = widgetRoot.getElementById('osCpnLink'); if(cpnL) cpnL.onclick = () => { widgetRoot.getElementById('drwCoupon').style.display='flex'; };
 
       let appliedCoupon = null;
+      let activeUpsell = null;
+      let upsellAccepted = false;
       let quotes = null;
       let quoteRequestId = 0;
       let quoteFailed = false;
@@ -927,7 +929,7 @@
       const fetchQuotes = async (couponCode) => {
          const res = await fetch(`${apiBaseUrl}/api/checkout/quote`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ shop, sessionToken, items: cartItems, couponCode: couponCode || undefined, ...getCustomerDetails() })
+            body: JSON.stringify({ shop, sessionToken, items: cartItems, couponCode: couponCode || undefined, upsellVariantId: upsellAccepted && activeUpsell ? activeUpsell.variantId : undefined, ...getCustomerDetails() })
          });
          return { status: res.status, data: await res.json() };
       };
@@ -975,7 +977,7 @@
       
       const cfTrack = async (evt) => {
          try {
-            await fetch(`${apiBaseUrl}/api/analytics`, {
+            await fetch(`${apiBaseUrl}/api/widget/track`, {
                method: 'POST',
                headers: {'Content-Type': 'application/json'},
                body: JSON.stringify({ shop, eventName: evt })
@@ -986,7 +988,7 @@
       
       const loadUpsell = async () => {
          try {
-            const res = await fetch(`${apiBaseUrl}/api/upsell/active?shop=${shop}&variantId=${variantId}`);
+            const res = await fetch(`${apiBaseUrl}/api/upsell/active?shop=${shop}&variantId=${cartItems[0].variantId}`);
             const data = await res.json();
             if (data && data.active && data.offer) {
                activeUpsell = data.offer;
@@ -1015,7 +1017,7 @@
                
                widgetRoot.getElementById('cf-upsell-check').addEventListener('change', (e) => {
                   upsellAccepted = e.target.checked;
-                  updateTotals();
+                  refreshQuotes();
                });
             }
          } catch(e) {}
@@ -1687,6 +1689,7 @@
             paymentMethod: method,
             expectedTotal: quotedTotal,
             quoteToken: method === 'COD' ? quotes.cod.quoteToken : quotes.prepaid.quoteToken,
+            upsellVariantId: upsellAccepted && activeUpsell ? activeUpsell.variantId : undefined,
             appliedCoupon: appliedCoupon ? { code: appliedCoupon } : undefined
          };
 
@@ -1698,7 +1701,14 @@
                 });
                 const data = await res.json();
                 
-                if(data.success) {
+                if (data.paymentReceived) {
+                   const drw = widgetRoot.getElementById(`drw${method}`);
+                   if (drw) drw.style.display = 'none';
+                   widgetRoot.getElementById('state-checkout').style.display='none';
+                   widgetRoot.getElementById('successScr').style.display='flex';
+                   widgetRoot.getElementById('cf-success-title').textContent = 'Payment received';
+                   widgetRoot.getElementById('cf-success-sub').textContent = data.error;
+                } else if(data.success) {
                    const drw = widgetRoot.getElementById(`drw${method}`);
                    if (drw) drw.style.display = 'none';
                    widgetRoot.getElementById('state-checkout').style.display='none';

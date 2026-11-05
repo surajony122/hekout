@@ -6,9 +6,9 @@ import { Save, CheckCircle2, CreditCard, Percent } from 'lucide-react';
 export default function PaymentSettingsClient({ initialSettings }: { initialSettings: Record<string, any> }) {
   const [formData, setFormData] = useState({
     razorpayKeyId: initialSettings.razorpayKeyId || '',
-    razorpayKeySecret: initialSettings.razorpayKeySecret || '',
+    razorpayKeySecret: '',
     cashfreeAppId: initialSettings.cashfreeAppId || '',
-    cashfreeSecretKey: initialSettings.cashfreeSecretKey || '',
+    cashfreeSecretKey: '',
     isPrepaidDiscountEnabled: initialSettings.isPrepaidDiscountEnabled || false,
     prepaidDiscountType: initialSettings.prepaidDiscountType || 'percentage',
     prepaidDiscountValue: initialSettings.prepaidDiscountValue || 0,
@@ -23,6 +23,8 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [hasRazorpaySecret, setHasRazorpaySecret] = useState(Boolean(initialSettings.hasRazorpaySecret));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -41,6 +43,7 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
   const handleSave = async () => {
     setSaving(true);
     setSuccess(false);
+    setSaveError('');
     try {
       const res = await fetch('/api/settings/payments', {
         method: 'POST',
@@ -50,9 +53,16 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
       if (res.ok) {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
+        // Saved secrets are never shown again.
+        setHasRazorpaySecret(formData.razorpayKeyId ? hasRazorpaySecret || Boolean(formData.razorpayKeySecret) : false);
+        setFormData(prev => ({ ...prev, razorpayKeySecret: '', cashfreeSecretKey: '' }));
+      } else {
+        const data = await res.json().catch(() => null);
+        setSaveError(data?.error || 'Could not save your settings. Please try again.');
       }
     } catch (err) {
       console.error(err);
+      setSaveError('Could not save your settings. Please try again.');
     }
     setSaving(false);
   };
@@ -83,7 +93,7 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Key Secret</label>
-                <input type="password" name="razorpayKeySecret" value={formData.razorpayKeySecret} onChange={handleChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="••••••••••••" />
+                <input type="password" name="razorpayKeySecret" autoComplete="new-password" value={formData.razorpayKeySecret} onChange={handleChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder={hasRazorpaySecret ? 'Saved securely. Enter a new one to replace it' : 'Enter your Key Secret'} />
               </div>
             </div>
           </div>
@@ -220,6 +230,7 @@ export default function PaymentSettingsClient({ initialSettings }: { initialSett
       </div>
 
       <div className="flex justify-end">
+        {saveError && <p role="alert" className="text-sm font-medium text-rose-700 mr-3">{saveError}</p>}
         <button 
           onClick={handleSave} 
           disabled={saving}

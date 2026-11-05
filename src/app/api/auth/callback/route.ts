@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { safeEqual } from '@/lib/checkout-session';
+import { protectSecret } from '@/lib/secrets';
 import {
   MERCHANT_SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -77,7 +78,7 @@ export async function GET(request: Request) {
       return redirectTo('/login?error=token_exchange_failed');
     }
 
-    const accessToken = tokenData.access_token;
+    const accessToken = protectSecret(tokenData.access_token);
 
     // 4. Upsert the merchant in our database with real access token
     await prisma.merchant.upsert({

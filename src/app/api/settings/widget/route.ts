@@ -17,7 +17,15 @@ export async function POST(request: Request) {
       postLoginBannerBg,
       postLoginBannerColor,
       fbPixelId,
+      storeName,
     } = await request.json();
+
+    if (typeof storeName === 'string') {
+      await prisma.merchant.update({
+        where: { id: merchant.id },
+        data: { storeName: storeName.trim().slice(0, 40) || null }
+      });
+    }
 
     const settingsData = {
       primaryColor,

@@ -47,6 +47,14 @@ export default async function SettingsPage() {
     console.error('Error fetching settings:', error);
   }
 
+  // Saved secrets stay on the server, and the page only learns whether one exists.
+  const safePaymentSettings = paymentSettings
+    ? (({ razorpayKeySecret, cashfreeSecretKey, payuMerchantKey, payuMerchantSalt, ...rest }) => ({
+        ...rest,
+        hasRazorpaySecret: Boolean(razorpayKeySecret),
+      }))(paymentSettings)
+    : {};
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div>
@@ -81,7 +89,7 @@ export default async function SettingsPage() {
 
         <TabsContent value="widget" className="space-y-4">
           <WidgetSettingsClient
-            initialSettings={widgetSettings || {}}
+            initialSettings={{ ...(widgetSettings || {}), storeName: merchant.storeName || '' }}
           />
         </TabsContent>
 
@@ -99,7 +107,7 @@ export default async function SettingsPage() {
 
         <TabsContent value="payments" className="space-y-4">
           <PaymentSettingsClient
-            initialSettings={paymentSettings || {}}
+            initialSettings={safePaymentSettings}
           />
         </TabsContent>
 

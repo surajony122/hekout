@@ -152,10 +152,6 @@ export default function PaymentsPage() {
                     <p className="text-xs text-slate-500">Primary Gateway</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-slate-900">98.2%</div>
-                  <div className="text-xs text-emerald-600">Success Rate</div>
-                </div>
               </div>
               
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 opacity-50">

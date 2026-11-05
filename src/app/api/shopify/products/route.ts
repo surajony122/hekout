@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
+import { revealSecret } from '@/lib/secrets';
 
 export async function GET() {
   try {
@@ -10,7 +11,7 @@ export async function GET() {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': merchant.accessToken
+        'X-Shopify-Access-Token': revealSecret(merchant.accessToken)
       }
     });
 

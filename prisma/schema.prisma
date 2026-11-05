@@ -55,6 +55,9 @@ model Order {
   
   paymentMethod       String?  @map("payment_method") // COD, Prepaid
   paymentId           String?  @map("payment_id") // Razorpay transaction ID
+  razorpayOrderId     String?  @map("razorpay_order_id")
+  fulfillmentData     Json?    @map("fulfillment_data") // What to send to Shopify, so a paid order can always be finished
+  orderStatusUrl      String?  @map("order_status_url")
   
   prepaidDiscount     Float    @default(0) @map("prepaid_discount")
 
@@ -78,6 +81,7 @@ model Order {
 
   @@unique([merchantId, paymentId])
   @@index([merchantId, orderStatus, createdAt])
+  @@index([merchantId, razorpayOrderId])
   @@map("orders")
 }
 

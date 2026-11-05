@@ -21,7 +21,7 @@
     "geist": "^1.7.2",
     "jsdom": "^29.1.1",
     "lucide-react": "^1.18.0",
-    "next": "16.2.9",
+    "next": "16.4.5",
     "pg": "^8.21.0",
     "razorpay": "^2.9.6",
     "react": "19.2.4",
@@ -40,7 +40,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.4.5",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"

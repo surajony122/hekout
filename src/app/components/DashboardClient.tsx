@@ -72,9 +72,6 @@ export default function DashboardClient() {
               </div>
               <div className="mt-2">
                 <h3 className="text-2xl font-bold text-slate-900">₹{(metrics.totalRevenue || 0).toLocaleString()}</h3>
-                <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
-                  +15.8% vs last week
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -87,9 +84,6 @@ export default function DashboardClient() {
               </div>
               <div className="mt-2">
                 <h3 className="text-2xl font-bold text-slate-900">{metrics.totalOrders || 0}</h3>
-                <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
-                  +8.3% vs last week
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -102,9 +96,6 @@ export default function DashboardClient() {
               </div>
               <div className="mt-2">
                 <h3 className="text-2xl font-bold text-slate-900">{metrics.conversionRate || '0'}%</h3>
-                <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
-                  +12.5% vs last month
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -117,9 +108,6 @@ export default function DashboardClient() {
               </div>
               <div className="mt-2">
                 <h3 className="text-2xl font-bold text-slate-900">₹{Math.round(metrics.aov || 0).toLocaleString()}</h3>
-                <p className="text-xs font-medium text-rose-500 mt-2 flex items-center">
-                  -1.2% vs last week
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -132,9 +120,6 @@ export default function DashboardClient() {
               </div>
               <div className="mt-2">
                 <h3 className="text-2xl font-bold text-slate-900">₹0</h3>
-                <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
-                  +0.6% vs last month
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -149,9 +134,6 @@ export default function DashboardClient() {
                 <h3 className="text-2xl font-bold text-slate-900">
                   {metrics.paymentSplit?.[1]?.value ? Math.round((metrics.paymentSplit[1].value / metrics.totalOrders) * 100) : 0}%
                 </h3>
-                <p className="text-xs font-medium text-emerald-600 mt-2 flex items-center">
-                  +2.4 pts vs last month
-                </p>
               </div>
             </CardContent>
           </Card>
