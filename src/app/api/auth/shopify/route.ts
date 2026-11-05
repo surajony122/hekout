@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const host = process.env.HOST || 'http://localhost:3000';
   const redirectUri = process.env.SHOPIFY_REDIRECT_URI || `${host}/api/auth/callback`;
-  const scopes = 'write_orders,read_orders,write_products,read_products,write_customers,read_customers,read_discounts,write_discounts,read_price_rules,write_price_rules';
+  const scopes = 'write_draft_orders,read_draft_orders,write_orders,read_orders,write_products,read_products,write_customers,read_customers,read_discounts,write_discounts,read_price_rules,write_price_rules';
 
   if (!clientId) {
     console.error('Missing SHOPIFY_CLIENT_ID in env.');
