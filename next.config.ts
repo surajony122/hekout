@@ -4,10 +4,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Repeat visits load instantly, and updates still reach stores within minutes.
+        // Repeat visits load quickly, and updates reach customers within about two minutes.
         source: "/widget.js",
         headers: [
-          { key: "Cache-Control", value: "public, max-age=300, stale-while-revalidate=86400" },
+          { key: "Cache-Control", value: "public, max-age=60, stale-while-revalidate=60" },
         ]
       },
       {
