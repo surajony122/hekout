@@ -1039,6 +1039,21 @@ open: async function(options) {
          }, 1000);
       };
 
+      // On Android, reads the code from the SMS once the customer allows it. Typing still works.
+      let smsCodeRequest = null;
+      const stopListeningForSms = () => { if (smsCodeRequest) smsCodeRequest.abort(); smsCodeRequest = null; };
+      const listenForSmsCode = () => {
+         stopListeningForSms();
+         if (!('OTPCredential' in window)) return;
+         const request = new AbortController();
+         smsCodeRequest = request;
+         navigator.credentials.get({ otp: { transport: ['sms'] }, signal: request.signal }).then((credential) => {
+            if (smsCodeRequest !== request || !credential?.code || !otpStepActive || otpIn.value.length === 6) return;
+            otpIn.value = credential.code;
+            otpIn.dispatchEvent(new Event('input'));
+         }).catch(() => {});
+      };
+
       const sendOtp = async () => {
          const phone = phoneIn.value;
          const res = await fetch(`${apiBaseUrl}/api/otp/send`, {
@@ -1055,6 +1070,7 @@ open: async function(options) {
          startResendCountdown();
          otpIn.value = '';
          otpIn.focus();
+         listenForSmsCode();
          if (data.simulatedCode) {
             let testBadge = widgetRoot.getElementById('cf-test-badge');
             if (!testBadge) {
@@ -1107,6 +1123,7 @@ open: async function(options) {
             const data = await res.json();
             if (data.success && data.sessionToken) {
               sessionToken = data.sessionToken;
+              stopListeningForSms();
               clearInterval(resendTimer);
               localStorage.setItem('checkoutflow_verified', JSON.stringify({ phone: verifiedPhone, shop, sessionToken, time: Date.now() }));
               cfTrack('OTP_VERIFIED');
@@ -1139,6 +1156,7 @@ open: async function(options) {
       };
 
       widgetRoot.getElementById('cf-change-phone').onclick = () => {
+         stopListeningForSms();
          clearInterval(resendTimer);
          otpStepActive = false;
          otpBox.style.display = 'none';

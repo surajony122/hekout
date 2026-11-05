@@ -51,6 +51,28 @@ const CREATE_CHECKOUT = `mutation CreateCheckout($input: CartInput!) {
   }
 }`;
 
+const STORE_HOST = `query StoreHost {
+  shop { primaryDomain { host } }
+}`;
+
+// Shopify's codes for Indian states. A name we don't recognise is simply left out.
+const INDIAN_STATE_CODES: Record<string, string> = {
+  'andaman and nicobar islands': 'AN', 'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', assam: 'AS', bihar: 'BR',
+  chandigarh: 'CH', chhattisgarh: 'CG', chattisgarh: 'CG', 'dadra and nagar haveli': 'DN',
+  'dadra and nagar haveli and daman and diu': 'DN', 'daman and diu': 'DD', delhi: 'DL', goa: 'GA', gujarat: 'GJ',
+  haryana: 'HR', 'himachal pradesh': 'HP', 'jammu and kashmir': 'JK', jharkhand: 'JH', karnataka: 'KA', kerala: 'KL',
+  ladakh: 'LA', lakshadweep: 'LD', 'madhya pradesh': 'MP', maharashtra: 'MH', manipur: 'MN', meghalaya: 'ML',
+  mizoram: 'MZ', nagaland: 'NL', odisha: 'OR', orissa: 'OR', puducherry: 'PY', pondicherry: 'PY', punjab: 'PB',
+  rajasthan: 'RJ', sikkim: 'SK', 'tamil nadu': 'TN', telangana: 'TS', tripura: 'TR', 'uttar pradesh': 'UP',
+  uttarakhand: 'UK', uttaranchal: 'UK', 'west bengal': 'WB',
+};
+
+const stateCode = (state: string | null) =>
+  state ? INDIAN_STATE_CODES[state.trim().toLowerCase().replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ')] : undefined;
+
+const STORE_HOST_CACHE_MS = 60 * 60 * 1000;
+const storeHosts = new Map<string, { host: string; expires: number }>();
+
 const formatPhone = (phone: string) => (phone.length === 10 ? `+91${phone}` : `+${phone}`);
 
 async function adminGraphql(merchant: ShopMerchant, query: string, variables: unknown) {
@@ -86,8 +108,50 @@ async function storefrontToken(merchant: ShopMerchant): Promise<string> {
   return storefrontAccessToken.accessToken;
 }
 
+// The address customers shop on, which a phone needs in the SMS to fill the code in itself.
+// It comes from Shopify and never the browser, so a code can't be tied to another site.
+export async function storeHost(merchant: ShopMerchant): Promise<string> {
+  const cached = storeHosts.get(merchant.shopDomain);
+  if (cached && cached.expires > Date.now()) return cached.host;
+  try {
+    const data = await adminGraphql(merchant, STORE_HOST, {});
+    const host: string = data.shop.primaryDomain.host;
+    storeHosts.set(merchant.shopDomain, { host, expires: Date.now() + STORE_HOST_CACHE_MS });
+    return host;
+  } catch (error) {
+    console.error('Store Domain Error:', error);
+    return merchant.shopDomain;
+  }
+}
+
+// The details this customer gave in our popup, for when Shopify has none under their phone.
+async function findSavedProfile(merchant: ShopMerchant, phone: string): Promise<Shopper> {
+  const profile = await prisma.customerProfile.findFirst({
+    where: { merchantId: merchant.id, phone },
+    orderBy: { lastOrderAt: 'desc' },
+  });
+  if (!profile) return {};
+
+  const [firstName, ...otherNames] = (profile.name ?? '').trim().split(/\s+/);
+  return {
+    email: profile.email || undefined,
+    address: profile.address
+      ? {
+          firstName: firstName || undefined,
+          lastName: otherNames.join(' ') || undefined,
+          address1: profile.address,
+          city: profile.city || undefined,
+          provinceCode: stateCode(profile.state),
+          countryCode: 'IN',
+          zip: profile.pincode || undefined,
+          phone: formatPhone(phone),
+        }
+      : undefined,
+  };
+}
+
 // A returning customer's details, found using the phone number they just verified.
-async function findShopper(merchant: ShopMerchant, phone: string): Promise<Shopper> {
+async function findShopifyCustomer(merchant: ShopMerchant, phone: string): Promise<Shopper> {
   try {
     const data = await adminGraphql(merchant, FIND_CUSTOMER, { query: `phone:${formatPhone(phone)}` });
     const customer = data.customers.nodes[0];
@@ -114,6 +178,20 @@ async function findShopper(merchant: ShopMerchant, phone: string): Promise<Shopp
     // Their details are a convenience, so checkout carries on without them.
     console.error('Find Customer Error:', error);
     return {};
+  }
+}
+
+// Shopify's record comes first, and our own fills whatever it's missing.
+async function findShopper(merchant: ShopMerchant, phone: string): Promise<Shopper> {
+  const shopify = await findShopifyCustomer(merchant, phone);
+  if (shopify.email && shopify.address) return shopify;
+
+  try {
+    const saved = await findSavedProfile(merchant, phone);
+    return { email: shopify.email ?? saved.email, address: shopify.address ?? saved.address };
+  } catch (error) {
+    console.error('Find Saved Profile Error:', error);
+    return shopify;
   }
 }
 
