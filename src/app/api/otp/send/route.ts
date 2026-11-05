@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import twilio from 'twilio';
 import { normalizePhone } from '@/lib/checkout-session';
 import { OTP_RULES } from '@/lib/otp-rules';
+import { storeHost } from '@/lib/shopify-checkout';
 
 const OTP_TTL_MS = OTP_RULES.ttlMinutes * 60 * 1000;
 const RESEND_COOLDOWN_MS = OTP_RULES.resendSeconds * 1000;
@@ -126,7 +127,8 @@ export async function POST(request: Request) {
     } else if (hasTwilio) {
       try {
         await twilio(twilioSid, twilioAuth).messages.create({
-          body: `Your CheckoutFlow verification code is: ${otpCode}. Valid for 5 minutes.`,
+          // The last line lets Android phones fill the code in by themselves.
+          body: `Your CheckoutFlow verification code is: ${otpCode}. Valid for 5 minutes.\n\n@${await storeHost(merchant)} #${otpCode}`,
           from: twilioPhone,
           to: phone.length === 10 ? `+91${phone}` : `+${phone}`
         });
