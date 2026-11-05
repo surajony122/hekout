@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/checkout-session';
-import { codeProblem, loadCheckoutRules, matchShippingRule, needsCollections, pickOffers, rulesStillValid } from '@/lib/checkout-rules';
+import { codeProblem, loadCheckoutRules, matchShippingRule, needsProductDetails, pickOffers, rulesStillValid } from '@/lib/checkout-rules';
 
 const SHOPIFY_API_VERSION = '2026-07';
 const MAX_QUANTITY = 1000;
@@ -107,9 +107,9 @@ const FIND_CUSTOMER = `query FindCustomer($query: String!) {
   }
 }`;
 
-const VARIANT_COLLECTIONS = `query VariantCollections($ids: [ID!]!) {
+const VARIANT_DETAILS = `query VariantDetails($ids: [ID!]!) {
   nodes(ids: $ids) {
-    ... on ProductVariant { id product { collections(first: 50) { nodes { id } } } }
+    ... on ProductVariant { id product { tags collections(first: 50) { nodes { id } } } }
   }
 }`;
 
@@ -213,18 +213,22 @@ export function warmCustomerLookup(merchant: { shopDomain: string; accessToken: 
   findCustomerId({ ...merchant, id: '', paymentSettings: null }, phone).catch(() => {});
 }
 
-// Only asked for when a rule is limited to collections. If Shopify can't answer, those rules just don't apply.
-async function collectionsOfVariants(merchant: MerchantForPricing, variantIds: string[]) {
-  const found = new Map<string, string[]>();
+// Only asked for when a rule is limited to collections or tags. If Shopify can't answer, those rules just don't apply.
+async function productDetailsOfVariants(merchant: MerchantForPricing, variantIds: string[]) {
+  const collectionsByVariant = new Map<string, string[]>();
+  const tagsByVariant = new Map<string, string[]>();
   try {
-    const data = await shopifyGraphql(merchant, VARIANT_COLLECTIONS, { ids: variantIds.map((id) => `gid://shopify/ProductVariant/${id}`) });
+    const data = await shopifyGraphql(merchant, VARIANT_DETAILS, { ids: variantIds.map((id) => `gid://shopify/ProductVariant/${id}`) });
     for (const node of data.nodes) {
-      if (node?.id) found.set(node.id.split('/').pop(), node.product.collections.nodes.map((collection: { id: string }) => collection.id));
+      if (!node?.id) continue;
+      const variantId = node.id.split('/').pop();
+      collectionsByVariant.set(variantId, node.product.collections.nodes.map((collection: { id: string }) => collection.id));
+      tagsByVariant.set(variantId, node.product.tags);
     }
   } catch (error) {
-    console.error('Variant Collections Error:', error);
+    console.error('Variant Details Error:', error);
   }
-  return found;
+  return { collectionsByVariant, tagsByVariant };
 }
 
 async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckoutInput) {
@@ -280,9 +284,9 @@ async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckout
   }
   const ownCode = upperCode ? rules.discounts.find((rule) => !rule.isAuto && rule.code === upperCode) ?? null : null;
   const couponCode = ownCode ? undefined : typedCode;
-  const collectionsByVariant = needsCollections(rules.discounts)
-    ? await collectionsOfVariants(merchant, items.map((item) => item.variantId))
-    : new Map<string, string[]>();
+  const productDetails = needsProductDetails(rules.discounts)
+    ? await productDetailsOfVariants(merchant, items.map((item) => item.variantId))
+    : { collectionsByVariant: new Map<string, string[]>(), tagsByVariant: new Map<string, string[]>() };
 
   return {
     items,
@@ -292,7 +296,7 @@ async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckout
     ownCode,
     discountRules: rules.discounts,
     shippingRules: rules.shippingRules,
-    collectionsByVariant,
+    ...productDetails,
     draftInput: {
       lineItems,
       discountCodes: couponCode ? [couponCode] : [],
@@ -317,6 +321,7 @@ const ruleCart = (base: Awaited<ReturnType<typeof buildBaseInput>>, calculated: 
     lineTotal: amountOf(calculated.lineItems[index].originalUnitPriceSet) * item.quantity,
   })),
   collectionsByVariant: base.collectionsByVariant,
+  tagsByVariant: base.tagsByVariant,
 });
 
 function assertOwnCodeUsable(base: Awaited<ReturnType<typeof buildBaseInput>>, calculated: CalculatedDraftOrder) {

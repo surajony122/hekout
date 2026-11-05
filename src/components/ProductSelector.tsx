@@ -88,7 +88,8 @@ export default function ProductSelector({ value, onChange, label = "Select a pro
           ) : (
             filteredProducts.map((p, idx) => {
               const variant = p.variants?.edges?.[0]?.node || p.variants?.[0];
-              const variantId = variant?.id ? variant.id.replace('gid://shopify/ProductVariant/', '') : '';
+              // Shopify's REST API gives a number here and GraphQL gives text.
+              const variantId = variant?.id ? String(variant.id).replace('gid://shopify/ProductVariant/', '') : '';
               const price = variant?.price || '0';
               const imgUrl = p.images?.edges?.[0]?.node?.url || p.image?.src || null;
               

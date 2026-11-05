@@ -178,6 +178,7 @@ export default async function SettingsPage() {
               giftTitle: discount.giftTitle,
               giftQuantity: discount.giftQuantity,
               collections: discount.collections,
+              tags: discount.tags,
               paymentMethods: discount.paymentMethods,
               usageLimit: discount.usageLimit,
               usageCount: discount.usageCount,
