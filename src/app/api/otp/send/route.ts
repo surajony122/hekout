@@ -3,18 +3,19 @@ import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import twilio from 'twilio';
 import { normalizePhone } from '@/lib/checkout-session';
+import { OTP_RULES } from '@/lib/otp-rules';
 
-const OTP_TTL_MS = 5 * 60 * 1000;
-const RESEND_COOLDOWN_MS = 30 * 1000;
+const OTP_TTL_MS = OTP_RULES.ttlMinutes * 60 * 1000;
+const RESEND_COOLDOWN_MS = OTP_RULES.resendSeconds * 1000;
 const WINDOW_MS = 10 * 60 * 1000;
-const MAX_PER_WINDOW = 3;
+const MAX_PER_WINDOW = OTP_RULES.perPhonePer10Min;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_PER_DAY = 10;
+const MAX_PER_DAY = OTP_RULES.perPhonePerDay;
 const HOUR_MS = 60 * 60 * 1000;
-const IP_MAX_PER_WINDOW = 5;
-const IP_MAX_PER_DAY = 20;
+const IP_MAX_PER_WINDOW = OTP_RULES.perConnectionPer10Min;
+const IP_MAX_PER_DAY = OTP_RULES.perConnectionPerDay;
 // A safety cap on one store's SMS bill if someone uses many numbers and connections.
-const STORE_MAX_PER_HOUR = 300;
+const STORE_MAX_PER_HOUR = OTP_RULES.perStorePerHour;
 const INDIAN_MOBILE = /^[6-9]\d{9}$/;
 
 // Render sits behind Cloudflare, which sets this header itself, so visitors can't fake it.

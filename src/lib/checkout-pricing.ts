@@ -100,6 +100,10 @@ const FIND_CUSTOMER = `query FindCustomer($query: String!) {
   }
 }`;
 
+const CUSTOMER_CACHE_MS = 5 * 60 * 1000;
+const CUSTOMER_CACHE_LIMIT = 5000;
+const customerCache = new Map<string, { id: string | null; expires: number }>();
+
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 const amountOf = (money: Money) => parseFloat(money.shopMoney.amount);
 const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
@@ -176,12 +180,24 @@ function formatPhone(phone: string) {
 // customer. The phone is verified by OTP, so it is safe to use for this. If the lookup
 // fails, checkout carries on as a guest and those codes are simply rejected.
 async function findCustomerId(merchant: MerchantForPricing, phone: string): Promise<string | null> {
+  const key = `${merchant.shopDomain}|${phone}`;
+  const cached = customerCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.id;
+
   try {
     const data = await shopifyGraphql(merchant, FIND_CUSTOMER, { query: `phone:${formatPhone(phone)}` });
-    return data.customers.nodes[0]?.id ?? null;
+    const id: string | null = data.customers.nodes[0]?.id ?? null;
+    if (customerCache.size >= CUSTOMER_CACHE_LIMIT) customerCache.clear();
+    customerCache.set(key, { id, expires: Date.now() + CUSTOMER_CACHE_MS });
+    return id;
   } catch {
     return null;
   }
+}
+
+// Looks the customer up as soon as they verify, so their total doesn't wait for it.
+export function warmCustomerLookup(merchant: { shopDomain: string; accessToken: string }, phone: string) {
+  findCustomerId({ ...merchant, id: '', paymentSettings: null }, phone).catch(() => {});
 }
 
 async function buildBaseInput(merchant: MerchantForPricing, input: PriceCheckoutInput) {
@@ -260,7 +276,8 @@ async function priceForMethod(
   merchant: MerchantForPricing,
   base: Awaited<ReturnType<typeof buildBaseInput>>,
   calculated: CalculatedDraftOrder,
-  paymentMethod: string
+  paymentMethod: string,
+  alreadyHasFees = false
 ) {
   const isCod = isCodMethod(paymentMethod);
   const isPartial = isPartialCodMethod(paymentMethod);
@@ -303,7 +320,7 @@ async function priceForMethod(
     ? { ...inputWithFees, appliedDiscount: { title: 'Prepaid Discount', value: prepaidDiscount, valueType: 'FIXED_AMOUNT' } }
     : inputWithFees;
 
-  let final = prepaidDiscount > 0 || shippingFee > 0 || codFee > 0
+  let final = !alreadyHasFees && (prepaidDiscount > 0 || shippingFee > 0 || codFee > 0)
     ? await calculateDraftOrder(merchant, draftInput)
     : calculated;
 
@@ -355,17 +372,30 @@ export async function priceCheckout(
   return priceForMethod(merchant, base, calculated, paymentMethod);
 }
 
-// Totals for both ways of paying, for the widget to show before the customer chooses.
-export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCheckoutInput) {
+// Totals for the ways of paying the customer can still choose. When they've already
+// picked one, only that is priced, which needs far fewer calls to Shopify.
+export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCheckoutInput, methods?: string[]) {
+  const wants = (method: string) => !methods || methods.includes(method);
+  const settings = merchant.paymentSettings;
   const base = await buildBaseInput(merchant, input);
+
+  // The COD fee is known in advance when no shipping rule applies, so one calculation is enough.
+  if (methods?.length === 1 && methods[0] === 'COD' && !settings?.isShippingFeeEnabled) {
+    const codFee = settings?.isCodFeeEnabled !== false ? roundMoney(Math.max(0, settings?.codFeeAmount ?? 69)) : 0;
+    const calculated = await calculateDraftOrder(merchant, codFee > 0
+      ? { ...base.draftInput, shippingLine: { title: 'Cash on Delivery Fee', priceWithCurrency: { amount: codFee, currencyCode: 'INR' } } }
+      : base.draftInput);
+    assertCouponApplied(base.couponCode, calculated);
+    return { cod: await priceForMethod(merchant, base, calculated, 'COD', true), prepaid: null, partial: null };
+  }
+
   const calculated = await calculateDraftOrder(merchant, base.draftInput);
   assertCouponApplied(base.couponCode, calculated);
+  const partialEnabled = settings?.isPartialCodEnabled && (settings.partialCodAmount ?? 0) > 0;
   const [cod, prepaid, partial] = await Promise.all([
-    priceForMethod(merchant, base, calculated, 'COD'),
-    priceForMethod(merchant, base, calculated, 'PREPAID'),
-    merchant.paymentSettings?.isPartialCodEnabled && (merchant.paymentSettings.partialCodAmount ?? 0) > 0
-      ? priceForMethod(merchant, base, calculated, 'PARTIAL COD')
-      : null,
+    wants('COD') ? priceForMethod(merchant, base, calculated, 'COD') : null,
+    wants('PREPAID') ? priceForMethod(merchant, base, calculated, 'PREPAID') : null,
+    wants('PARTIAL COD') && partialEnabled ? priceForMethod(merchant, base, calculated, 'PARTIAL COD') : null,
   ]);
   return { cod, prepaid, partial };
 }

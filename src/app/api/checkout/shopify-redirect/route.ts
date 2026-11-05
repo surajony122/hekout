@@ -16,14 +16,13 @@ export async function POST(request: Request) {
     if (!merchant || !merchant.isActive || !merchant.accessToken) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }
-    // Full Checkout never redirects. OTP + COD online payments don't need an OTP, but
-    // OTP Verify always does.
+    // Full Checkout completes orders in the popup. Other plans need a verified phone.
     if (merchant.checkoutPlan === 'FULL') {
       return NextResponse.json({ error: 'This store completes orders in the popup.' }, { status: 403 });
     }
 
     const phone = readCheckoutSession(sessionToken, shop);
-    if (!phone && merchant.checkoutPlan === 'OTP_ONLY') {
+    if (!phone) {
       return NextResponse.json({ error: 'Please verify your phone number again.' }, { status: 401 });
     }
 

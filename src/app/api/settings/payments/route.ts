@@ -22,9 +22,6 @@ export async function POST(request: Request) {
       partialCodAmount,
       isCodFeeEnabled,
       codFeeAmount,
-      isShippingFeeEnabled,
-      shippingFeeAmount,
-      freeShippingThreshold
     } = body;
 
     const newSecrets = [razorpayKeySecret, cashfreeSecretKey].some((value) => typeof value === 'string' && value.trim());
@@ -57,9 +54,6 @@ export async function POST(request: Request) {
         partialCodAmount,
         isCodFeeEnabled,
         codFeeAmount,
-        isShippingFeeEnabled,
-        shippingFeeAmount: shippingFeeAmount !== undefined ? parseFloat(shippingFeeAmount) : 0,
-        freeShippingThreshold: freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : 999
       },
       create: {
         merchantId: merchant.id,
@@ -73,9 +67,6 @@ export async function POST(request: Request) {
         partialCodAmount,
         isCodFeeEnabled,
         codFeeAmount,
-        isShippingFeeEnabled,
-        shippingFeeAmount: shippingFeeAmount !== undefined ? parseFloat(shippingFeeAmount) : 0,
-        freeShippingThreshold: freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : 999
       }
     });
 

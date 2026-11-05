@@ -20,6 +20,11 @@ export async function POST(request: Request) {
       storeName,
     } = await request.json();
 
+    // The ID ends up in the checkout's tracking script, so it must be just digits.
+    if (fbPixelId && !/^\d{5,20}$/.test(String(fbPixelId))) {
+      return NextResponse.json({ success: false, error: 'A Pixel ID should contain only numbers.' }, { status: 400 });
+    }
+
     if (typeof storeName === 'string') {
       await prisma.merchant.update({
         where: { id: merchant.id },

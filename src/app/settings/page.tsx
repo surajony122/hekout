@@ -4,6 +4,9 @@ import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import PaymentSettingsClient from './PaymentSettingsClient';
 import WidgetSettingsClient from './WidgetSettingsClient';
 import PlanSettingsClient from './PlanSettingsClient';
+import ShippingSettingsClient from './ShippingSettingsClient';
+import IntegrationsClient from './IntegrationsClient';
+import { OTP_RULES, smsProviderStatus } from '@/lib/otp-rules';
 import { CHECKOUT_PLANS, planFeePercent } from '@/lib/plans';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +50,9 @@ export default async function SettingsPage() {
     console.error('Error fetching settings:', error);
   }
 
+  const sms = smsProviderStatus();
+  const currentPlanName = planOptions.find((plan) => plan.id === merchant.checkoutPlan)?.name ?? 'Full Checkout';
+
   // Saved secrets stay on the server, and the page only learns whether one exists.
   const safePaymentSettings = paymentSettings
     ? (({ razorpayKeySecret, cashfreeSecretKey, payuMerchantKey, payuMerchantSalt, ...rest }) => ({
@@ -71,18 +77,23 @@ export default async function SettingsPage() {
           <TabsTrigger value="plan" className="text-xs">Plan & Fees</TabsTrigger>
           <TabsTrigger value="discounts" className="text-xs">Discounts</TabsTrigger>
           <TabsTrigger value="shipping" className="text-xs">Shipping</TabsTrigger>
-          <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
           <TabsTrigger value="integrations" className="text-xs">Integrations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
           <Card className="shadow-sm border-slate-200">
             <CardHeader>
-              <CardTitle>Store Details</CardTitle>
-              <CardDescription>Update your store&apos;s branding and information.</CardDescription>
+              <CardTitle>Store details</CardTitle>
+              <CardDescription>The store connected to this dashboard.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500">General settings coming soon.</p>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div><dt className="text-slate-500">Store name</dt><dd className="mt-1 font-medium text-slate-900">{merchant.storeName || 'Not set. Add it under Widget Design'}</dd></div>
+                <div><dt className="text-slate-500">Shopify address</dt><dd className="mt-1 font-medium text-slate-900 break-all">{merchant.shopDomain}</dd></div>
+                <div><dt className="text-slate-500">Plan</dt><dd className="mt-1 font-medium text-slate-900">{currentPlanName}</dd></div>
+                <div><dt className="text-slate-500">Connected since</dt><dd className="mt-1 font-medium text-slate-900">{merchant.createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</dd></div>
+              </dl>
+              <a href={`https://${merchant.shopDomain}/admin`} target="_blank" rel="noreferrer" className="inline-block mt-4 text-sm font-medium text-slate-900 underline">Open Shopify admin</a>
             </CardContent>
           </Card>
         </TabsContent>
@@ -97,10 +108,22 @@ export default async function SettingsPage() {
           <Card className="shadow-sm border-slate-200">
             <CardHeader>
               <CardTitle>OTP Verification</CardTitle>
-              <CardDescription>Configure rules for phone number verification.</CardDescription>
+              <CardDescription>How customers verify their phone number. These rules protect your store and SMS costs, and apply automatically.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500">OTP rules coming soon.</p>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-900">
+                <span className="text-slate-500">SMS provider: </span>
+                <span className={`font-medium ${sms.live ? 'text-emerald-700' : 'text-rose-700'}`}>{sms.name}</span>
+              </p>
+              {!sms.live && <p role="alert" className="text-sm text-rose-700">Customers won&apos;t receive real codes until an SMS provider is connected.</p>}
+              <ul className="list-disc pl-5 space-y-1 text-sm text-slate-600">
+                <li>Codes have 6 digits and last {OTP_RULES.ttlMinutes} minutes, with {OTP_RULES.maxAttempts} tries each.</li>
+                <li>Customers can ask for a new code every {OTP_RULES.resendSeconds} seconds, up to {OTP_RULES.perPhonePer10Min} in 10 minutes and {OTP_RULES.perPhonePerDay} a day.</li>
+                <li>One connection can request {OTP_RULES.perConnectionPer10Min} codes in 10 minutes and {OTP_RULES.perConnectionPerDay} a day.</li>
+                <li>Your store can send up to {OTP_RULES.perStorePerHour} codes an hour.</li>
+                <li>Only Indian mobile numbers are accepted.</li>
+                <li>Customers stay verified on their device for {OTP_RULES.verifiedHours} hours.</li>
+              </ul>
             </CardContent>
           </Card>
         </TabsContent>
@@ -143,39 +166,17 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="shipping" className="space-y-4">
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader>
-              <CardTitle>Shipping & Serviceability</CardTitle>
-              <CardDescription>Configure shipping rates and pincode serviceability.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500">Shipping settings coming soon.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader>
-              <CardTitle>Customer Notifications</CardTitle>
-              <CardDescription>Manage WhatsApp, SMS, and Email templates.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500">Notification settings coming soon.</p>
-            </CardContent>
-          </Card>
+          <ShippingSettingsClient
+            initial={{
+              isShippingFeeEnabled: paymentSettings?.isShippingFeeEnabled ?? false,
+              shippingFeeAmount: paymentSettings?.shippingFeeAmount ?? 0,
+              freeShippingThreshold: paymentSettings?.freeShippingThreshold ?? 999,
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-4">
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader>
-              <CardTitle>App Integrations</CardTitle>
-              <CardDescription>Connect with Shiprocket, Delhivery, Twilio, etc.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500">Integrations coming soon.</p>
-            </CardContent>
-          </Card>
+          <IntegrationsClient initialPixelId={widgetSettings?.fbPixelId ?? ''} />
         </TabsContent>
       </Tabs>
     </div>

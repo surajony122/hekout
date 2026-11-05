@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createCheckoutSession, normalizePhone, safeEqual } from '@/lib/checkout-session';
+import { warmCustomerLookup } from '@/lib/checkout-pricing';
+import { OTP_RULES } from '@/lib/otp-rules';
+import { revealSecret } from '@/lib/secrets';
 
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = OTP_RULES.maxAttempts;
 
 export async function POST(request: Request) {
   try {
@@ -63,6 +66,15 @@ export async function POST(request: Request) {
 
     if (used.count === 0) {
       return NextResponse.json({ valid: false, error: 'OTP has already been used.' }, { status: 400 });
+    }
+
+    // Only saves time later, so it must never stop a correct code from working.
+    try {
+      if (merchant.accessToken) {
+        warmCustomerLookup({ shopDomain: merchant.shopDomain, accessToken: revealSecret(merchant.accessToken) }, phone);
+      }
+    } catch (error) {
+      console.error('Customer lookup was not started:', error);
     }
 
     return NextResponse.json({
