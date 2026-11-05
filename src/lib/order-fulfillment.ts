@@ -25,6 +25,8 @@ type PricingForOrder = {
   prepaidDiscount: number;
   draftInput: unknown;
   upsell: { id: string; revenue: number } | null;
+  isPartial?: boolean;
+  amountDueNow?: number;
 };
 
 type CustomerForOrder = {
@@ -74,7 +76,10 @@ export function orderDataFromPricing(
       draftInput: {
         ...(pricing.draftInput as object),
         tags: [pricing.paymentMethod, 'CheckoutFlow'],
-        note: 'Order via CheckoutFlow',
+        // Written on the order either way, so the store always sees the real amounts.
+        note: pricing.isPartial
+          ? `Order via CheckoutFlow. Partial COD: ₹${pricing.amountDueNow} paid online, ₹${Math.round((pricing.total - (pricing.amountDueNow ?? 0)) * 100) / 100} to collect on delivery.`
+          : 'Order via CheckoutFlow',
       },
       upsell: pricing.upsell,
     })) as Prisma.InputJsonValue,
@@ -84,13 +89,14 @@ export function orderDataFromPricing(
   };
 }
 
-async function shopifyRest(merchant: ShopMerchant, path: string, method: 'GET' | 'PUT' = 'GET') {
+async function shopifyRest(merchant: ShopMerchant, path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', body?: unknown) {
   const res = await fetch(`https://${merchant.shopDomain}/admin/api/${SHOPIFY_REST_VERSION}/${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       'X-Shopify-Access-Token': revealSecret(merchant.accessToken) ?? '',
     },
+    ...(body ? { body: JSON.stringify(body) } : {}),
   });
   return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
 }
@@ -110,6 +116,25 @@ async function completeDraft(merchant: ShopMerchant, draftId: string, isPaid: bo
 
   console.error('Shopify Complete Draft Error:', completed.status, JSON.stringify(completed.body));
   return null;
+}
+
+// Records the part already paid, so Shopify shows the balance still due. Shopify's direct
+// method needs a Plus store, so this adds it as an external payment. If Shopify refuses,
+// the order is still valid and its note still shows both amounts.
+async function recordPartPayment(merchant: ShopMerchant, shopifyOrderId: string, amount: number, currency: string, paymentId: string | null) {
+  try {
+    const result = await shopifyRest(merchant, `orders/${shopifyOrderId}/transactions.json`, 'POST', {
+      transaction: { kind: 'sale', source: 'external', status: 'success', amount: String(amount), currency, gateway: 'Razorpay', authorization: paymentId },
+    });
+    if (!result.ok) {
+      console.error(`Part payment not recorded on Shopify order ${shopifyOrderId}:`, result.status, JSON.stringify(result.body));
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error(`Part payment not recorded on Shopify order ${shopifyOrderId}:`, error);
+    return false;
+  }
 }
 
 // Only one attempt can work on an order at a time, so an order can't be created twice.
@@ -136,7 +161,10 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
   }
 
   const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-  const isPaid = Boolean(order.paymentId);
+  const isPartial = order.amountPaid !== null;
+  // Partial COD has paid some money, but Shopify must keep the order as not fully paid.
+  const hasPaidMoney = Boolean(order.paymentId);
+  const isPaid = hasPaidMoney && !isPartial;
   const saved = order.fulfillmentData as { draftInput: unknown; upsell: { id: string; revenue: number } | null } | null;
   let draftId = order.shopifyDraftOrderId;
 
@@ -154,7 +182,7 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
         if (Math.abs(draft.total - order.total) >= 0.01) {
           console.error(`Draft order total ${draft.total} differs from priced total ${order.total} for order ${orderId}`);
           // A COD customer hasn't paid yet, so they can review the new total first.
-          if (!isPaid) {
+          if (!hasPaidMoney) {
             await prisma.order.update({ where: { id: orderId }, data: { orderStatus: 'Failed' } });
             return { status: 'total_changed' };
           }
@@ -166,6 +194,10 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
 
       const shopifyOrderId = await completeDraft(merchant, draftId, isPaid);
       if (!shopifyOrderId) continue;
+
+      if (isPartial && hasPaidMoney) {
+        await recordPartPayment(merchant, shopifyOrderId, order.amountPaid as number, 'INR', order.paymentId);
+      }
 
       const placed = await shopifyRest(merchant, `orders/${shopifyOrderId}.json`).catch(() => null);
       const orderStatusUrl: string | null = placed?.body?.order?.order_status_url ?? null;
@@ -191,9 +223,9 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
   // A paid order must never be dropped, so it waits for a retry and shows on the dashboard.
   await prisma.order.update({
     where: { id: orderId },
-    data: { orderStatus: isPaid ? 'Needs_Attention' : 'Failed' },
+    data: { orderStatus: hasPaidMoney ? 'Needs_Attention' : 'Failed' },
   });
-  if (isPaid) console.error(`PAID ORDER NOT IN SHOPIFY: order ${orderId}, payment ${order.paymentId}`);
+  if (hasPaidMoney) console.error(`PAID ORDER NOT IN SHOPIFY: order ${orderId}, payment ${order.paymentId}`);
   return { status: 'failed' };
 }
 
@@ -224,7 +256,7 @@ export async function reconcilePayments(
       try {
         const { items } = await razorpay.orders.fetchPayments(order.razorpayOrderId as string);
         const paid = items.find((payment) =>
-          PAID_PAYMENT_STATUSES.includes(payment.status) && Number(payment.amount) >= Math.round(order.total * 100)
+          PAID_PAYMENT_STATUSES.includes(payment.status) && Number(payment.amount) >= Math.round((order.amountPaid ?? order.total) * 100)
         );
         if (!paid) continue;
 

@@ -145,7 +145,7 @@ open: async function(options) {
       document.head.appendChild(fontLink);
 
       sheet.innerHTML = `
-        <svg class="cf-sprite" aria-hidden="true"><symbol id="ic-arrow-left" viewBox="0 0 24 24"><line x1="20" y1="12" x2="5" y2="12"></line><polyline points="11 6 5 12 11 18"></polyline></symbol><symbol id="ic-shield-check" viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.4 7.8-8 9-4.6-1.2-8-4-8-9V6l8-3Z"></path><polyline points="8.5 12 11 14.5 15.5 9.5"></polyline></symbol><symbol id="ic-truck" viewBox="0 0 24 24"><path d="M2 6h11v10H2V6Z"></path><path d="M13 9h4.5L21 12.5V16h-8"></path><circle cx="6.5" cy="18.5" r="1.8"></circle><circle cx="17" cy="18.5" r="1.8"></circle></symbol><symbol id="ic-cart" viewBox="0 0 24 24"><path d="M2.5 4h2.2l2.6 10.5h10.4L21 7H6"></path><circle cx="9" cy="19" r="1.6"></circle><circle cx="17" cy="19" r="1.6"></circle></symbol><symbol id="ic-chevron-down" viewBox="0 0 24 24"><polyline points="5 9 12 16 19 9"></polyline></symbol><symbol id="ic-chevron-right" viewBox="0 0 24 24"><polyline points="9 5 16 12 9 19"></polyline></symbol><symbol id="ic-tag" viewBox="0 0 24 24"><path d="M3 3h8l10 10-8 8L3 11V3Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></symbol><symbol id="ic-map-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11Z"></path><circle cx="12" cy="10" r="2.6"></circle></symbol><symbol id="ic-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline></symbol><symbol id="ic-x" viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></symbol><symbol id="ic-qr-code" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"></rect><rect x="14" y="3" width="7" height="7" rx="1.3"></rect><rect x="3" y="14" width="7" height="7" rx="1.3"></rect><line x1="14" y1="14" x2="17" y2="14"></line><line x1="20" y1="14" x2="21" y2="14"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="18" y1="17.5" x2="21" y2="17.5"></line><line x1="18" y1="21" x2="21" y2="21"></line></symbol><symbol id="ic-credit-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.2"></rect><line x1="2.5" y1="10" x2="21.5" y2="10"></line><line x1="6" y1="15" x2="10" y2="15"></line></symbol><symbol id="ic-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><circle cx="16.5" cy="14.5" r="1.3"></circle></symbol><symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="3" y1="12" x2="21" y2="12"></line><path d="M12 3c2.6 2.4 4 5.4 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.4-4-9s1.4-6.6 4-9Z"></path></symbol><symbol id="ic-banknote" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="11" rx="2"></rect><circle cx="12" cy="12" r="2.6"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></symbol><symbol id="ic-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.9l6.1-.8L12 3.5Z"></path></symbol><symbol id="ic-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10.5" rx="2"></rect><path d="M8 10V7.5a4 4 0 0 1 8 0V10"></path></symbol></svg>
+        <svg class="cf-sprite" aria-hidden="true"><symbol id="ic-arrow-left" viewBox="0 0 24 24"><line x1="20" y1="12" x2="5" y2="12"></line><polyline points="11 6 5 12 11 18"></polyline></symbol><symbol id="ic-shield-check" viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.4 7.8-8 9-4.6-1.2-8-4-8-9V6l8-3Z"></path><polyline points="8.5 12 11 14.5 15.5 9.5"></polyline></symbol><symbol id="ic-truck" viewBox="0 0 24 24"><path d="M2 6h11v10H2V6Z"></path><path d="M13 9h4.5L21 12.5V16h-8"></path><circle cx="6.5" cy="18.5" r="1.8"></circle><circle cx="17" cy="18.5" r="1.8"></circle></symbol><symbol id="ic-cart" viewBox="0 0 24 24"><path d="M2.5 4h2.2l2.6 10.5h10.4L21 7H6"></path><circle cx="9" cy="19" r="1.6"></circle><circle cx="17" cy="19" r="1.6"></circle></symbol><symbol id="ic-chevron-down" viewBox="0 0 24 24"><polyline points="5 9 12 16 19 9"></polyline></symbol><symbol id="ic-chevron-right" viewBox="0 0 24 24"><polyline points="9 5 16 12 9 19"></polyline></symbol><symbol id="ic-tag" viewBox="0 0 24 24"><path d="M3 3h8l10 10-8 8L3 11V3Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></symbol><symbol id="ic-map-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11Z"></path><circle cx="12" cy="10" r="2.6"></circle></symbol><symbol id="ic-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline></symbol><symbol id="ic-x" viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></symbol><symbol id="ic-qr-code" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"></rect><rect x="14" y="3" width="7" height="7" rx="1.3"></rect><rect x="3" y="14" width="7" height="7" rx="1.3"></rect><line x1="14" y1="14" x2="17" y2="14"></line><line x1="20" y1="14" x2="21" y2="14"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="18" y1="17.5" x2="21" y2="17.5"></line><line x1="18" y1="21" x2="21" y2="21"></line></symbol><symbol id="ic-credit-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.2"></rect><line x1="2.5" y1="10" x2="21.5" y2="10"></line><line x1="6" y1="15" x2="10" y2="15"></line></symbol><symbol id="ic-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><circle cx="16.5" cy="14.5" r="1.3"></circle></symbol><symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="3" y1="12" x2="21" y2="12"></line><path d="M12 3c2.6 2.4 4 5.4 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.4-4-9s1.4-6.6 4-9Z"></path></symbol><symbol id="ic-banknote" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="11" rx="2"></rect><circle cx="12" cy="12" r="2.6"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></symbol><symbol id="ic-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.9l6.1-.8L12 3.5Z"></path></symbol><symbol id="ic-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10.5" rx="2"></rect><path d="M8 10V7.5a4 4 0 0 1 8 0V10"></path></symbol><symbol id="ic-coins" viewBox="0 0 24 24"><ellipse cx="9" cy="7" rx="6" ry="3"></ellipse><path d="M3 7v4c0 1.7 2.7 3 6 3s6-1.3 6-3V7"></path><path d="M15 11.4c3.2.3 6 1.5 6 3.1v3c0 1.7-2.7 3-6 3s-6-1.3-6-3v-3"></path></symbol></svg>
         <style>
           /*__CSS__*/
           :host { --p1: ${primaryColor}; }
@@ -168,6 +168,7 @@ open: async function(options) {
           .cf-otp-input { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; font-size: 20px; text-align: center; letter-spacing: 12px; outline: none; font-weight: 600; color: var(--text-main); background: var(--surface); transition: border-color 0.2s, box-shadow 0.2s; }
           .cf-otp-input:focus { border-color: var(--p1); box-shadow: 0 0 0 3px rgba(109,40,217,0.12); }
           .cf-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: cf-spin 0.7s linear infinite; }
+          .cf-spinner-lg { width: 36px; height: 36px; border-width: 3px; color: var(--p1); }
           .cf-grabber { width: 40px; height: 4px; background: #d1d5db; border-radius: 4px; margin: 8px auto 0; flex-shrink: 0; }
 
           #cf-notice { position: absolute; top: 12px; left: 16px; right: 16px; z-index: 950; padding: 12px 14px; border-radius: 12px; background: #111827; color: #fff; font-size: 13px; font-weight: 500; line-height: 1.4; box-shadow: 0 10px 30px rgba(15,23,42,0.3); opacity: 0; transform: translateY(-12px); pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
@@ -181,6 +182,7 @@ open: async function(options) {
           .pay-card:active, .design-card:active { transform: scale(0.985); }
           .trust-footer { grid-template-columns: repeat(2, 1fr); }
 
+          .pay-card.cf-method { background: var(--surface); }
           .cf-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
           #checkoutflow-sheet svg:not(.cf-sprite) { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
           .pay-icon-box { color: var(--p1); }
@@ -297,7 +299,14 @@ open: async function(options) {
           </div>
 
           <!-- STATE 1: PHONE -->
-          <div id="state-phone" style="padding: 10px 0;">
+          <!-- OTP + COD: CHOOSE HOW TO PAY FIRST -->
+          <div id="state-methods" style="display:none; padding: 10px 0;">
+             <h3 class="cf-heading" style="margin-bottom:4px;">How would you like to pay?</h3>
+             <p style="margin-bottom:14px; color:var(--text-muted); font-size:13px;">Order value ${'₹'}${subtotalBase.toLocaleString('en-IN')}. You'll see your final total before placing the order.</p>
+             <div id="cf-method-list"></div>
+          </div>
+
+          <div id="state-phone" style="display:none; padding: 10px 0;">
              <h3 class="cf-heading" style="margin-bottom:4px;">Enter your mobile number</h3>
              <p style="margin-bottom:16px; color:var(--text-muted); font-size:13px;">We'll send a code to confirm it's you.</p>
              
@@ -319,6 +328,13 @@ open: async function(options) {
              </div>
              <button id="cf-phone-btn" class="cf-btn">Continue</button>
              <div id="cf-phone-err" role="alert" style="color:var(--red); font-size:12px; font-weight:600; text-align:center; margin-top:10px; display:none;"></div>
+          </div>
+
+          <!-- PLAN 1: ON THE WAY TO SHOPIFY CHECKOUT -->
+          <div id="state-redirect" style="display:none; padding:48px 0; text-align:center;">
+             <span class="cf-spinner cf-spinner-lg" style="display:inline-block;" aria-hidden="true"></span>
+             <h3 class="cf-heading" id="cf-redirect-title" style="margin-top:16px;">You're verified</h3>
+             <p style="margin-top:4px; color:var(--text-muted); font-size:13px;">Taking you to secure checkout...</p>
           </div>
 
           <!-- STATE 1.5: ADDRESS LIST -->
@@ -439,7 +455,11 @@ open: async function(options) {
                <div class="change-link" id="cf-edit-addr">Change <svg viewBox="0 0 24 24"><use href="#ic-chevron-down"/></svg></div>
              </div>
 
-             <div class="sec-lbl">PAYMENT METHODS</div>
+             <div class="sec-lbl" id="cf-pay-label">PAYMENT METHODS</div>
+             <div id="cf-partial-summary" class="design-card solid-border" style="display:none; cursor:default; flex-direction:column; align-items:stretch; gap:8px;">
+               <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;"><span>Pay now</span><span id="cf-partial-now"></span></div>
+               <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;"><span>Pay on delivery</span><span id="cf-partial-later"></span></div>
+             </div>
              <div id="pay-methods-container">
                <!-- Injected -->
              </div>
@@ -491,6 +511,8 @@ open: async function(options) {
                 <div id="trDisc" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Discount on MRP</span><span id="tDisc" style="color:var(--green); font-weight:600;">-₹0</span></div>
                 <div id="trShip" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Shipping Fee</span><span id="tShipFee" style="color:var(--text-main); font-weight:600;">₹0</span></div>
                 <div id="trTax" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Tax</span><span id="tTax" style="color:var(--text-main); font-weight:600;"></span></div>
+                <div id="trPaidNow" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Pay now</span><span id="tPaidNow" style="color:var(--text-main); font-weight:600;"></span></div>
+                <div id="trDueLater" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Pay on delivery</span><span id="tDueLater" style="color:var(--text-main); font-weight:600;"></span></div>
                 <div id="trCod" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">COD Fee</span><span id="tCodFee" style="color:var(--text-main); font-weight:600;">₹${widgetConfig.codFeeAmount}</span></div>
                 <hr style="border:none; border-top:1.5px dashed var(--border); margin:12px 0;">
                 <div style="display:flex; justify-content:space-between; font-size:16px; align-items:center;"><span style="color:var(--text1); font-weight:700;">Total amount</span><span id="tGrand" style="color:var(--text-main); font-weight:700; font-size:18px;">₹${total.toLocaleString('en-IN')}</span></div>
@@ -636,7 +658,7 @@ open: async function(options) {
                if (requestId !== quoteRequestId) return null;
             }
             if (data.success) {
-               quotes = { cod: data.cod, prepaid: data.prepaid };
+               quotes = { cod: data.cod, prepaid: data.prepaid, partial: data.partial };
             } else if (data.error) {
                failureMessage = data.error;
             }
@@ -720,7 +742,7 @@ open: async function(options) {
             }
             quoteRequestId++;
             appliedCoupon = code;
-            quotes = { cod: data.cod, prepaid: data.prepaid };
+            quotes = { cod: data.cod, prepaid: data.prepaid, partial: data.partial };
             if(window.launchConfetti) window.launchConfetti();
             input.value = '';
             widgetRoot.getElementById('drwCoupon').style.display = 'none';
@@ -741,7 +763,9 @@ open: async function(options) {
         if (method) currentPaymentMethod = method;
 
         const useCodQuote = currentPaymentMethod === 'COD' || (currentPaymentMethod === null && !widgetConfig.hasRazorpay);
-        const quote = quotes ? (useCodQuote ? quotes.cod : quotes.prepaid) : null;
+        const quote = quotes
+          ? (currentPaymentMethod === 'PARTIAL COD' && quotes.partial ? quotes.partial : useCodQuote ? quotes.cod : quotes.prepaid)
+          : null;
         const money = (value) => `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
         const subtotal = quote ? quote.subtotal : subtotalBase;
         const couponDiscount = quote ? quote.discount : 0;
@@ -866,6 +890,25 @@ open: async function(options) {
         });
         const elCod = widgetRoot.getElementById('ppCOD');
         showAmount(elCod, quotes ? money(quotes.cod.total) : null);
+
+        const isPartialChoice = currentPaymentMethod === 'PARTIAL COD' && quote;
+        ['trPaidNow', 'trDueLater'].forEach((id) => {
+           const row = widgetRoot.getElementById(id);
+           if (row) row.style.display = isPartialChoice ? 'flex' : 'none';
+        });
+        const partialSummary = widgetRoot.getElementById('cf-partial-summary');
+        if (partialSummary) partialSummary.style.display = isPartialChoice ? 'flex' : 'none';
+        if (isPartialChoice) {
+           ['tPaidNow', 'cf-partial-now'].forEach((id) => { const el = widgetRoot.getElementById(id); if (el) el.textContent = money(quote.amountDueNow); });
+           ['tDueLater', 'cf-partial-later'].forEach((id) => { const el = widgetRoot.getElementById(id); if (el) el.textContent = money(quote.amountDueLater); });
+        }
+        const placeBtn = widgetRoot.getElementById('cf-place-btn');
+        if (placeBtn) {
+           placeBtn.disabled = !quote && !quoteFailed;
+           placeBtn.textContent = !quote
+              ? (quoteFailed ? 'Try again' : 'Updating total...')
+              : isPartialChoice ? `Pay ${money(quote.amountDueNow)} & place order` : `Place order · ${money(quote.total)}`;
+        }
 
         const elCodBtn = widgetRoot.getElementById('cod-confirm-btn');
         if(elCodBtn) {
@@ -1135,8 +1178,40 @@ open: async function(options) {
          stateCheckout.style.display = 'block';
       };
 
+      // OTP Verify plan: Shopify's own checkout takes over from here, whatever happens.
+      const goToShopifyCheckout = async () => {
+         const stateRedirect = widgetRoot.getElementById('state-redirect');
+         stateRedirect.style.display = 'block';
+         if (!sessionToken) widgetRoot.getElementById('cf-redirect-title').textContent = 'One moment';
+         let checkoutUrl = null;
+         try {
+            const res = await fetch(`${apiBaseUrl}/api/checkout/shopify-redirect`, {
+               method: 'POST', headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ shop, sessionToken, items: cartItems })
+            });
+            if (res.status === 401) {
+               localStorage.removeItem('checkoutflow_verified');
+               sessionToken = '';
+               stateRedirect.style.display = 'none';
+               widgetRoot.getElementById('cf-change-phone').click();
+               statePhone.style.display = 'block';
+               return;
+            }
+            const data = await res.json();
+            checkoutUrl = data.checkoutUrl;
+         } catch(e) {}
+         // Without a prepared cart, the customer can still buy, with fields left blank.
+         window.location.href = checkoutUrl || `/cart/${cartItems.map(item => `${item.variantId}:${item.quantity}`).join(',')}`;
+      };
+
       const checkCustomer = async () => {
         statePhone.style.display = 'none';
+        // The store's plan decides the next step, but a slow answer mustn't leave a blank screen.
+        try { await Promise.race([configPromise, new Promise((done) => setTimeout(done, 3000))]); } catch(e) {}
+        if (widgetConfig.checkoutPlan === 'OTP_ONLY') {
+           await goToShopifyCheckout();
+           return;
+        }
         try {
           const res = await fetch(`${apiBaseUrl}/api/customer/lookup`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1266,12 +1341,73 @@ open: async function(options) {
          }
       });
 
-      if (verifiedPhone) {
-        checkCustomer();
-      }
+      // Starts the right journey for this store's plan.
+      let chosenMethod = null;
+      const showMethods = () => {
+         const money = (value) => `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+         const methods = [
+            { id: 'COD', name: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: 'banknote', extra: (widgetConfig.isCodFeeEnabled !== false && widgetConfig.codFeeAmount > 0) ? `${money(widgetConfig.codFeeAmount)} COD fee may apply` : '' },
+            ...(widgetConfig.hasPartialCod ? [{ id: 'PARTIAL COD', name: 'Partial COD', sub: `Pay ${money(widgetConfig.partialCodAmount)} now, the rest on delivery`, icon: 'coins', extra: 'No COD fee' }] : []),
+            { id: 'ONLINE', name: 'Pay Online', sub: 'UPI, cards and more on secure checkout', icon: 'credit-card', extra: '' },
+         ];
+         widgetRoot.getElementById('cf-method-list').innerHTML = methods.map((m) => `
+            <button type="button" class="pay-card cf-method" data-method="${m.id}" style="width:100%; text-align:left; font:inherit; color:inherit;">
+               <div class="pay-icon-box"><svg viewBox="0 0 24 24"><use href="#ic-${m.icon}"/></svg></div>
+               <div class="pay-content">
+                  <div class="pay-title">${m.name}</div>
+                  <div class="pay-subtitle">${m.sub}</div>
+                  ${m.extra ? `<div class="pay-subtitle" style="margin-top:2px;">${m.extra}</div>` : ''}
+               </div>
+               <div class="pay-right"><div class="arrow-circle"><svg viewBox="0 0 24 24"><use href="#ic-chevron-right"/></svg></div></div>
+            </button>`).join('');
+         widgetRoot.querySelectorAll('.cf-method').forEach((card) => {
+            card.onclick = () => {
+               chosenMethod = card.dataset.method;
+               widgetRoot.getElementById('state-methods').style.display = 'none';
+               if (chosenMethod === 'ONLINE') {
+                  goToShopifyCheckout();
+               } else if (verifiedPhone && sessionToken) {
+                  checkCustomer();
+               } else {
+                  statePhone.style.display = 'block';
+               }
+            };
+         });
+         widgetRoot.getElementById('state-methods').style.display = 'block';
+      };
+
+      (async () => {
+         try { await Promise.race([configPromise, new Promise((done) => setTimeout(done, 3000))]); } catch(e) {}
+         if (widgetConfig.checkoutPlan === 'OTP_COD') {
+            if (widgetConfig.hasPartialCod) loadScript(RAZORPAY_URL).catch(() => {});
+            showMethods();
+         } else if (verifiedPhone) {
+            checkCustomer();
+         } else {
+            statePhone.style.display = 'block';
+         }
+      })();
 
       // --- PAYMENT DRAWERS & METHODS ---
       const renderPaymentMethods = () => {
+         // OTP + COD: the method was chosen at the start, so this just confirms it.
+         if (widgetConfig.checkoutPlan === 'OTP_COD') {
+            widgetRoot.getElementById('cf-pay-label').textContent = chosenMethod === 'PARTIAL COD' ? 'PARTIAL COD' : 'CASH ON DELIVERY';
+            widgetRoot.getElementById('pay-methods-container').innerHTML = `
+               <button type="button" class="cf-link" id="cf-change-method" style="margin-bottom:4px; font-size:13px;">Change payment method</button>
+               <div class="cf-sticky-action"><button class="cf-btn" id="cf-place-btn" disabled>Updating total...</button></div>`;
+            widgetRoot.getElementById('cf-place-btn').onclick = () => window.cfExecutePayment(chosenMethod);
+            widgetRoot.getElementById('cf-change-method').onclick = () => {
+               widgetRoot.getElementById('state-checkout').style.display = 'none';
+               showMethods();
+            };
+            // The pinned button is the last thing on this screen.
+            const trustFooter = widgetRoot.querySelector('.trust-footer');
+            if (trustFooter) trustFooter.style.display = 'none';
+            currentPaymentMethod = chosenMethod;
+            refreshQuotes();
+            return;
+         }
          const container = widgetRoot.getElementById('pay-methods-container');
          const dContainer = widgetRoot.getElementById('drawers-container');
          let html = '';
@@ -1350,21 +1486,27 @@ open: async function(options) {
       // --- PAYMENT EXECUTION ---
       window.cfUpdatePricing = updatePricing;
       window.cfExecutePayment = async (method) => {
-         const btn = widgetRoot.getElementById(method === 'COD' ? 'cod-confirm-btn' : 'cod-save-btn');
+         const btn = widgetRoot.getElementById('cf-place-btn') || widgetRoot.getElementById(method === 'COD' ? 'cod-confirm-btn' : 'cod-save-btn');
+         const quoteFor = () => method === 'COD' ? quotes.cod : method === 'PARTIAL COD' ? quotes.partial : quotes.prepaid;
          if (btn) btn.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg style="width:18px;height:18px;animation:cf-spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle></svg> Placing your order...</div>';
 
          if (!quotes) await refreshQuotes();
          // refreshQuotes has already told the customer what went wrong.
          if (!quotes) return;
+         if (!quoteFor()) {
+            notify('This payment option is not available right now. Please choose another.');
+            updatePricing();
+            return;
+         }
 
          // The customer agreed to this total, so the server stops the order if it has changed.
-         const quotedTotal = method === 'COD' ? quotes.cod.total : quotes.prepaid.total;
+         const quotedTotal = quoteFor().total;
          const payload = {
             shop, sessionToken, items: cartItems,
             ...getCustomerDetails(),
             paymentMethod: method,
             expectedTotal: quotedTotal,
-            quoteToken: method === 'COD' ? quotes.cod.quoteToken : quotes.prepaid.quoteToken,
+            quoteToken: quoteFor().quoteToken,
             upsellVariantId: upsellAccepted && activeUpsell ? activeUpsell.variantId : undefined,
             appliedCoupon: appliedCoupon ? { code: appliedCoupon } : undefined
          };
@@ -1390,9 +1532,13 @@ open: async function(options) {
                    widgetRoot.getElementById('state-checkout').style.display='none';
                    widgetRoot.getElementById('successScr').style.display='flex';
                    if (window.launchConfetti) window.launchConfetti();
+                   if (method === 'PARTIAL COD') {
+                       const partialQuote = quoteFor();
+                       widgetRoot.getElementById('cf-success-sub').textContent = `₹${partialQuote.amountDueNow} paid. Please pay ₹${partialQuote.amountDueLater} on delivery.`;
+                   }
                    if (data.orderStatusUrl) {
                        widgetRoot.getElementById('close-success-btn').style.display = 'none';
-                       widgetRoot.getElementById('cf-success-sub').textContent = 'Taking you to your order details...';
+                       if (method !== 'PARTIAL COD') widgetRoot.getElementById('cf-success-sub').textContent = 'Taking you to your order details...';
                        window.location.href = data.orderStatusUrl;
                    }
                 } else {

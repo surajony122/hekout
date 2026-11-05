@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import Razorpay from 'razorpay';
-import { CheckoutError, assertExpectedTotal, resolvePricing } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, isPartialCodMethod, resolvePricing } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
 import { orderDataFromPricing } from '@/lib/order-fulfillment';
-import { planAllowsOnlinePayments } from '@/lib/plans';
+import { planAllowsOnlinePayments, planAllowsPartialCod, planAllowsPopupOrders } from '@/lib/plans';
 import { revealSecret } from '@/lib/secrets';
 
 export async function POST(request: Request) {
@@ -29,7 +29,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }
 
-    if (!planAllowsOnlinePayments(merchant.checkoutPlan)) {
+    const isPartial = typeof paymentMethod === 'string' && isPartialCodMethod(paymentMethod);
+    const allowed = isPartial
+      ? planAllowsPartialCod(merchant.checkoutPlan) && merchant.paymentSettings?.isPartialCodEnabled
+      : planAllowsOnlinePayments(merchant.checkoutPlan);
+    if (!planAllowsPopupOrders(merchant.checkoutPlan) || !allowed) {
       return NextResponse.json({ error: 'Online payments are not available for this store.' }, { status: 403 });
     }
 
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
     assertExpectedTotal(pricing.total, expectedTotal);
 
     // Razorpay can't take a payment under ₹1, for example when a coupon makes the order free.
-    if (pricing.total < 1) {
+    if (pricing.amountDueNow < 1) {
       return NextResponse.json({ error: 'This order total is too low to pay online. Please choose Cash on Delivery.' }, { status: 400 });
     }
 
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
 
     // Razorpay amount is in paise
     const order = await razorpay.orders.create({
-      amount: Math.round(pricing.total * 100),
+      amount: Math.round(pricing.amountDueNow * 100),
       currency: pricing.currency,
       receipt: `receipt_${Date.now()}`
     });
@@ -78,6 +82,7 @@ export async function POST(request: Request) {
       data: {
         ...orderDataFromPricing(merchant, pricing, customer, { source: utmSource, medium: utmMedium, campaign: utmCampaign }),
         razorpayOrderId: order.id,
+        amountPaid: pricing.isPartial ? pricing.amountDueNow : null,
         orderStatus: 'Awaiting_Payment',
       },
     });

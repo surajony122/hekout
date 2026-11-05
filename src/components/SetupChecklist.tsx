@@ -34,7 +34,7 @@ export default function SetupChecklist({ activateUrl, storefrontUrl, buttonEnabl
     {
       done: orderPlaced,
       title: 'Place a test order',
-      detail: 'Buy something on your store with Cash on Delivery, then check that it appears in Shopify.',
+      detail: 'Buy something on your store using the new checkout button, then check that it appears in Shopify.',
       action: <a href={storefrontUrl} target="_blank" rel="noreferrer" className={ACTION_CLASS}>Open store</a>,
     },
   ];

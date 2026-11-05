@@ -4,6 +4,7 @@ import { CheckoutError, createQuoteToken, quoteCheckout } from '@/lib/checkout-p
 import { readCheckoutSession } from '@/lib/checkout-session';
 import { reconcileInBackground } from '@/lib/order-fulfillment';
 import { revealSecret } from '@/lib/secrets';
+import { planAllowsPartialCod, planAllowsPopupOrders } from '@/lib/plans';
 
 type Quote = Awaited<ReturnType<typeof quoteCheckout>>['cod'];
 
@@ -16,6 +17,8 @@ const forCustomer = (quote: Quote) => ({
   codFee: quote.codFee,
   tax: quote.tax,
   total: quote.total,
+  amountDueNow: quote.amountDueNow,
+  amountDueLater: Math.round((quote.total - quote.amountDueNow) * 100) / 100,
 });
 
 export async function POST(request: Request) {
@@ -40,9 +43,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }
 
+    if (!planAllowsPopupOrders(merchant.checkoutPlan)) {
+      return NextResponse.json({ error: 'This store completes orders on Shopify checkout.' }, { status: 403 });
+    }
+
     reconcileInBackground(merchant);
 
-    const { cod, prepaid } = await quoteCheckout(
+    const { cod, prepaid, partial } = await quoteCheckout(
       { ...merchant, accessToken: revealSecret(merchant.accessToken) ?? '' },
       {
         items,
@@ -56,6 +63,9 @@ export async function POST(request: Request) {
       success: true,
       cod: { ...forCustomer(cod), quoteToken: createQuoteToken(cod, shop, phone) },
       prepaid: { ...forCustomer(prepaid), quoteToken: createQuoteToken(prepaid, shop, phone) },
+      partial: partial && planAllowsPartialCod(merchant.checkoutPlan)
+        ? { ...forCustomer(partial), quoteToken: createQuoteToken(partial, shop, phone) }
+        : null,
     });
   } catch (error) {
     if (error instanceof CheckoutError) {
