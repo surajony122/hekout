@@ -832,9 +832,11 @@
              let price = 0;
              let productImage = null;
              if (window.meta && window.meta.product && window.meta.product.variants && window.meta.product.variants.length > 0) {
-               price = window.meta.product.variants[0].price / 100;
-               if (window.meta.product.variants[0].featured_image) {
-                 productImage = window.meta.product.variants[0].featured_image.src;
+               const variants = window.meta.product.variants;
+               const selectedVariant = variants.find(v => String(v.id) === String(variantId)) || variants[0];
+               price = selectedVariant.price / 100;
+               if (selectedVariant.featured_image) {
+                 productImage = selectedVariant.featured_image.src;
                }
              } else {
                const priceEl = document.querySelector('.price-item--regular, .price, .product__price, [data-product-price]');
@@ -861,9 +863,11 @@
              });
           };
 
-          const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button[name="add"], .shopify-payment-button');
+          // Custom themes may use plain buttons, so also match on the button's label.
+          const customBuyBtns = Array.from(form.querySelectorAll('button')).filter(b => /add to (cart|bag)|buy (it )?now/i.test(b.textContent));
+          const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button[name="add"], .shopify-payment-button') || customBuyBtns[customBuyBtns.length - 1];
           if (!submitBtn) return; // Do not inject if form lacks an add to cart button
-          
+
           if (submitBtn && submitBtn.parentNode) {
              const dynamicCheckout = form.querySelector('.shopify-payment-button');
              if (dynamicCheckout && dynamicCheckout.parentNode) {
