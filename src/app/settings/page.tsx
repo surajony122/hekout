@@ -7,6 +7,8 @@ import PlanSettingsClient from './PlanSettingsClient';
 import ShippingSettingsClient from './ShippingSettingsClient';
 import IntegrationsClient from './IntegrationsClient';
 import { OTP_RULES, smsProviderStatus } from '@/lib/otp-rules';
+import ReconnectAlert from '@/components/ReconnectAlert';
+import { storeNeedsReconnect } from '@/lib/shopify-connection';
 import { CHECKOUT_PLANS, planFeePercent } from '@/lib/plans';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +53,7 @@ export default async function SettingsPage() {
   }
 
   const sms = smsProviderStatus();
+  const needsReconnect = await storeNeedsReconnect(merchant);
   const currentPlanName = planOptions.find((plan) => plan.id === merchant.checkoutPlan)?.name ?? 'Full Checkout';
 
   // Saved secrets stay on the server, and the page only learns whether one exists.
@@ -67,6 +70,8 @@ export default async function SettingsPage() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
         <p className="text-slate-500 text-sm mt-1">Manage your store configuration and integrations.</p>
       </div>
+
+      {needsReconnect && <ReconnectAlert shopDomain={merchant.shopDomain} />}
 
       <Tabs defaultValue="payments" className="w-full">
         <TabsList className="bg-slate-100/50 p-1 mb-6 flex space-x-2 w-max">
