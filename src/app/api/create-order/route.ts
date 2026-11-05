@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { CheckoutError, assertExpectedTotal, createDraftOrder, priceCheckout } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, createDraftOrder, resolvePricing } from '@/lib/checkout-pricing';
 import { readCheckoutSession, safeEqual } from '@/lib/checkout-session';
 
 const PAID_PAYMENT_STATUSES = ['authorized', 'captured'];
@@ -44,10 +44,30 @@ async function verifyRazorpayPayment(
   return paymentId;
 }
 
+async function saveCustomerProfile(
+  merchantId: string,
+  phone: string,
+  details: { name?: string; email?: string; address?: string; city?: string; state?: string; pincode?: string }
+) {
+  const customer = await prisma.customerProfile.findFirst({ where: { merchantId, phone } });
+
+  if (customer) {
+    await prisma.customerProfile.update({
+      where: { id: customer.id },
+      data: { ...details, lastOrderAt: new Date() }
+    });
+  } else {
+    await prisma.customerProfile.create({
+      data: { merchantId, phone, ...details, verificationStatus: 'Verified', lastOrderAt: new Date() }
+    });
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    const startedAt = Date.now();
     const data = await request.json();
-    const { shop, sessionToken, items, customerName, customerEmail, address, city, state, pincode, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, utmSource, utmMedium, utmCampaign } = data;
+    const { shop, sessionToken, items, customerName, customerEmail, address, city, state, pincode, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, utmSource, utmMedium, utmCampaign } = data;
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -68,11 +88,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found or missing access token' }, { status: 403 });
     }
 
-    const pricing = await priceCheckout(
+    const { pricing, fromQuote } = await resolvePricing(
       { ...merchant, accessToken: merchant.accessToken },
       {
         items,
         paymentMethod,
+        quoteToken,
         couponCode: appliedCoupon?.code,
         upsellVariantId,
         customer: { phone: customerPhone, name: customerName, email: customerEmail, address, city, state, pincode },
@@ -122,29 +143,11 @@ export async function POST(request: Request) {
       }).catch(() => {});
     }
 
-    // Create/update the customer's local profile
-    const customer = await prisma.customerProfile.findFirst({
-      where: { merchantId: merchant.id, phone: customerPhone }
-    });
+    // Saving the customer's local profile shouldn't make them wait for their order.
+    saveCustomerProfile(merchant.id, customerPhone, { name: customerName, email: customerEmail, address, city, state, pincode })
+      .catch((error) => console.error('Save Customer Profile Error:', error));
 
-    if (customer) {
-      await prisma.customerProfile.update({
-        where: { id: customer.id },
-        data: { name: customerName, email: customerEmail, address, city, state, pincode, lastOrderAt: new Date() }
-      });
-    } else {
-      await prisma.customerProfile.create({
-        data: {
-          merchantId: merchant.id,
-          phone: customerPhone,
-          name: customerName,
-          email: customerEmail,
-          address, city, state, pincode,
-          verificationStatus: 'Verified',
-          lastOrderAt: new Date()
-        }
-      });
-    }
+    const pricedAt = Date.now();
 
     // Create the Shopify draft order with the same details that were priced
     let draftOrder;
@@ -168,7 +171,14 @@ export async function POST(request: Request) {
 
     if (Math.abs(draftOrder.total - pricing.total) >= 0.01) {
       console.error(`Draft order total ${draftOrder.total} differs from priced total ${pricing.total} for order ${order.id}`);
+      // A COD customer hasn't paid yet, so they can review the new total first.
+      if (pricing.isCod) {
+        await prisma.order.update({ where: { id: order.id }, data: { orderStatus: 'Failed' }});
+        return NextResponse.json({ error: 'Your order total has changed. Please review it and try again.', code: 'TOTAL_CHANGED' }, { status: 409 });
+      }
     }
+
+    const draftedAt = Date.now();
 
     const shopifyDraftOrderId = draftOrder.legacyId;
 
@@ -219,6 +229,8 @@ export async function POST(request: Request) {
         orderStatus: 'Synced'
       }
     });
+
+    console.log(`Order timing: pricing=${pricedAt - startedAt}ms draft=${draftedAt - pricedAt}ms complete=${Date.now() - draftedAt}ms total=${Date.now() - startedAt}ms fromQuote=${fromQuote}`);
 
     return NextResponse.json({ success: true, orderId: order.id, shopifyOrderId, orderStatusUrl });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { CheckoutError, quoteCheckout } from '@/lib/checkout-pricing';
+import { CheckoutError, createQuoteToken, quoteCheckout } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
 
 type Quote = Awaited<ReturnType<typeof quoteCheckout>>['cod'];
@@ -48,7 +48,11 @@ export async function POST(request: Request) {
       }
     );
 
-    return NextResponse.json({ success: true, cod: forCustomer(cod), prepaid: forCustomer(prepaid) });
+    return NextResponse.json({
+      success: true,
+      cod: { ...forCustomer(cod), quoteToken: createQuoteToken(cod, shop, phone) },
+      prepaid: { ...forCustomer(prepaid), quoteToken: createQuoteToken(prepaid, shop, phone) },
+    });
   } catch (error) {
     if (error instanceof CheckoutError) {
       return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
