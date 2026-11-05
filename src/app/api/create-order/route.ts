@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { CheckoutError, assertExpectedTotal, isCodMethod, resolvePricing } from '@/lib/checkout-pricing';
+import { CheckoutError, assertExpectedTotal, isCodMethod, isPartialCodMethod, resolvePricing } from '@/lib/checkout-pricing';
 import { PAID_PAYMENT_STATUSES, fulfillOrder, orderDataFromPricing } from '@/lib/order-fulfillment';
-import { planAllowsOnlinePayments } from '@/lib/plans';
+import { planAllowsOnlinePayments, planAllowsPartialCod, planAllowsPopupOrders } from '@/lib/plans';
 import { revealSecret } from '@/lib/secrets';
 import { readCheckoutSession, safeEqual } from '@/lib/checkout-session';
 
@@ -86,7 +86,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found or missing access token' }, { status: 403 });
     }
 
-    if (typeof paymentMethod === 'string' && !isCodMethod(paymentMethod) && !planAllowsOnlinePayments(merchant.checkoutPlan)) {
+    if (!planAllowsPopupOrders(merchant.checkoutPlan)) {
+      return NextResponse.json({ error: 'This store completes orders on Shopify checkout.' }, { status: 403 });
+    }
+
+    const isPartial = typeof paymentMethod === 'string' && isPartialCodMethod(paymentMethod);
+    const partialAllowed = isPartial && planAllowsPartialCod(merchant.checkoutPlan) && Boolean(merchant.paymentSettings?.isPartialCodEnabled);
+    if (typeof paymentMethod === 'string' && !isCodMethod(paymentMethod) && !partialAllowed && (isPartial || !planAllowsOnlinePayments(merchant.checkoutPlan))) {
       return NextResponse.json({ error: 'Online payments are not available for this store.' }, { status: 403 });
     }
 
@@ -127,7 +133,7 @@ export async function POST(request: Request) {
 
       try {
         if (started) {
-          await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, started.total);
+          await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, started.amountPaid ?? started.total);
           if (!started.paymentId) {
             await prisma.order.update({ where: { id: started.id }, data: { paymentId: proof.paymentId } });
           }
@@ -136,12 +142,13 @@ export async function POST(request: Request) {
           const { pricing } = await resolvePricing(shopMerchant, {
             items, paymentMethod, quoteToken, couponCode: appliedCoupon?.code, upsellVariantId, customer,
           });
-          await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, pricing.total);
+          await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, pricing.amountDueNow);
           const order = await prisma.order.create({
             data: {
               ...orderDataFromPricing(merchant, pricing, customer, utm),
               paymentId: proof.paymentId,
               razorpayOrderId: proof.orderId,
+              amountPaid: pricing.isPartial ? pricing.amountDueNow : null,
               orderStatus: 'Pending',
             },
           });

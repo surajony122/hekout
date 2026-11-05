@@ -11,6 +11,7 @@ model Merchant {
   shopDomain       String   @unique @map("shop_domain")
   shopifyStoreId   String?  @map("shopify_store_id")
   accessToken      String?  @map("access_token")
+  storefrontToken  String?  @map("storefront_token")
   storeName        String?  @map("store_name")
   email            String?
   plan             String   @default("free")
@@ -60,6 +61,7 @@ model Order {
   orderStatusUrl      String?  @map("order_status_url")
   
   prepaidDiscount     Float    @default(0) @map("prepaid_discount")
+  amountPaid          Float?   @map("amount_paid") // Only set for Partial COD: paid online, with the rest due on delivery
 
   // The plan and fee in force when this order was placed
   checkoutPlan        String?  @map("checkout_plan")

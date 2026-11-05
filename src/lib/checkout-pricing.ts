@@ -13,6 +13,8 @@ export class CheckoutError extends Error {
 }
 
 type PaymentConfig = {
+  isPartialCodEnabled: boolean;
+  partialCodAmount: number;
   isPrepaidDiscountEnabled: boolean;
   prepaidDiscountType: string;
   prepaidDiscountValue: number;
@@ -103,8 +105,9 @@ const amountOf = (money: Money) => parseFloat(money.shopMoney.amount);
 const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
 
 export const isCodMethod = (method: string) => method.toUpperCase() === 'COD';
+export const isPartialCodMethod = (method: string) => method.toUpperCase() === 'PARTIAL COD';
 
-function parseItems(items: unknown) {
+export function parseItems(items: unknown) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new CheckoutError(400, 'Your cart is empty.');
   }
@@ -260,12 +263,13 @@ async function priceForMethod(
   paymentMethod: string
 ) {
   const isCod = isCodMethod(paymentMethod);
+  const isPartial = isPartialCodMethod(paymentMethod);
   const settings = merchant.paymentSettings;
   const cartSubtotal = amountOf(calculated.totalLineItemsPriceSet);
   const remaining = Math.max(0, cartSubtotal - amountOf(calculated.totalDiscountsSet));
 
   let prepaidDiscount = 0;
-  if (!isCod && settings?.isPrepaidDiscountEnabled) {
+  if (!isCod && !isPartial && settings?.isPrepaidDiscountEnabled) {
     const discount = settings.prepaidDiscountType === 'percentage'
       ? remaining * (settings.prepaidDiscountValue / 100)
       : settings.prepaidDiscountValue;
@@ -316,6 +320,9 @@ async function priceForMethod(
   return {
     paymentMethod,
     isCod,
+    isPartial,
+    // What the customer pays online now. COD pays nothing now, and prepaid pays it all.
+    amountDueNow: isCod ? 0 : isPartial ? Math.min(Math.max(0, settings?.partialCodAmount ?? 0), amountOf(final.totalPriceSet)) : amountOf(final.totalPriceSet),
     draftInput,
     currency: final.currencyCode,
     quantity: base.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -353,11 +360,14 @@ export async function quoteCheckout(merchant: MerchantForPricing, input: PriceCh
   const base = await buildBaseInput(merchant, input);
   const calculated = await calculateDraftOrder(merchant, base.draftInput);
   assertCouponApplied(base.couponCode, calculated);
-  const [cod, prepaid] = await Promise.all([
+  const [cod, prepaid, partial] = await Promise.all([
     priceForMethod(merchant, base, calculated, 'COD'),
     priceForMethod(merchant, base, calculated, 'PREPAID'),
+    merchant.paymentSettings?.isPartialCodEnabled && (merchant.paymentSettings.partialCodAmount ?? 0) > 0
+      ? priceForMethod(merchant, base, calculated, 'PARTIAL COD')
+      : null,
   ]);
-  return { cod, prepaid };
+  return { cod, prepaid, partial };
 }
 
 type Pricing = Awaited<ReturnType<typeof priceForMethod>>;
@@ -400,7 +410,7 @@ export async function resolvePricing(
 ) {
   const quoted = input.upsellVariantId ? null : readQuoteToken(input.quoteToken, merchant.shopDomain, input.customer.phone);
   const paymentMethod = text(input.paymentMethod)?.slice(0, 50) ?? 'COD';
-  if (quoted && quoted.isCod === isCodMethod(paymentMethod)) {
+  if (quoted && quoted.isCod === isCodMethod(paymentMethod) && quoted.isPartial === isPartialCodMethod(paymentMethod)) {
     return { pricing: { ...quoted, paymentMethod }, fromQuote: true };
   }
   return { pricing: await priceCheckout(merchant, input), fromQuote: false };

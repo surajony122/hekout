@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { planAllowsOnlinePayments } from '@/lib/plans';
+import { planAllowsOnlinePayments, planAllowsPartialCod } from '@/lib/plans';
 
 export async function GET(request: Request) {
   try {
@@ -33,6 +33,8 @@ export async function GET(request: Request) {
         isShippingFeeEnabled: ps?.isShippingFeeEnabled || false,
         shippingFeeAmount: ps?.shippingFeeAmount !== undefined ? ps?.shippingFeeAmount : 0,
         freeShippingThreshold: ps?.freeShippingThreshold !== undefined ? ps?.freeShippingThreshold : 999,
+        checkoutPlan: merchant.checkoutPlan,
+        hasPartialCod: planAllowsPartialCod(merchant.checkoutPlan) && Boolean(ps?.isPartialCodEnabled) && (ps?.partialCodAmount ?? 0) > 0 && !!ps?.razorpayKeyId,
         hasRazorpay: planAllowsOnlinePayments(merchant.checkoutPlan) && !!ps?.razorpayKeyId,
         storeName: merchant.storeName || shop.split('.')[0],
         brandLogoUrl: ws?.brandLogoUrl || '',

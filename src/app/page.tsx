@@ -5,7 +5,7 @@ import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import DashboardClient from './components/DashboardClient';
 import SetupChecklist from '@/components/SetupChecklist';
 import PaidOrdersAlert from '@/components/PaidOrdersAlert';
-import { planAllowsOnlinePayments } from '@/lib/plans';
+import { planAllowsOnlinePayments, planAllowsPartialCod } from '@/lib/plans';
 import { reconcileInBackground } from '@/lib/order-fulfillment';
 import { isEncryptionConfigured, isProtected, protectSecret } from '@/lib/secrets';
 
@@ -59,7 +59,7 @@ export default async function Home() {
         storefrontUrl={`https://${merchant.shopDomain}`}
         buttonEnabled={Boolean(widgetUsed)}
         paymentsConnected={Boolean(paymentSettings?.razorpayKeyId)}
-        showPaymentsStep={planAllowsOnlinePayments(merchant.checkoutPlan)}
+        showPaymentsStep={planAllowsOnlinePayments(merchant.checkoutPlan) || (planAllowsPartialCod(merchant.checkoutPlan) && Boolean(paymentSettings?.isPartialCodEnabled))}
         orderPlaced={Boolean(orderPlaced)}
       />
       <DashboardClient />

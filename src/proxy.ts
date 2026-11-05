@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   '/api/customer',
   '/api/widget',
   '/api/upsell',
+  '/api/webhooks',
 ];
 
 const isPublic = (pathname: string) =>

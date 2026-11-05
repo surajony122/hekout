@@ -140,6 +140,9 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                     </TableCell>
                     <TableCell className="py-4 text-sm font-medium text-slate-900">
                       ₹{order.total.toLocaleString()}
+                      {order.amountPaid != null && (
+                        <div className="text-xs font-normal text-slate-500">₹{(order.total - order.amountPaid).toLocaleString()} due on delivery</div>
+                      )}
                     </TableCell>
                     <TableCell className="py-4 text-sm text-slate-500">
                       {new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(order.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -208,9 +211,21 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                   )}
 
                   <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between font-bold text-slate-900">
-                    <span>Total Paid</span>
+                    <span>{selectedOrder.amountPaid != null ? 'Order Total' : 'Total Paid'}</span>
                     <span>₹{selectedOrder.total.toLocaleString()}</span>
                   </div>
+                  {selectedOrder.amountPaid != null && (
+                    <>
+                      <div className="flex justify-between text-sm mt-2">
+                        <span className="text-slate-600">Paid online</span>
+                        <span>₹{selectedOrder.amountPaid.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1 font-medium">
+                        <span className="text-slate-900">Collect on delivery</span>
+                        <span>₹{(selectedOrder.total - selectedOrder.amountPaid).toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
                   
                   <div className="pt-4 flex flex-col gap-1 text-xs text-slate-500">
                     <span>Method: <strong className="text-slate-700">{selectedOrder.paymentMethod}</strong></span>
