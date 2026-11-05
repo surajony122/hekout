@@ -5,6 +5,8 @@ import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import DashboardClient from './components/DashboardClient';
 import SetupChecklist from '@/components/SetupChecklist';
 import PaidOrdersAlert from '@/components/PaidOrdersAlert';
+import ReconnectAlert from '@/components/ReconnectAlert';
+import { storeNeedsReconnect } from '@/lib/shopify-connection';
 import { planAllowsOnlinePayments, planAllowsPartialCod } from '@/lib/plans';
 import { reconcileInBackground } from '@/lib/order-fulfillment';
 import { isEncryptionConfigured, isProtected, protectSecret } from '@/lib/secrets';
@@ -48,11 +50,13 @@ export default async function Home() {
 
   reconcileInBackground({ ...merchant, paymentSettings });
   await encryptExistingSecrets(merchant, paymentSettings);
+  const needsReconnect = await storeNeedsReconnect(merchant);
 
   const activateUrl = `https://${merchant.shopDomain}/admin/themes/current/editor?context=apps&template=product&activateAppId=${process.env.SHOPIFY_CLIENT_ID}/checkout-button`;
 
   return (
     <>
+      {needsReconnect && <ReconnectAlert shopDomain={merchant.shopDomain} />}
       <PaidOrdersAlert orders={paidOrders} />
       <SetupChecklist
         activateUrl={activateUrl}
