@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { redirect } from 'next/navigation';
+import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import PaymentSettingsClient from './PaymentSettingsClient';
 import WidgetSettingsClient from './WidgetSettingsClient';
 import DiscountSettingsClient from './DiscountSettingsClient';
@@ -8,24 +10,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  let merchant = null;
+  const merchant = await getLoggedInMerchant();
+  if (!merchant) redirect('/login');
+
   let paymentSettings = null;
   let widgetSettings = null;
 
   try {
-    merchant = await prisma.merchant.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
+    paymentSettings = await prisma.paymentSettings.findUnique({
+      where: { merchantId: merchant.id }
     });
-
-    if (merchant) {
-      paymentSettings = await prisma.paymentSettings.findUnique({
-        where: { merchantId: merchant.id }
-      });
-      widgetSettings = await prisma.widgetSettings.findUnique({
-        where: { merchantId: merchant.id }
-      });
-    }
+    widgetSettings = await prisma.widgetSettings.findUnique({
+      where: { merchantId: merchant.id }
+    });
   } catch (error) {
     console.error('Error fetching settings:', error);
   }
@@ -62,9 +59,8 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="widget" className="space-y-4">
-          <WidgetSettingsClient 
-            merchantId={merchant?.id || ''} 
-            initialSettings={widgetSettings || {}} 
+          <WidgetSettingsClient
+            initialSettings={widgetSettings || {}}
           />
         </TabsContent>
 
@@ -81,16 +77,13 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="payments" className="space-y-4">
-          <PaymentSettingsClient 
-            merchantId={merchant?.id || ''} 
-            initialSettings={paymentSettings || {}} 
+          <PaymentSettingsClient
+            initialSettings={paymentSettings || {}}
           />
         </TabsContent>
 
         <TabsContent value="discounts" className="space-y-4">
-          <DiscountSettingsClient 
-            merchantId={merchant?.id || ''} 
-          />
+          <DiscountSettingsClient />
         </TabsContent>
 
         <TabsContent value="shipping" className="space-y-4">

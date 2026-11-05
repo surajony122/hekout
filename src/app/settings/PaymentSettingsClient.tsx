@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Save, CheckCircle2, CreditCard, Percent } from 'lucide-react';
 
-export default function PaymentSettingsClient({ merchantId, initialSettings }: { merchantId: string, initialSettings: Record<string, any> }) {
+export default function PaymentSettingsClient({ initialSettings }: { initialSettings: Record<string, any> }) {
   const [formData, setFormData] = useState({
     razorpayKeyId: initialSettings.razorpayKeyId || '',
     razorpayKeySecret: initialSettings.razorpayKeySecret || '',
@@ -45,7 +45,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
       const res = await fetch('/api/settings/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchantId, ...formData })
+        body: JSON.stringify(formData)
       });
       if (res.ok) {
         setSuccess(true);
@@ -222,7 +222,7 @@ export default function PaymentSettingsClient({ merchantId, initialSettings }: {
       <div className="flex justify-end">
         <button 
           onClick={handleSave} 
-          disabled={saving || !merchantId}
+          disabled={saving}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-medium text-white transition-all ${success ? 'bg-emerald-500' : 'bg-slate-900 hover:bg-slate-800'} shadow-sm`}
         >
           {success ? <CheckCircle2 size={18} /> : <Save size={18} />}

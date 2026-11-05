@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function WidgetSettingsClient({ merchantId, initialSettings }: { merchantId: string, initialSettings: any }) {
+export default function WidgetSettingsClient({ initialSettings }: { initialSettings: any }) {
   const [settings, setSettings] = useState({
     primaryColor: initialSettings.primaryColor || '#111827',
     preLoginBannerText: initialSettings.preLoginBannerText || '🎉 FREE SHIPPING ON ALL ORDERS TODAY!',
@@ -27,7 +27,7 @@ export default function WidgetSettingsClient({ merchantId, initialSettings }: { 
       const res = await fetch('/api/settings/widget', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchantId, ...settings })
+        body: JSON.stringify(settings)
       });
       const data = await res.json();
       if (data.success) {

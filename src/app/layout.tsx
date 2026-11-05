@@ -5,9 +5,11 @@ import {
   Search, Bell, ChevronDown 
 } from 'lucide-react';
 import { Toaster } from 'sonner';
+import { cookies } from 'next/headers';
 
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
+import { MERCHANT_SESSION_COOKIE, readMerchantSessionToken } from '@/lib/merchant-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,11 +18,26 @@ export const metadata: Metadata = {
   description: 'Shopify Checkout Optimization Platform',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const shop = readMerchantSessionToken(cookieStore.get(MERCHANT_SESSION_COOKIE)?.value);
+
+  // Logged out: only the login page shows, without the dashboard around it.
+  if (!shop) {
+    return (
+      <html lang="en">
+        <body className={`${GeistSans.className} bg-slate-50 text-slate-900 antialiased flex min-h-screen`}>
+          {children}
+          <Toaster richColors position="bottom-right" />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="en">
       <body className={`${GeistSans.className} bg-slate-50 text-slate-900 antialiased flex h-screen overflow-hidden`}>
@@ -39,7 +56,7 @@ export default function RootLayout({
               <MobileNav />
               <div className="flex items-center gap-2 px-2 py-1.5 md:px-3 md:py-1.5 border border-slate-200 rounded-md bg-white cursor-pointer hover:bg-slate-50 transition-colors text-xs md:text-sm font-medium">
                 <div className="w-4 h-4 md:w-5 md:h-5 rounded-sm bg-slate-100 flex items-center justify-center text-[10px] md:text-xs">🛍️</div>
-                <span className="hidden sm:inline">My Shopify Store</span>
+                <span className="hidden sm:inline">{shop}</span>
                 <span className="sm:hidden">Store</span>
                 <ChevronDown size={14} className="text-slate-400 ml-1" />
               </div>
@@ -54,9 +71,11 @@ export default function RootLayout({
                 <Bell size={18} />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
               </button>
-              <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white text-sm font-medium cursor-pointer">
-                JS
-              </div>
+              <form action="/api/auth/logout" method="post">
+                <button type="submit" className="px-3 py-1.5 text-xs md:text-sm font-medium border border-slate-200 rounded-md bg-white hover:bg-slate-50 transition-colors">
+                  Log out
+                </button>
+              </form>
             </div>
           </header>
           

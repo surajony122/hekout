@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 
 export async function GET() {
   try {
-    const merchant = await prisma.merchant.findFirst({
-      where: { isActive: true }
-    });
-
-    if (!merchant || !merchant.accessToken) {
-      return NextResponse.json({ error: 'Merchant not found or not authenticated' }, { status: 403 });
-    }
+    const merchant = await getLoggedInMerchant();
+    if (!merchant || !merchant.accessToken) return unauthorized();
 
     const res = await fetch(`https://${merchant.shopDomain}/admin/api/2024-01/products.json?fields=id,title,variants,image&limit=50`, {
       method: 'GET',

@@ -1,30 +1,24 @@
 import { prisma } from '@/lib/prisma';
-import { Search, ChevronDown, Download, Eye, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import OrdersClient from './OrdersClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function OrdersPage() {
+  const merchant = await getLoggedInMerchant();
+  if (!merchant) redirect('/login');
+
   let orders: any[] = [];
-  let shopDomain = '';
   try {
-    const merchant = await prisma.merchant.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
+    orders = await prisma.order.findMany({
+      where: { merchantId: merchant.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     });
-    
-    if (merchant) {
-      shopDomain = merchant.shopDomain;
-      orders = await prisma.order.findMany({
-        where: { merchantId: merchant.id },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-      });
-    }
   } catch (err) {}
 
   const serializedOrders = JSON.parse(JSON.stringify(orders));
 
-  return <OrdersClient orders={serializedOrders} shopDomain={shopDomain} />;
+  return <OrdersClient orders={serializedOrders} shopDomain={merchant.shopDomain} />;
 }

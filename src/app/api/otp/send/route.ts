@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 import twilio from 'twilio';
+import { normalizePhone } from '@/lib/checkout-session';
+
+const OTP_TTL_MS = 5 * 60 * 1000;
+const RESEND_COOLDOWN_MS = 30 * 1000;
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 3;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_PER_DAY = 10;
 
 export async function POST(request: Request) {
   try {
-    const { shop, phone } = await request.json();
+    const { shop, phone: rawPhone } = await request.json();
+    const phone = normalizePhone(rawPhone);
 
     if (!shop || !phone) {
-      return NextResponse.json({ error: 'Shop and phone are required' }, { status: 400 });
+      return NextResponse.json({ error: 'A valid shop and phone number are required' }, { status: 400 });
     }
 
     const merchant = await prisma.merchant.findUnique({
@@ -18,84 +28,86 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }
 
-    // Generate 4 digit OTP
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+    const msg91AuthKey = process.env.MSG91_AUTH_KEY;
+    const msg91TemplateId = process.env.MSG91_TEMPLATE_ID;
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
+    const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+    const hasMsg91 = Boolean(msg91AuthKey && msg91TemplateId);
+    const hasTwilio = Boolean(twilioSid && twilioAuth && twilioPhone);
+    // Test mode shows the code in the browser, so it must be switched on explicitly.
+    const isTestMode = process.env.OTP_TEST_MODE === 'true';
+
+    if (!hasMsg91 && !hasTwilio && !isTestMode) {
+      console.error('OTP not sent: no SMS provider configured and OTP_TEST_MODE is off.');
+      return NextResponse.json({ error: 'SMS verification is not available right now.' }, { status: 503 });
+    }
+
+    const now = Date.now();
+    const recent = await prisma.otpVerification.findMany({
+      where: { merchantId: merchant.id, phone, createdAt: { gte: new Date(now - DAY_MS) } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    const inWindow = recent.filter((otp) => otp.createdAt.getTime() >= now - WINDOW_MS).length;
+    const onCooldown = recent.length > 0 && recent[0].createdAt.getTime() >= now - RESEND_COOLDOWN_MS;
+
+    if (onCooldown || inWindow >= MAX_PER_WINDOW || recent.length >= MAX_PER_DAY) {
+      return NextResponse.json({ error: 'Too many OTP requests. Please wait and try again.' }, { status: 429 });
+    }
+
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
 
     await prisma.otpVerification.create({
       data: {
         merchantId: merchant.id,
         phone,
         code: otpCode,
-        expiresAt
+        expiresAt: new Date(now + OTP_TTL_MS)
       }
     });
 
-    // MSG91 Credentials
-    const msg91AuthKey = process.env.MSG91_AUTH_KEY;
-    const msg91TemplateId = process.env.MSG91_TEMPLATE_ID;
+    if (hasMsg91) {
+      // MSG91 expects the country code with no '+'. 10-digit numbers default to India.
+      const res = await fetch('https://control.msg91.com/api/v5/otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'authkey': msg91AuthKey as string
+        },
+        body: JSON.stringify({
+          template_id: msg91TemplateId,
+          mobile: phone.length === 10 ? `91${phone}` : phone,
+          otp: otpCode
+        })
+      });
 
-    // Twilio Credentials
-    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-    const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
-    const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
-
-    if (msg91AuthKey && msg91TemplateId) {
-      try {
-        // MSG91 expects mobile with country code but no '+' sign (e.g., 919876543210 or 19727345481)
-        const cleanPhone = phone.replace(/\D/g, '');
-        // Default to India (91) if 10 digits, else use as is
-        const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-
-        const msg91Res = await fetch('https://control.msg91.com/api/v5/otp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'authkey': msg91AuthKey
-          },
-          body: JSON.stringify({
-            template_id: msg91TemplateId,
-            mobile: formattedPhone,
-            otp: otpCode
-          })
-        });
-
-        const msg91Data = await msg91Res.json();
-        if (msg91Data.type === 'error') {
-          console.error('MSG91 Error:', msg91Data);
-        }
-      } catch (err) {
-        console.error('MSG91 Request Failed:', err);
+      const msg91Data = await res.json().catch(() => null);
+      if (!res.ok || msg91Data?.type === 'error') {
+        console.error('MSG91 Error:', msg91Data);
+        return NextResponse.json({ error: 'Could not send the OTP. Please try again.' }, { status: 502 });
       }
-    } else if (twilioSid && twilioAuth && twilioPhone) {
+    } else if (hasTwilio) {
       try {
-        const client = twilio(twilioSid, twilioAuth);
-        const cleanPhone = phone.replace(/\D/g, '');
-        let formattedPhone = phone;
-        if (!phone.startsWith('+')) {
-          formattedPhone = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+1${cleanPhone}`;
-        }
-        
-        await client.messages.create({
+        await twilio(twilioSid, twilioAuth).messages.create({
           body: `Your CheckoutFlow verification code is: ${otpCode}. Valid for 5 minutes.`,
           from: twilioPhone,
-          to: formattedPhone
+          to: phone.length === 10 ? `+91${phone}` : `+${phone}`
         });
-      } catch (smsError: any) {
+      } catch (smsError) {
         console.error('Twilio SMS Failed:', smsError);
-        return NextResponse.json({ error: `Twilio Error: ${smsError.message}` }, { status: 400 });
+        return NextResponse.json({ error: 'Could not send the OTP. Please try again.' }, { status: 502 });
       }
     } else {
-      console.warn('No SMS provider credentials found in env. Falling back to simulator only.');
-      return NextResponse.json({ 
-        success: true, 
-        message: 'OTP sent successfully (Simulated)',
-        simulatedCode: otpCode 
+      return NextResponse.json({
+        success: true,
+        message: 'OTP sent successfully (Test mode)',
+        simulatedCode: otpCode
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'OTP sent successfully'
     });
 

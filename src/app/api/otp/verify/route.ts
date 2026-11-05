@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createCheckoutSession, normalizePhone, safeEqual } from '@/lib/checkout-session';
+
+const MAX_ATTEMPTS = 5;
 
 export async function POST(request: Request) {
   try {
-    const { shop, phone, code } = await request.json();
+    const { shop, phone: rawPhone, code } = await request.json();
+    const phone = normalizePhone(rawPhone);
 
     if (!shop || !phone || !code) {
       return NextResponse.json({ error: 'Shop, phone, and code are required' }, { status: 400 });
@@ -21,7 +25,7 @@ export async function POST(request: Request) {
     const verification = await prisma.otpVerification.findFirst({
       where: {
         merchantId: merchant.id,
-        phone: phone,
+        phone,
         verified: false
       },
       orderBy: {
@@ -37,17 +41,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ valid: false, error: 'OTP has expired. Please request a new one.' }, { status: 400 });
     }
 
-    if (verification.code !== code.toString()) {
+    // Count the attempt atomically so parallel guesses can't exceed the limit.
+    const attempt = await prisma.otpVerification.updateMany({
+      where: { id: verification.id, verified: false, attempts: { lt: MAX_ATTEMPTS } },
+      data: { attempts: { increment: 1 } }
+    });
+
+    if (attempt.count === 0) {
+      return NextResponse.json({ valid: false, error: 'Too many incorrect attempts. Please request a new OTP.' }, { status: 429 });
+    }
+
+    if (!safeEqual(verification.code, String(code))) {
       return NextResponse.json({ valid: false, error: 'Incorrect OTP code.' }, { status: 400 });
     }
 
-    // Mark as verified
-    await prisma.otpVerification.update({
-      where: { id: verification.id },
+    // Each code works once.
+    const used = await prisma.otpVerification.updateMany({
+      where: { id: verification.id, verified: false },
       data: { verified: true }
     });
 
-    return NextResponse.json({ success: true, valid: true });
+    if (used.count === 0) {
+      return NextResponse.json({ valid: false, error: 'OTP has already been used.' }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      valid: true,
+      sessionToken: createCheckoutSession(merchant.shopDomain, phone)
+    });
 
   } catch (error) {
     console.error('Verify OTP Error:', error);

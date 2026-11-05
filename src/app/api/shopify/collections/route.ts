@@ -1,28 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('shopify_app_session')?.value;
-    
-    // In production we verify the session properly. For MVP we use the latest merchant
-    let merchant;
-    if (sessionCookie) {
-      merchant = await prisma.merchant.findUnique({ where: { id: sessionCookie } });
-    }
-    
-    if (!merchant) {
-      merchant = await prisma.merchant.findFirst({
-        where: { isActive: true },
-        orderBy: { createdAt: 'desc' }
-      });
-    }
-
-    if (!merchant || !merchant.accessToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const merchant = await getLoggedInMerchant();
+    if (!merchant || !merchant.accessToken) return unauthorized();
 
     const response = await fetch(`https://${merchant.shopDomain}/admin/api/2024-01/graphql.json`, {
       method: 'POST',

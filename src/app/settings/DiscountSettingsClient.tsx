@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 
-export default function DiscountSettingsClient({ merchantId, initialDiscounts = [] }: { merchantId: string, initialDiscounts?: any[] }) {
+export default function DiscountSettingsClient({ initialDiscounts = [] }: { initialDiscounts?: any[] }) {
   const [discounts, setDiscounts] = useState(initialDiscounts);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -17,7 +17,7 @@ export default function DiscountSettingsClient({ merchantId, initialDiscounts = 
 
   const fetchDiscounts = async () => {
     try {
-      const res = await fetch(`/api/settings/discounts?merchantId=${merchantId}`);
+      const res = await fetch('/api/settings/discounts');
       const data = await res.json();
       if (data.success) setDiscounts(data.discounts);
     } catch (e) {}
@@ -26,7 +26,7 @@ export default function DiscountSettingsClient({ merchantId, initialDiscounts = 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const payload = { ...formData, merchantId, id: editingId };
+      const payload = { ...formData, id: editingId };
       const res = await fetch('/api/settings/discounts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });

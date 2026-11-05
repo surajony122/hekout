@@ -1,19 +1,27 @@
-import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { cookies } from 'next/headers';
+import { safeEqual } from '@/lib/checkout-session';
+import {
+  MERCHANT_SESSION_COOKIE,
+  SESSION_MAX_AGE_SECONDS,
+  createMerchantSessionToken,
+  normalizeShopDomain,
+  redirectTo,
+} from '@/lib/merchant-session';
+
+const OAUTH_STATE_COOKIE = 'shopify_oauth_state';
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const searchParams = url.searchParams;
-  
-  const shop = searchParams.get('shop');
+  const searchParams = new URL(request.url).searchParams;
+
+  const shop = normalizeShopDomain(searchParams.get('shop'));
   const code = searchParams.get('code');
   const hmac = searchParams.get('hmac');
+  const state = searchParams.get('state');
 
-  const hostUrl = process.env.HOST || (process.env.SHOPIFY_REDIRECT_URI ? new URL(process.env.SHOPIFY_REDIRECT_URI).origin : 'http://localhost:3000');
-
-  if (!shop || !code || !hmac) {
-    return NextResponse.redirect(`${hostUrl}/dashboard?error=missing_params`);
+  if (!shop || !code || !hmac || !state) {
+    return redirectTo('/login?error=missing_params');
   }
 
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
@@ -21,10 +29,18 @@ export async function GET(request: Request) {
 
   if (!clientSecret || !clientId) {
     console.error("Missing SHOPIFY_CLIENT_SECRET or SHOPIFY_CLIENT_ID in env.");
-    return NextResponse.redirect(`${hostUrl}/dashboard?error=server_config`);
+    return redirectTo('/login?error=server_config');
   }
 
-  // 1. Verify HMAC
+  // 1. This browser must be the one that started the login
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
+  if (!expectedState || !safeEqual(expectedState, state)) {
+    console.error("OAuth state validation failed.");
+    return redirectTo('/login?error=invalid_state');
+  }
+
+  // 2. The request must really come from Shopify
   const paramsObj = Object.fromEntries(searchParams.entries());
   delete paramsObj['hmac'];
   const message = Object.keys(paramsObj)
@@ -37,12 +53,12 @@ export async function GET(request: Request) {
     .update(message)
     .digest('hex');
 
-  if (generatedHash !== hmac) {
+  if (!safeEqual(generatedHash, hmac)) {
     console.error("HMAC validation failed.");
-    return NextResponse.redirect(`${hostUrl}/dashboard?error=hmac_failed`);
+    return redirectTo('/login?error=hmac_failed');
   }
 
-  // 2. Exchange code for access token
+  // 3. Exchange code for access token
   try {
     const accessTokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: 'POST',
@@ -57,13 +73,13 @@ export async function GET(request: Request) {
     const tokenData = await accessTokenResponse.json();
 
     if (!accessTokenResponse.ok || !tokenData.access_token) {
-      console.error("Failed to fetch access token:", tokenData);
-      return NextResponse.redirect(`${hostUrl}/dashboard?error=token_exchange_failed`);
+      console.error("Failed to fetch access token, status:", accessTokenResponse.status);
+      return redirectTo('/login?error=token_exchange_failed');
     }
 
     const accessToken = tokenData.access_token;
 
-    // 3. Upsert the merchant in our database with real access token
+    // 4. Upsert the merchant in our database with real access token
     await prisma.merchant.upsert({
       where: { shopDomain: shop },
       update: {
@@ -78,10 +94,19 @@ export async function GET(request: Request) {
       },
     });
 
-    // 4. Redirect to the merchant dashboard
-    return NextResponse.redirect(`${hostUrl}/dashboard`);
+    // 5. Log the merchant in and open their dashboard
+    const response = redirectTo('/');
+    response.cookies.set(MERCHANT_SESSION_COOKIE, createMerchantSessionToken(shop), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    });
+    response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: '/api/auth' });
+    return response;
   } catch (error) {
     console.error('OAuth Callback Error:', error);
-    return NextResponse.redirect(`${hostUrl}/dashboard?error=oauth_failed`);
+    return redirectTo('/login?error=oauth_failed');
   }
 }
