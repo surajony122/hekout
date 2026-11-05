@@ -1,33 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const cookieStore = await cookies();
-    let shop = cookieStore.get('shop_domain')?.value;
-
-    let merchant = null;
-    
-    if (shop) {
-      merchant = await prisma.merchant.findUnique({
-        where: { shopDomain: shop }
-      });
-    }
-
-    // Fallback to first active merchant if no cookie (for direct testing)
-    if (!merchant) {
-      merchant = await prisma.merchant.findFirst({
-        where: { isActive: true },
-        orderBy: { createdAt: 'desc' }
-      });
-    }
-
-    if (!merchant) {
-      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
-    }
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
 
     // 1. Fetch all COD orders
     const codOrders = await prisma.order.findMany({

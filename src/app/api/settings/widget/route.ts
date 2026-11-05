@@ -1,20 +1,41 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const { merchantId, ...settingsData } = data;
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
 
-    if (!merchantId) {
-      return NextResponse.json({ success: false, error: 'Merchant ID required' }, { status: 400 });
-    }
+    const {
+      primaryColor,
+      brandLogoUrl,
+      preLoginBannerText,
+      preLoginBannerBg,
+      preLoginBannerColor,
+      postLoginBannerText,
+      postLoginBannerBg,
+      postLoginBannerColor,
+      fbPixelId,
+    } = await request.json();
+
+    const settingsData = {
+      primaryColor,
+      brandLogoUrl,
+      preLoginBannerText,
+      preLoginBannerBg,
+      preLoginBannerColor,
+      postLoginBannerText,
+      postLoginBannerBg,
+      postLoginBannerColor,
+      fbPixelId,
+    };
 
     const settings = await prisma.widgetSettings.upsert({
-      where: { merchantId },
+      where: { merchantId: merchant.id },
       update: settingsData,
       create: {
-        merchantId,
+        merchantId: merchant.id,
         ...settingsData
       }
     });

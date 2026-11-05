@@ -1,27 +1,25 @@
 import { prisma } from '@/lib/prisma';
+import { redirect } from 'next/navigation';
+import { getLoggedInMerchant } from '@/lib/merchant-auth';
 import RecoveryClient from './RecoveryClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RecoveryPage() {
+  const merchant = await getLoggedInMerchant();
+  if (!merchant) redirect('/login');
+
   let abandonedOrders: any[] = [];
-  
+
   try {
-    const merchant = await prisma.merchant.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
+    abandonedOrders = await prisma.order.findMany({
+      where: {
+        merchantId: merchant.id,
+        orderStatus: { in: ['Pending', 'Draft_Created', 'Failed'] }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
     });
-    
-    if (merchant) {
-      abandonedOrders = await prisma.order.findMany({
-        where: { 
-          merchantId: merchant.id,
-          orderStatus: { in: ['Pending', 'Draft_Created', 'Failed'] }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-    }
   } catch (err) {
     console.error(err);
   }

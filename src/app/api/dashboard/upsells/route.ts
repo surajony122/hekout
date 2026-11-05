@@ -1,18 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const shop = cookieStore.get('shop_domain')?.value;
-
-    if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const merchant = await prisma.merchant.findUnique({ where: { shopDomain: shop } });
-    if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
 
     const funnels = await prisma.upsellFunnel.findMany({
       where: { merchantId: merchant.id },
@@ -28,12 +23,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const shop = cookieStore.get('shop_domain')?.value;
-    if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const merchant = await prisma.merchant.findUnique({ where: { shopDomain: shop } });
-    if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
 
     const data = await request.json();
     const { name, offerTitle, offerVariantId, offerPrice, discountType, discountValue, triggerVariantId } = data;
@@ -61,29 +52,43 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const data = await request.json();
-    const { id, isActive } = data;
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
 
-    const funnel = await prisma.upsellFunnel.update({
-      where: { id },
-      data: { isActive }
+    const { id, isActive } = await request.json();
+
+    const updated = await prisma.upsellFunnel.updateMany({
+      where: { id, merchantId: merchant.id },
+      data: { isActive: Boolean(isActive) }
     });
+    if (updated.count === 0) {
+      return NextResponse.json({ error: 'Upsell not found' }, { status: 404 });
+    }
 
-    return NextResponse.json({ success: true, funnel });
+    return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Upsell API PATCH Error:', error);
     return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const data = await request.json();
-    const { id } = data;
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
 
-    await prisma.upsellFunnel.delete({ where: { id } });
+    const { id } = await request.json();
+
+    const deleted = await prisma.upsellFunnel.deleteMany({
+      where: { id, merchantId: merchant.id }
+    });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: 'Upsell not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Upsell API DELETE Error:', error);
     return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
   }
 }

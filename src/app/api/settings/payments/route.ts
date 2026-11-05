@@ -1,19 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getLoggedInMerchant, unauthorized } from '@/lib/merchant-auth';
 
 export async function POST(request: Request) {
   try {
+    const merchant = await getLoggedInMerchant();
+    if (!merchant) return unauthorized();
+
     const body = await request.json();
-    const { merchantId } = body;
-
-    if (!merchantId) return NextResponse.json({ error: 'Merchant ID required' }, { status: 400 });
-
-    const merchant = await prisma.merchant.findUnique({
-      where: { id: merchantId }
-    });
-
-    if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
 
       const {
       razorpayKeyId,
