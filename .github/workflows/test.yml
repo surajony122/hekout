@@ -1,0 +1,21 @@
+# Runs the test suite on every pull request and on main, so a red check shows before merging.
+# The tests use only fake Shopify, Razorpay and Twilio, so no secrets are needed.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test

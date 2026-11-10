@@ -45,6 +45,8 @@ The tests are in `tests/`:
 
 The fake Shopify in `tests/helpers/fake-services.mjs` works out draft order totals from its own catalogue, so new pricing tests only need to set prices and discounts.
 
+GitHub runs `npm test` on every pull request (`.github/workflows/test.yml`), and the result shows as a check on the PR.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
