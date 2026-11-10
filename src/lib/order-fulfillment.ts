@@ -210,7 +210,13 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
 
       await prisma.order.update({
         where: { id: orderId },
-        data: { shopifyOrderId, orderStatusUrl, orderStatus: 'Synced' },
+        data: {
+          shopifyOrderId,
+          orderStatusUrl,
+          orderStatus: 'Synced',
+          shopifyFinancialStatus: placed?.body?.order?.financial_status ?? null,
+          shopifyFulfillmentStatus: placed?.body?.order?.fulfillment_status ?? 'unfulfilled',
+        },
       });
 
       if (saved?.ruleIds?.length && order.customerPhone) {
