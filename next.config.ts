@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The test suite builds into its own folder, so it never disturbs a running dev server.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   async headers() {
     return [
       {

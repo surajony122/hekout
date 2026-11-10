@@ -44,3 +44,7 @@ next-env.d.ts
 
 # shopify cli
 .shopify
+
+# test suite
+/.next-test/
+/tests/.tmp/

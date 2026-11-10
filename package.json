@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "npx prisma generate && next build",
     "start": "prisma migrate deploy && next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node tests/run.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -39,8 +40,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
+    "embedded-postgres": "17.11.0-beta.19",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
+    "nock": "15.0.6",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
