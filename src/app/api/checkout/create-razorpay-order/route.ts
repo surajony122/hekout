@@ -4,12 +4,13 @@ import Razorpay from 'razorpay';
 import { CheckoutError, assertExpectedTotal, isPartialCodMethod, resolvePricing } from '@/lib/checkout-pricing';
 import { readCheckoutSession } from '@/lib/checkout-session';
 import { orderDataFromPricing } from '@/lib/order-fulfillment';
+import { trackingFromRequest } from '@/lib/meta-capi';
 import { planAllowsOnlinePayments, planAllowsPartialCod, planAllowsPopupOrders } from '@/lib/plans';
 import { revealSecret } from '@/lib/secrets';
 
 export async function POST(request: Request) {
   try {
-    const { shop, sessionToken, items, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, customerName, customerEmail, address, city, state, pincode, utmSource, utmMedium, utmCampaign } = await request.json();
+    const { shop, sessionToken, items, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, customerName, customerEmail, address, city, state, pincode, utmSource, utmMedium, utmCampaign, tracking: sentTracking } = await request.json();
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     // Saved before the customer pays, so a dropped connection can't lose a paid order.
     await prisma.order.create({
       data: {
-        ...orderDataFromPricing(merchant, pricing, customer, { source: utmSource, medium: utmMedium, campaign: utmCampaign }),
+        ...orderDataFromPricing(merchant, pricing, customer, { source: utmSource, medium: utmMedium, campaign: utmCampaign }, trackingFromRequest(request, sentTracking)),
         razorpayOrderId: order.id,
         amountPaid: pricing.isPartial ? pricing.amountDueNow : null,
         orderStatus: 'Awaiting_Payment',

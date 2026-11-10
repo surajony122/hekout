@@ -64,7 +64,11 @@ export async function GET(request: Request) {
         postLoginBannerText: ws?.postLoginBannerText || '',
         postLoginBannerBg: ws?.postLoginBannerBg || '#ecfdf5',
         postLoginBannerColor: ws?.postLoginBannerColor || '#059669',
-        fbPixelId: ws?.fbPixelId || null
+        fbPixelId: ws?.fbPixelId || null,
+        // Public IDs only. The Meta token stays on the server.
+        ga4MeasurementId: ws?.ga4MeasurementId || null,
+        googleAdsId: ws?.googleAdsId || null,
+        googleAdsLabel: ws?.googleAdsLabel || null,
       }
     }, { headers: { 'Cache-Control': 'public, max-age=60' } });
 

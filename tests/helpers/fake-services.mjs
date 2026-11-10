@@ -196,6 +196,13 @@ export const twilio = {
   },
 };
 
+export const meta = {
+  reset() {
+    this.requests = [];
+    this.fail = false;
+  },
+};
+
 export const msg91 = {
   reset() {
     this.requests = [];
@@ -220,6 +227,7 @@ export function installFakeServices() {
   razorpay.reset();
   twilio.reset();
   msg91.reset();
+  meta.reset();
 
   nock.disableNetConnect();
   nock.enableNetConnect((host) => host.startsWith('127.0.0.1') || host.startsWith('localhost'));
@@ -305,6 +313,14 @@ export function installFakeServices() {
       return [201, { sid: `SM${twilio.messages.length}`, status: 'queued', to: form.To, body: form.Body }];
     }));
 
+  nock('https://graph.facebook.com').persist()
+    .post(/^\/v\d+\.\d+\/\d+\/events$/)
+    .reply(reply((request, body) => {
+      meta.requests.push({ path: pathOf(request), body });
+      if (meta.fail) return [400, { error: { message: 'Invalid OAuth access token.', code: 190 } }];
+      return [200, { events_received: body.data.length, fbtrace_id: 'test' }];
+    }));
+
   nock('https://control.msg91.com').persist()
     .post('/api/v5/otp')
     .reply(reply((_request, body) => {
@@ -318,4 +334,5 @@ export function resetFakeServices() {
   razorpay.reset();
   twilio.reset();
   msg91.reset();
+  meta.reset();
 }
