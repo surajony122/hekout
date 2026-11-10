@@ -20,6 +20,31 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Tests
+
+```bash
+npm test
+```
+
+This builds the app, starts a throwaway Postgres (downloaded by the `embedded-postgres` package, so Docker isn't needed), applies the Prisma migrations, and runs the real app with Shopify, Razorpay, Twilio and MSG91 faked by [nock](https://github.com/nock/nock). No real secrets or network access are used. A full run takes under a minute.
+
+- `npm test -- pricing` runs only test files whose name contains `pricing`.
+- `TEST_SKIP_BUILD=1 npm test` reuses the last test build, for when only tests changed.
+- `TEST_VERBOSE=1 npm test` also shows the app's own logs.
+
+The tests are in `tests/`:
+
+| File | Covers |
+| --- | --- |
+| `security-sessions.test.mjs` | Checkout session tokens, merchant login cookies, the Shopify login flow |
+| `security-isolation.test.mjs` | One store's login can't change another store's settings or orders |
+| `security-otp.test.mjs` | OTP sending limits, Twilio/MSG91, code checking, webhook signatures |
+| `pricing.test.mjs` | Own codes, slabs, tags, collections, free gifts, limits, Shopify codes, Partial COD, shipping rules, quote tokens |
+| `orders.test.mjs` | COD, prepaid and Partial COD orders, retries, offers counted once, the OTP Verify plan |
+| `widget.test.mjs` | `public/widget.js` in jsdom: OTP autofill, safe offer text, the gift row, the OTP + COD journey, and that it matches `build_v3.js` output |
+
+The fake Shopify in `tests/helpers/fake-services.mjs` works out draft order totals from its own catalogue, so new pricing tests only need to set prices and discounts.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
