@@ -70,7 +70,15 @@ model Order {
   feeAmount           Float    @default(0) @map("fee_amount")
 
   verificationStatus  String?  @map("verification_status") // Pending, Verified
-  orderStatus         String?  @map("order_status") // Pending, Synced, Failed
+  orderStatus         String?  @map("order_status") // Pending, Synced, Failed, Cancelled
+
+  // Kept up to date from Shopify's order webhooks
+  shopifyFinancialStatus   String?   @map("shopify_financial_status") // pending, paid, partially_paid, refunded, ...
+  shopifyFulfillmentStatus String?   @map("shopify_fulfillment_status") // unfulfilled, partial, fulfilled, restocked
+  cancelledAt              DateTime? @map("cancelled_at")
+  cancelReason             String?   @map("cancel_reason")
+  refundedAmount           Float     @default(0) @map("refunded_amount")
+  shopifyUpdatedAt         DateTime? @map("shopify_updated_at")
   
   // Marketing Attribution
   utmSource         String?  @map("utm_source")

@@ -3,6 +3,9 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { calculateFee, isCheckoutPlan, planFeePercent } from '@/lib/plans';
 import { PLAN_ATTRIBUTE } from '@/lib/shopify-checkout';
+import { applyShopifyOrderUpdate } from '@/lib/shopify-order-sync';
+
+const ORDER_CHANGE_TOPICS = ['orders/updated', 'orders/cancelled'];
 
 function isFromShopify(rawBody: string, signature: string | null) {
   const secret = process.env.SHOPIFY_CLIENT_SECRET;
@@ -18,8 +21,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
+  const topic = request.headers.get('x-shopify-topic') ?? '';
+
+  // Cancellations, refunds, fulfilment and edits made in Shopify.
+  if (ORDER_CHANGE_TOPICS.includes(topic)) {
+    try {
+      const merchant = await prisma.merchant.findUnique({
+        where: { shopDomain: request.headers.get('x-shopify-shop-domain') ?? '' },
+      });
+      if (merchant) await applyShopifyOrderUpdate(merchant.id, JSON.parse(rawBody));
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      console.error('Shopify Order Update Webhook Error:', error);
+      return NextResponse.json({ error: 'Could not update the order' }, { status: 500 });
+    }
+  }
+
   // Anything else must still get a 200, or Shopify keeps retrying it.
-  if (request.headers.get('x-shopify-topic') !== 'orders/create') {
+  if (topic !== 'orders/create') {
     return NextResponse.json({ success: true });
   }
 

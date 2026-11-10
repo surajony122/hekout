@@ -9,6 +9,52 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Download, MoreHorizontal, ArrowUpRight, Search, Eye } from 'lucide-react';
 
+// Shopify's own statuses, kept up to date by its order webhooks. Older orders fall back to a guess.
+const PAYMENT_LABELS: Record<string, [string, 'green' | 'amber' | 'red' | 'slate']> = {
+  paid: ['Paid', 'green'],
+  partially_paid: ['Partly paid', 'amber'],
+  pending: ['Payment pending', 'amber'],
+  authorized: ['Authorized', 'amber'],
+  partially_refunded: ['Partly refunded', 'slate'],
+  refunded: ['Refunded', 'slate'],
+  voided: ['Voided', 'slate'],
+};
+const FULFILLMENT_LABELS: Record<string, [string, 'green' | 'amber' | 'red' | 'slate']> = {
+  fulfilled: ['Fulfilled', 'green'],
+  partial: ['Partly fulfilled', 'amber'],
+  unfulfilled: ['Unfulfilled', 'amber'],
+  restocked: ['Restocked', 'slate'],
+};
+const BADGE_COLORS = {
+  green: ['bg-emerald-50 text-emerald-700', 'bg-emerald-500'],
+  amber: ['bg-amber-50 text-amber-700', 'bg-amber-500'],
+  red: ['bg-rose-50 text-rose-700', 'bg-rose-500'],
+  slate: ['bg-slate-100 text-slate-600', 'bg-slate-400'],
+};
+
+type StatusFields = {
+  orderStatus?: string | null;
+  shopifyOrderId?: string | null;
+  shopifyFinancialStatus?: string | null;
+  shopifyFulfillmentStatus?: string | null;
+  paymentMethod?: string | null;
+};
+
+function orderBadges(order: StatusFields): [string, keyof typeof BADGE_COLORS][] {
+  if (order.orderStatus === 'Cancelled') return [['Cancelled', 'red']];
+  if (!order.shopifyOrderId) return [[order.orderStatus === 'Failed' ? 'Not placed' : 'Not in Shopify yet', 'red']];
+  const payment = PAYMENT_LABELS[order.shopifyFinancialStatus ?? ''] ?? (order.paymentMethod === 'COD' ? ['Payment pending', 'amber'] : ['Paid', 'green']);
+  const fulfillment = FULFILLMENT_LABELS[order.shopifyFulfillmentStatus ?? 'unfulfilled'] ?? ['Unfulfilled', 'amber'];
+  return [payment, fulfillment];
+}
+
+const isUnfulfilled = (order: StatusFields) =>
+  order.orderStatus !== 'Cancelled' && !['fulfilled', 'restocked'].includes(order.shopifyFulfillmentStatus ?? '');
+const isUnpaid = (order: StatusFields) =>
+  order.orderStatus !== 'Cancelled' && (order.shopifyFinancialStatus
+    ? ['pending', 'partially_paid', 'authorized'].includes(order.shopifyFinancialStatus)
+    : order.paymentMethod === 'COD');
+
 export default function OrdersClient({ orders, shopDomain }: { orders: any[], shopDomain: string }) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,8 +62,8 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
 
   const filteredOrders = orders.filter(order => {
     // Tab filter
-    if (filterTab === 'unfulfilled' && order.orderStatus === 'Synced') return false;
-    if (filterTab === 'unpaid' && order.paymentMethod !== 'COD') return false;
+    if (filterTab === 'unfulfilled' && !isUnfulfilled(order)) return false;
+    if (filterTab === 'unpaid' && !isUnpaid(order)) return false;
     // Search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -31,9 +77,9 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
 
   const handleExport = () => {
     if (!filteredOrders.length) return;
-    const headers = 'Order ID,Customer Name,Customer Phone,Customer Email,Status,Payment Method,Total\n';
+    const headers = 'Order ID,Customer Name,Customer Phone,Customer Email,Status,Payment Method,Total,Payment Status,Fulfillment Status\n';
     const csv = filteredOrders.map(o => 
-      `"${o.shopifyOrderId || ''}","${o.customerName || ''}","${o.customerPhone || ''}","${o.customerEmail || ''}","${o.orderStatus || ''}","${o.paymentMethod || ''}","${o.total || 0}"`
+      `"${o.shopifyOrderId || ''}","${o.customerName || ''}","${o.customerPhone || ''}","${o.customerEmail || ''}","${o.orderStatus || ''}","${o.paymentMethod || ''},"${o.total || 0}","${o.shopifyFinancialStatus || ''}","${o.shopifyFulfillmentStatus || ''}"`
     ).join('\n');
     const blob = new Blob([headers + csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -109,7 +155,6 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
               </TableRow>
             ) : (
               filteredOrders.map((order) => {
-                const isCompleted = order.orderStatus === 'Synced';
                 
                 return (
                   <TableRow key={order.id} className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100" onClick={() => setSelectedOrder(order)}>
@@ -123,14 +168,12 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                     </TableCell>
                     <TableCell className="py-4">
                       <div className="flex gap-2 mt-2 flex-wrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${order.paymentMethod === 'COD' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${order.paymentMethod === 'COD' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                          {order.paymentMethod === 'COD' ? 'Unpaid' : 'Paid'}
-                        </span>
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${isCompleted ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                          {isCompleted ? 'Fulfilled' : 'Unfulfilled'}
-                        </span>
+                        {orderBadges(order).map(([label, color]) => (
+                          <span key={label} className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${BADGE_COLORS[color][0]}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${BADGE_COLORS[color][1]}`}></span>
+                            {label}
+                          </span>
+                        ))}
                         {order.utmSource && (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                             {order.utmSource}
@@ -230,6 +273,11 @@ export default function OrdersClient({ orders, shopDomain }: { orders: any[], sh
                   <div className="pt-4 flex flex-col gap-1 text-xs text-slate-500">
                     <span>Method: <strong className="text-slate-700">{selectedOrder.paymentMethod}</strong></span>
                     {selectedOrder.paymentId && <span>Txn ID: <strong className="text-slate-700">{selectedOrder.paymentId}</strong></span>}
+                    <span>Shopify status: <strong className="text-slate-700">{orderBadges(selectedOrder).map(([label]) => label).join(' · ')}</strong></span>
+                    {selectedOrder.cancelledAt && (
+                      <span>Cancelled: <strong className="text-rose-700">{new Date(selectedOrder.cancelledAt).toLocaleString('en-IN')}{selectedOrder.cancelReason ? ` (${String(selectedOrder.cancelReason).toLowerCase()})` : ''}</strong></span>
+                    )}
+                    {selectedOrder.refundedAmount > 0 && <span>Refunded: <strong className="text-slate-700">₹{selectedOrder.refundedAmount.toLocaleString()}</strong></span>}
                   </div>
                 </div>
               </div>

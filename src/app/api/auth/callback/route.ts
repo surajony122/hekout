@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { safeEqual } from '@/lib/checkout-session';
 import { protectSecret } from '@/lib/secrets';
+import { ensureOrderWebhooks } from '@/lib/shopify-order-sync';
 import {
   MERCHANT_SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -94,6 +95,9 @@ export async function GET(request: Request) {
         plan: 'free',
       },
     });
+
+    // So Shopify tells us when an order is cancelled, refunded or fulfilled. Login doesn't wait for it.
+    ensureOrderWebhooks({ shopDomain: shop, accessToken }).catch(() => {});
 
     // 5. Log the merchant in and open their dashboard
     const response = redirectTo('/');

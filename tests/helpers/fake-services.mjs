@@ -29,6 +29,8 @@ export const shopify = {
     this.failCreates = 0;
     this.priceChangeOnCreate = 0;
     this.failVariantDetails = false;
+    // shop -> [{ id, topic, uri }]
+    this.webhooks = new Map();
   },
 
   callsOf(kind, shop) {
@@ -161,6 +163,19 @@ export const shopify = {
       record('storeHost');
       return { data: { shop: { primaryDomain: { host: this.storeHost } } } };
     }
+    if (query.includes('webhookSubscriptionCreate')) {
+      record('webhookCreate');
+      const list = this.webhooks.get(shop) ?? [];
+      const hook = { id: `gid://shopify/WebhookSubscription/${this.nextId++}`, topic: variables.topic, uri: variables.webhookSubscription.uri };
+      list.push(hook);
+      this.webhooks.set(shop, list);
+      return { data: { webhookSubscriptionCreate: { webhookSubscription: hook, userErrors: [] } } };
+    }
+    if (query.includes('webhookSubscriptions(')) {
+      record('webhookList');
+      const nodes = (this.webhooks.get(shop) ?? []).filter((hook) => !variables.topics || variables.topics.includes(hook.topic));
+      return { data: { webhookSubscriptions: { nodes } } };
+    }
     if (query.includes('currentAppInstallation')) {
       record('grantedScopes');
       return { data: { currentAppInstallation: { accessScopes: this.grantedScopes.map((handle) => ({ handle })) } } };
@@ -269,7 +284,15 @@ export function installFakeServices() {
     .get(/\/admin\/api\/2024-01\/orders\/\d+\.json/)
     .reply(reply((request) => {
       const id = pathOf(request).match(/orders\/(\d+)/)[1];
-      return [200, { order: { id: Number(id), order_status_url: `https://${shopOf(request)}/orders/${id}/status` } }];
+      const placed = shopify.orders.get(id);
+      return [200, {
+        order: {
+          id: Number(id),
+          order_status_url: `https://${shopOf(request)}/orders/${id}/status`,
+          financial_status: placed?.paymentPending ? (placed.transactions.length > 0 ? 'partially_paid' : 'pending') : 'paid',
+          fulfillment_status: null,
+        },
+      }];
     }))
     .post(/\/admin\/api\/2024-01\/orders\/\d+\/transactions\.json/)
     .reply(reply((request, body) => {
