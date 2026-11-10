@@ -454,6 +454,10 @@ async function priceForMethod(
 
   const totalDiscount = amountOf(final.totalDiscountsSet);
   const orderTotal = amountOf(final.totalPriceSet);
+  // Shopify counts a gift in the subtotal and again as a discount. Customers see it once, as free.
+  const giftLines = final.lineItems.slice(base.items.length, base.items.length + gifts.length);
+  const giftValues = giftLines.map((line, index) => roundMoney(amountOf(line.originalUnitPriceSet) * gifts[index].giftQuantity));
+  const giftValue = giftValues.reduce((sum, value) => sum + value, 0);
   const partialDue = settings?.partialCodType === 'percentage'
     ? roundMoney(orderTotal * (Math.max(0, settings.partialCodAmount ?? 0) / 100))
     : Math.max(0, settings?.partialCodAmount ?? 0);
@@ -474,15 +478,15 @@ async function priceForMethod(
     firstPrice: amountOf(final.lineItems[0].originalUnitPriceSet),
     firstVariantId: base.items[0].variantId,
     productTitle: [...base.titles, ...gifts.map((gift) => `Free: ${gift.giftTitle ?? 'Gift'}`)].join(', ').slice(0, 200),
-    subtotal: amountOf(final.totalLineItemsPriceSet),
-    discount: roundMoney(Math.max(0, totalDiscount - prepaidDiscount)),
+    subtotal: roundMoney(amountOf(final.totalLineItemsPriceSet) - giftValue),
+    discount: roundMoney(Math.max(0, totalDiscount - prepaidDiscount - giftValue)),
     prepaidDiscount,
     shippingFee,
     codFee,
     tax: amountOf(final.totalTaxSet),
     total: orderTotal,
     ruleIds: usedRuleIds,
-    gifts: gifts.map((gift) => ({ title: gift.giftTitle ?? 'Free gift', quantity: gift.giftQuantity })),
+    gifts: gifts.map((gift, index) => ({ title: gift.giftTitle ?? 'Free gift', quantity: gift.giftQuantity, value: giftValues[index] ?? 0 })),
     upsell: base.upsellId
       ? { id: base.upsellId, revenue: amountOf(final.lineItems[final.lineItems.length - 1].discountedTotalSet) }
       : null,
