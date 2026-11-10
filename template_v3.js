@@ -545,7 +545,7 @@ open: async function(options) {
                 <div style="font-size:16px; font-weight:700; margin:20px 0 12px; color:var(--text-main);">Bill summary</div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Sub total</span><span id="tSub" style="color:var(--text-main); font-weight:600;">₹${total.toLocaleString('en-IN')}</span></div>
                 <div id="trDisc" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Discount on MRP</span><span id="tDisc" style="color:var(--green); font-weight:600;">-₹0</span></div>
-                <div id="trGift" style="display:none; justify-content:space-between; gap:12px; margin-bottom:10px; font-size:14px;"><span id="tGift" style="color:var(--text2); font-weight:500;"></span><span style="color:var(--green); font-weight:600;">FREE</span></div>
+                <div id="trGift" style="display:none; justify-content:space-between; gap:12px; margin-bottom:10px; font-size:14px;"><span id="tGift" style="color:var(--text2); font-weight:500;"></span><span style="white-space:nowrap;"><s id="tGiftWas" style="color:var(--text3); font-weight:500; margin-right:6px;"></s><span style="color:var(--green); font-weight:600;">FREE</span></span></div>
                 <div id="trShip" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Shipping Fee</span><span id="tShipFee" style="color:var(--text-main); font-weight:600;">₹0</span></div>
                 <div id="trTax" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Tax</span><span id="tTax" style="color:var(--text-main); font-weight:600;"></span></div>
                 <div id="trPaidNow" style="display:none; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span style="color:var(--text2); font-weight:500;">Pay now</span><span id="tPaidNow" style="color:var(--text-main); font-weight:600;"></span></div>
@@ -913,6 +913,8 @@ open: async function(options) {
            const gifts = quote?.gifts || [];
            giftRow.style.display = gifts.length > 0 ? 'flex' : 'none';
            widgetRoot.getElementById('tGift').textContent = gifts.map((gift) => `Free gift: ${gift.title}${gift.quantity > 1 ? ` × ${gift.quantity}` : ''}`).join(', ');
+           const giftWorth = gifts.reduce((sum, gift) => sum + (Number(gift.value) || 0), 0);
+           widgetRoot.getElementById('tGiftWas').textContent = giftWorth > 0 ? money(giftWorth) : '';
         }
 
         const shipRow = widgetRoot.getElementById('trShip');
