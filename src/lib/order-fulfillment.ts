@@ -5,6 +5,7 @@ import { revealSecret } from '@/lib/secrets';
 import { createDraftOrder } from '@/lib/checkout-pricing';
 import { calculateFee, planFeePercent } from '@/lib/plans';
 import { recordRedemptions } from '@/lib/checkout-rules';
+import { sendMetaPurchase, type TrackingContext } from '@/lib/meta-capi';
 
 const SHOPIFY_REST_VERSION = '2024-01';
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
@@ -52,7 +53,8 @@ export function orderDataFromPricing(
   merchant: { id: string; checkoutPlan: string },
   pricing: PricingForOrder,
   customer: CustomerForOrder,
-  utm: { source?: string; medium?: string; campaign?: string }
+  utm: { source?: string; medium?: string; campaign?: string },
+  tracking: TrackingContext = {}
 ) {
   const feePercent = planFeePercent(merchant.checkoutPlan);
   return {
@@ -85,6 +87,7 @@ export function orderDataFromPricing(
       },
       upsell: pricing.upsell,
       ruleIds: pricing.ruleIds ?? [],
+      tracking,
     })) as Prisma.InputJsonValue,
     utmSource: utm.source || null,
     utmMedium: utm.medium || null,
@@ -214,6 +217,9 @@ export async function fulfillOrder(merchant: ShopMerchant, orderId: string, atte
         recordRedemptions(saved.ruleIds, orderId, order.customerPhone)
           .catch((error) => console.error('Record Discount Use Error:', error));
       }
+
+      // Reaches Meta even when the customer closed the page, such as a paid order found later.
+      sendMetaPurchase(merchant.id, orderId).catch(() => {});
 
       if (saved?.upsell) {
         prisma.upsellFunnel.update({

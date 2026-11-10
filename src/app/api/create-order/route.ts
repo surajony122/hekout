@@ -7,6 +7,7 @@ import { PAID_PAYMENT_STATUSES, fulfillOrder, orderDataFromPricing } from '@/lib
 import { planAllowsOnlinePayments, planAllowsPartialCod, planAllowsPopupOrders } from '@/lib/plans';
 import { revealSecret } from '@/lib/secrets';
 import { readCheckoutSession, safeEqual } from '@/lib/checkout-session';
+import { trackingFromRequest } from '@/lib/meta-capi';
 
 type PaymentProof = {
   razorpay_order_id?: unknown;
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
     const startedAt = Date.now();
     const data = await request.json();
     const { shop, sessionToken, items, customerName, customerEmail, address, city, state, pincode, paymentMethod, appliedCoupon, upsellVariantId, expectedTotal, quoteToken, utmSource, utmMedium, utmCampaign } = data;
+    const tracking = trackingFromRequest(request, data.tracking);
 
     if (typeof shop !== 'string' || !shop) {
       return NextResponse.json({ error: 'Shop is required' }, { status: 400 });
@@ -111,7 +113,7 @@ export async function POST(request: Request) {
       assertExpectedTotal(pricing.total, expectedTotal);
 
       const order = await prisma.order.create({
-        data: { ...orderDataFromPricing(merchant, pricing, customer, utm), orderStatus: 'Pending' },
+        data: { ...orderDataFromPricing(merchant, pricing, customer, utm, tracking), orderStatus: 'Pending' },
       });
       orderId = order.id;
       attempts = 2;
@@ -145,7 +147,7 @@ export async function POST(request: Request) {
           await verifyPaymentAmount(keyId, keySecret, proof.orderId, proof.paymentId, pricing.amountDueNow);
           const order = await prisma.order.create({
             data: {
-              ...orderDataFromPricing(merchant, pricing, customer, utm),
+              ...orderDataFromPricing(merchant, pricing, customer, utm, tracking),
               paymentId: proof.paymentId,
               razorpayOrderId: proof.orderId,
               amountPaid: pricing.isPartial ? pricing.amountDueNow : null,
@@ -187,6 +189,7 @@ export async function POST(request: Request) {
       // Their money is safe and the order is saved, so they must not be asked to pay again.
       return NextResponse.json({
         paymentReceived: true,
+        orderId,
         error: 'We received your payment and are confirming your order. You do not need to pay again.',
       }, { status: 202 });
     }

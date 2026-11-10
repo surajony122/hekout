@@ -208,6 +208,10 @@ model WidgetSettings {
   
   // Tracking
   fbPixelId               String? @map("fb_pixel_id")
+  metaCapiToken           String? @map("meta_capi_token") // Conversions API token, stored encrypted
+  ga4MeasurementId        String? @map("ga4_measurement_id")
+  googleAdsId             String? @map("google_ads_id")
+  googleAdsLabel          String? @map("google_ads_label")
 
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")

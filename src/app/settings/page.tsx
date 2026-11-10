@@ -111,7 +111,7 @@ export default async function SettingsPage() {
 
         <TabsContent value="widget" className="space-y-4">
           <WidgetSettingsClient
-            initialSettings={{ ...(widgetSettings || {}), storeName: merchant.storeName || '' }}
+            initialSettings={{ ...(widgetSettings || {}), metaCapiToken: undefined, storeName: merchant.storeName || '' }}
           />
         </TabsContent>
 
@@ -204,7 +204,15 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-4">
-          <IntegrationsClient initialPixelId={widgetSettings?.fbPixelId ?? ''} />
+          <IntegrationsClient
+            initial={{
+              fbPixelId: widgetSettings?.fbPixelId ?? '',
+              hasMetaCapiToken: Boolean(widgetSettings?.metaCapiToken),
+              ga4MeasurementId: widgetSettings?.ga4MeasurementId ?? '',
+              googleAdsId: widgetSettings?.googleAdsId ?? '',
+              googleAdsLabel: widgetSettings?.googleAdsLabel ?? '',
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>

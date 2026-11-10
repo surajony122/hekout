@@ -127,16 +127,11 @@
                  bannerText.textContent = widgetConfig.preLoginBannerText;
                  bannerText.style.color = widgetConfig.preLoginBannerColor || '';
               }
-              if (widgetConfig.fbPixelId && /^\d+$/.test(widgetConfig.fbPixelId)) {
-                 if (!window.fbq) {
-                    const queue = function() { queue.callMethod ? queue.callMethod.apply(queue, arguments) : queue.queue.push(arguments); };
-                    queue.push = queue; queue.loaded = true; queue.version = '2.0'; queue.queue = [];
-                    window.fbq = queue; if (!window._fbq) window._fbq = queue;
-                    loadScript('https://connect.facebook.net/en_US/fbevents.js').catch(() => {});
-                 }
-                 window.fbq('init', widgetConfig.fbPixelId);
-                 window.fbq('track', 'InitiateCheckout', { num_items: totalQuantity, currency: 'INR', value: subtotalBase });
-              }
+              setupTracking();
+              trackOnce('begin_checkout', () => {
+                 metaEvent('InitiateCheckout', { ...metaProducts(), value: subtotalBase });
+                 googleEvent('begin_checkout', { currency: 'INR', value: subtotalBase, items: googleItems() });
+              });
               const offerList = widgetRoot.getElementById('cpn-offers');
               if (offerList && widgetConfig.offers?.length > 0) {
                  // Built without HTML, since the text comes from the store's settings.
@@ -177,6 +172,84 @@
       let subtotalBase = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       let total = subtotalBase;
       
+      // --- TRACKING (Meta Pixel, GA4, Google Ads) ---
+      // IDs come from the store's settings and are checked again here, since they go into script URLs.
+      const trackingIds = () => ({
+         pixel: /^\d{5,20}$/.test(widgetConfig.fbPixelId || '') ? widgetConfig.fbPixelId : null,
+         ga4: /^G-[A-Z0-9]{4,20}$/.test(widgetConfig.ga4MeasurementId || '') ? widgetConfig.ga4MeasurementId : null,
+         ads: /^AW-\d{5,15}$/.test(widgetConfig.googleAdsId || '') ? widgetConfig.googleAdsId : null,
+         adsLabel: /^[A-Za-z0-9_-]{4,40}$/.test(widgetConfig.googleAdsLabel || '') ? widgetConfig.googleAdsLabel : null,
+      });
+      const setupTracking = () => {
+         const ids = trackingIds();
+         if (ids.pixel) {
+            if (!window.fbq) {
+               const queue = function() { queue.callMethod ? queue.callMethod.apply(queue, arguments) : queue.queue.push(arguments); };
+               queue.push = queue; queue.loaded = true; queue.version = '2.0'; queue.queue = [];
+               window.fbq = queue; if (!window._fbq) window._fbq = queue;
+               loadScript('https://connect.facebook.net/en_US/fbevents.js').catch(() => {});
+            }
+            window.fbq('init', ids.pixel);
+         }
+         const googleIds = [ids.ga4, ids.ads].filter(Boolean);
+         if (googleIds.length > 0) {
+            // The store's theme may already run gtag, and adding our IDs to it is fine.
+            if (!window.gtag) {
+               window.dataLayer = window.dataLayer || [];
+               window.gtag = function() { window.dataLayer.push(arguments); };
+               window.gtag('js', new Date());
+            }
+            loadScript(`https://www.googletagmanager.com/gtag/js?id=${googleIds[0]}`).catch(() => {});
+            googleIds.forEach((id) => window.gtag('config', id, { send_page_view: false }));
+         }
+      };
+      const metaEvent = (name, data, eventId) => {
+         if (!trackingIds().pixel || !window.fbq) return;
+         try { window.fbq('track', name, data, eventId ? { eventID: eventId } : undefined); } catch(e) {}
+      };
+      const googleEvent = (name, data) => {
+         const ids = trackingIds();
+         if (!(ids.ga4 || ids.ads) || !window.gtag) return;
+         try { window.gtag('event', name, data); } catch(e) {}
+      };
+      const metaProducts = () => ({
+         currency: 'INR',
+         content_type: 'product',
+         content_ids: cartItems.map((item) => String(item.variantId)),
+         contents: cartItems.map((item) => ({ id: String(item.variantId), quantity: item.quantity })),
+         num_items: totalQuantity,
+      });
+      const googleItems = () => cartItems.map((item) => ({ item_id: String(item.variantId), item_name: item.title || 'Product', price: Number(item.price) || 0, quantity: item.quantity }));
+      const tracked = new Set();
+      const trackOnce = (key, send) => { if (tracked.has(key)) return; tracked.add(key); send(); };
+      const readCookie = (name) => {
+         try {
+            const match = document.cookie.split('; ').find((row) => row.startsWith(name + '='));
+            return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : undefined;
+         } catch(e) { return undefined; }
+      };
+      // Sent with the order so the server's Meta event matches this browser's.
+      const trackingContext = () => ({ fbp: readCookie('_fbp'), fbc: readCookie('_fbc'), sourceUrl: window.location.href.slice(0, 500) });
+      const trackPaymentInfo = (method, value) => trackOnce(`payment_${method}`, () => {
+         metaEvent('AddPaymentInfo', { ...metaProducts(), value });
+         googleEvent('add_payment_info', { currency: 'INR', value, payment_type: method, items: googleItems() });
+      });
+      // Meta gets the same event ID as the server's Conversions API event, so the purchase counts once.
+      // Waits briefly for Google, since the page may move to the order page straight after.
+      const trackPurchase = (orderId, value, method) => new Promise((resolve) => {
+         if (!orderId || tracked.has(`purchase_${orderId}`)) return resolve();
+         tracked.add(`purchase_${orderId}`);
+         const ids = trackingIds();
+         metaEvent('Purchase', { ...metaProducts(), value }, `order_${orderId}`);
+         if (!(ids.ga4 || ids.ads) || !window.gtag) return resolve();
+         const timer = setTimeout(resolve, 1000);
+         const done = () => { clearTimeout(timer); resolve(); };
+         googleEvent('purchase', { transaction_id: String(orderId), currency: 'INR', value, payment_type: method, items: googleItems(), ...(ids.ga4 ? { send_to: ids.ga4 } : {}), event_callback: ids.ads && ids.adsLabel ? undefined : done });
+         if (ids.ads && ids.adsLabel) {
+            googleEvent('conversion', { send_to: `${ids.ads}/${ids.adsLabel}`, value, currency: 'INR', transaction_id: String(orderId), event_callback: done });
+         }
+      });
+
       let verifiedPhone = '';
       let sessionToken = '';
       try {
@@ -1911,8 +1984,10 @@
             expectedTotal: quotedTotal,
             quoteToken: quoteFor().quoteToken,
             upsellVariantId: upsellAccepted && activeUpsell ? activeUpsell.variantId : undefined,
-            appliedCoupon: appliedCoupon ? { code: appliedCoupon } : undefined
+            appliedCoupon: appliedCoupon ? { code: appliedCoupon } : undefined,
+            tracking: trackingContext()
          };
+         trackPaymentInfo(method, quotedTotal);
 
          const createFinalOrder = async () => {
              try {
@@ -1923,7 +1998,7 @@
                 const data = await res.json();
                 
                 if (data.paymentReceived) {
-                   if (window.fbq && widgetConfig.fbPixelId) window.fbq('track', 'Purchase', { currency: 'INR', value: quotedTotal, num_items: totalQuantity });
+                   trackPurchase(data.orderId, quotedTotal, method);
                    const drw = widgetRoot.getElementById(`drw${method}`);
                    if (drw) drw.style.display = 'none';
                    widgetRoot.getElementById('state-checkout').style.display='none';
@@ -1936,7 +2011,7 @@
                    widgetRoot.getElementById('state-checkout').style.display='none';
                    widgetRoot.getElementById('successScr').style.display='flex';
                    if (window.launchConfetti) window.launchConfetti();
-                   if (window.fbq && widgetConfig.fbPixelId) window.fbq('track', 'Purchase', { currency: 'INR', value: quotedTotal, num_items: totalQuantity });
+                   const purchaseTracked = trackPurchase(data.orderId, quotedTotal, method);
                    if (method === 'PARTIAL COD') {
                        const partialQuote = quoteFor();
                        widgetRoot.getElementById('cf-success-sub').textContent = `₹${partialQuote.amountDueNow} paid. Please pay ₹${partialQuote.amountDueLater} on delivery.`;
@@ -1944,6 +2019,7 @@
                    if (data.orderStatusUrl) {
                        widgetRoot.getElementById('close-success-btn').style.display = 'none';
                        if (method !== 'PARTIAL COD') widgetRoot.getElementById('cf-success-sub').textContent = 'Taking you to your order details...';
+                       await purchaseTracked;
                        window.location.href = data.orderStatusUrl;
                    }
                 } else {
